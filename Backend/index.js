@@ -20,6 +20,8 @@ const StaffModel = require("./models/StaffModel");
 const crypto = require('crypto');
 const HousekeepingJobModel=require("./models/HousekeepingJobModel")
 const LeaveApplicationModel=require("./models/LeaveApplicationModel")
+const AttendanceModel=require("./models/AttendenceModel");
+const MaintenanceJobModel = require("./models/MaintenanceJobmodel");
 
 
 const app = express();
@@ -566,21 +568,58 @@ const scheduleJobAssignment = () => {
 
 
 
+
+
 app.post('/asjobdetails', async (req, res) => {
     try {
+        // Fetch all housekeeping jobs
+        const housekeepingJobs = await HousekeepingJobModel.find().lean();
         
-        let jobs = await HousekeepingJobModel.find();
-        
-        if (jobs && jobs.length > 0) {
-            return res.status(200).json(jobs); 
-        } else {
-            return res.status(404).json({ message: "No jobs are assigned" });
+        // Fetch all maintenance jobs
+        const maintenanceJobs = await MaintenanceJobModel.find().lean();
+
+        // Combine both job details
+        const allJobs = [...housekeepingJobs, ...maintenanceJobs];
+
+        // If no jobs are found, send an empty array
+        if (allJobs.length === 0) {
+            return res.status(200).json([]);
         }
+
+        // Array to hold job details with room number and staff details
+        const jobDetailsWithRoomNoAndStaff = await Promise.all(
+            allJobs.map(async (job) => {
+                // Find the room based on roomId
+                const room = await RoomModel.findById(job.room_id).lean();
+
+                // Find the staff based on staffId
+                const staff = await StaffModel.findById(job.staff_id).lean();
+
+                // Return an object with desired fields
+                return {
+                    _id: job._id,
+                    roomNo: room ? room.roomno : 'Unknown', // Fallback if room is not found
+                    taskDescription: job.task_description,
+                    taskDate: job.task_date,
+                    status: job.status,
+                    photos: job.photos,
+                    maintenanceRequired: job.maintenanceRequired,
+                    completedAt: job.completedAt,
+                    staffDisplayName: staff ? staff.displayName : 'Unknown', // Fallback if staff is not found
+                    staffRole: staff ? staff.role : 'Unknown', // Fallback if staff is not found
+                    staffEmail: staff ? staff.email : 'Unknown' // Fallback if staff is not found
+                };
+            })
+        );
+
+        // Respond with the job details including room number and staff details
+        res.status(200).json(jobDetailsWithRoomNoAndStaff);
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: error.message }); 
+        console.error('Error fetching job details:', error);
+        res.status(500).json({ message: 'Internal server error' });
     }
 });
+
 
 const stora = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -1123,6 +1162,217 @@ const storagess = multer.diskStorage({
     }
 });
 
+
+app.get('/today', async (req, res) => {
+    try {
+        const today = new Date();
+        const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate()); // Start of the day
+        const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999); // End of the day
+
+        // Fetch attendance records for today
+        const attendance = await AttendanceModel.find({ 
+            date: { $gte: startOfDay, $lte: endOfDay }, 
+            present: true 
+        });
+
+        // Extract staff IDs from attendance records
+        const staffIds = attendance.map(att => att.staffId);
+
+        // Fetch staff details based on the extracted staff IDs
+        const staffDetails = await StaffModel.find({ _id: { $in: staffIds } });
+
+        // Map attendance records to include staff details
+        const response = attendance.map(att => {
+            const staff = staffDetails.find(s => s._id.toString() === att.staffId); // Find the matching staff
+            return {
+                _id: staff._id,
+                staffName: staff.displayName,
+                staffEmail: staff.email,
+                staffRole: staff.role,
+                staffPhone: staff.phone_no,
+                staffImage: staff.image,
+                staffAvailability: staff.availability
+            };
+        });
+
+        res.status(200).json(response);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching attendance', error: error.message });
+    }
+});
+
+
+app.post('/attendance/mark', async (req, res) => {
+    const attendanceData = req.body; // { staffId: true/false }
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0)); // Start of the day for the date comparison
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999)); // End of the day for the date comparison
+
+    try {
+        // Loop through each staff's attendance status
+        for (const [staffId, isPresent] of Object.entries(attendanceData)) {
+            await AttendanceModel.findOneAndUpdate(
+                { 
+                    staffId, 
+                    date: { $gte: startOfDay, $lte: endOfDay } // Ensure the query checks for today’s date
+                },
+                { 
+                    staffId, 
+                    date: new Date(), 
+                    present: isPresent  // Update based on the value of isPresent
+                },
+                { upsert: true, new: true } // Use upsert to create the document if it doesn't exist
+            );
+        }
+        res.status(200).json({ message: 'Attendance marked successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error marking attendance', error: error.message });
+    }
+});
+
+app.post('/assign', async (req, res) => {
+    const assignments = req.body; // Expecting an array of { staffId, task, role }
+
+    try {
+        // Fetch total number of rooms
+        const totalRooms = await RoomModel.countDocuments({});
+        if (totalRooms === 0) {
+            return res.status(400).json({ message: 'No rooms available for assignment' });
+        }
+
+        const roomsPerStaff = Math.ceil(totalRooms / assignments.length); // Calculate how many rooms each staff will handle
+
+        for (const { staffId, task, role } of assignments) {
+            let JobModel;
+
+            // Determine the model to use based on the role
+            if (role.toLowerCase() === 'housekeeping') {
+                JobModel = HousekeepingJobModel;
+            } else if (role.toLowerCase() === 'maintenance') {
+                JobModel = MaintenanceJobModel;
+            } else {
+                return res.status(400).json({ message: 'Unknown role type' });
+            }
+
+            // Assign jobs to the staff
+            const assignedRooms = await RoomModel.find().limit(roomsPerStaff); // Get rooms for the staff
+            if (assignedRooms.length === 0) {
+                return res.status(400).json({ message: 'No rooms available for assignment' });
+            }
+
+            for (const room of assignedRooms) {
+                await JobModel.create({
+                    staff_id: staffId,
+                    room_id: room._id,
+                    task_description: task,
+                    task_date: new Date(),
+                    status: 'assigned', // Set initial status
+                });
+            }
+        }
+
+        res.status(200).json({ message: 'Jobs assigned successfully!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error assigning jobs', error: error.message });
+    }
+});
+
+
+
+
+// Check if jobs are already assigned for today based on role
+app.get('/checkJobs/:role', async (req, res) => {
+    const { role } = req.params;
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0)); // Start of the day
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999)); // End of the day
+
+    try {
+        let assignments;
+
+        // Check the appropriate model based on the role
+        if (role === 'housekeeping') {
+            assignments = await HousekeepingJobModel.find({
+                task_date: {
+                    $gte: startOfDay,
+                    $lte: endOfDay
+                }
+            });
+        } else if (role === 'maintenance') {
+            assignments = await MaintenanceJobModel.find({
+                task_date: {
+                    $gte: startOfDay,
+                    $lte: endOfDay
+                }
+            });
+        } else {
+            return res.status(400).json({ message: 'Invalid role' });
+        }
+
+        // If assignments exist, jobs are assigned
+        res.json({ jobsAssigned: assignments.length > 0 });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Server error');
+    }
+});
+
+
+app.get('/leave-applications', async (req, res) => {
+    try {
+        // Step 1: Fetch all leave applications
+        const applications = await LeaveApplicationModel.find();
+
+        // Step 2: Fetch staff IDs from the applications
+        const staffIds = applications.map(application => application.staff_id);
+
+        // Step 3: Fetch staff details based on the staff IDs
+        const staffDetails = await StaffModel.find({ _id: { $in: staffIds } });
+
+        // Create a mapping of staff details for easy access
+        const staffMap = {};
+        staffDetails.forEach(staff => {
+            staffMap[staff._id] = {
+                name: staff.displayName,
+                email: staff.email,
+                role: staff.role,
+            };
+        });
+
+        // Step 4: Combine leave applications with staff details
+        const combinedResults = applications.map(application => ({
+            ...application.toObject(),
+            ...staffMap[application.staff_id] || {},
+        }));
+
+        // Step 5: Send the combined results as a response
+        res.json(combinedResults);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+});
+
+  
+  // Accept leave application
+  app.post('/leave-applications/accept/:id', async (req, res) => {
+    try {
+      const application = await LeaveApplicationModel.findByIdAndUpdate(req.params.id, { status: 'Accepted', approvedon: new Date() }, { new: true });
+      res.json(application);
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+  
+  // Reject leave application
+  app.post('/leave-applications/reject/:id', async (req, res) => {
+    try {
+      const application = await LeaveApplicationModel.findByIdAndUpdate(req.params.id, { status: 'Rejected' }, { new: true });
+      res.json(application);
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  });
+  
 
 
 

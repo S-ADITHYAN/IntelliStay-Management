@@ -17,6 +17,9 @@ import Geography from "./geography";
 import Reservation from "./reservations";
 import Viewassignedjobs from "./viewjobassigned";
 import StaffSideBar from "./layout/staffsidebar";
+import ManualJobAssignment from "./jobassignment/jobassignment";
+import AttendanceMark from "./AttendenceMark/AttendenceMark";
+import ViewLeaveApplications from "./leaveapllications/ViewLeaveApplications";
 
 export {
   Navbar,
@@ -27,6 +30,9 @@ export {
   Roomadd,
   Showroom,
   Reservation,
+  ViewLeaveApplications,
+  ManualJobAssignment,
+  AttendanceMark,
   Invoices,
   Viewstaff,
   Viewassignedjobs,

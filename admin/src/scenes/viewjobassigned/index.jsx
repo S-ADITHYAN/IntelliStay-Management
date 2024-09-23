@@ -1,138 +1,105 @@
-import { Box, useTheme,Button,Typography } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import {
+  Box,
+  useTheme,
+  Button,
+  Typography,
+  Modal,
+} from "@mui/material";
 import { Header } from "../../components";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
-import { mockDataContacts } from "../../data/mockData";
-import { tokens } from "../../theme";
-import { useEffect,useState } from "react";
 import axios from "axios";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 import useAuth from "../../useAuth";
-
+import { tokens } from "../../theme";
 
 const Viewassignedjobs = () => {
   useAuth();
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
-  
-    const [jobdetails, setjobdetails] = useState([]);
-  
-    const asjobdetails = () => {
-      axios.post('http://localhost:3001/asjobdetails')
-        .then(res => {
-          console.log(res.data);
-          setjobdetails(res.data);
-        })
-        .catch(err => console.log(err));
-    };
+  const [jobdetails, setjobdetails] = useState([]);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [openModal, setOpenModal] = useState(false);
 
-    const handleCancellation = (id) => {
-        // Handle maintenance action
-        axios.post('http://localhost:3001/handleCancellation',{ id })
-          .then(res => {
-           
-            Swal.fire(res.data);
-            asjobdetails();
-          })
-          .catch(err => console.log(err));
-       
-      };
+  const asjobdetails = () => {
+    axios
+      .post("http://localhost:3001/asjobdetails")
+      .then((res) => {
+        console.log(res.data);
+        setjobdetails(res.data);
+      })
+      .catch((err) => console.log(err));
+  };
 
-    useEffect(() => {
-      asjobdetails();
-      }, []);
+  const handleView = (job) => {
+    setSelectedJob(job);
+    setOpenModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setSelectedJob(null);
+  };
+
+  useEffect(() => {
+    asjobdetails();
+  }, []);
 
   const columns = [
     { field: "_id", headerName: "Job_ID", flex: 0.5 },
-    { field: "room_id", headerName: "Room ID" },
+    { field: "roomNo", headerName: "Room no" },
     {
-      field: "staff_id",
-      headerName: "Staff_ID",
-      flex: 1,
+      field: "staffDisplayName",
+      headerName: "Staff_Name",
+      flex: 0.5,
       cellClassName: "name-column--cell",
     },
     {
-      field: "task_description",
+      field: "staffEmail",
+      headerName: "Staff_Email_Id",
+      flex: 0.5,
+      cellClassName: "name-column--cell",
+    },
+    {
+      field: "staffRole",
+      headerName: "Staff_Role",
+      flex: 0.5,
+      cellClassName: "name-column--cell",
+    },
+    {
+      field: "taskDescription",
       headerName: "Task_Description",
       headerAlign: "left",
       align: "left",
     },
     {
-      field: "task_date",
+      field: "taskDate",
       headerName: "Task_Date",
-      flex: 1,
+      flex: 0.5,
     },
     {
       field: "status",
       headerName: "Status",
-      flex: 1,
+      flex: 0.5,
     },
-    
-    // {
-    //   field: "role",
-    //   headerName: "Staff Role",
-    //   flex: 1,
-    //   renderCell: ({ row: { role } }) => {
-    //     return (
-    //       <Box
-    //         width="120px"
-    //         p={1}
-    //         display="flex"
-    //         alignItems="center"
-    //         justifyContent="center"
-    //         gap={1}
-    //         bgcolor={
-    //           role === "housekeeping"
-    //             ? colors.greenAccent[600]
-    //             : colors.greenAccent[700]
-    //         }
-    //         borderRadius={1}
-    //       >
-    //         <Typography textTransform="capitalize">{role}</Typography>
-    //       </Box>
-    //     );
-    //   },
-    // },
-    // {
-    //     field: "actions",
-    //   headerName: "Actions",
-    //   flex: 1,
-    //   renderCell: (params) => (
-    //     <Box display="flex" gap="10px">
-    //       <Button
-    //         variant="contained"
-    //         color="primary"
-    //         size="small"
-    //         onClick={() => handleEdit(params.row._id)}
-    //       >
-    //         Edit
-    //       </Button>
-    //       <Button
-    //         variant="contained"
-            
-    //         size="small"
-    //         onClick={() =>
-    //             params.row.status === "reserved" ? handleCancellation(params.row._id) : null
-    //           }
-    //           style={{
-    //             backgroundColor: params.row.status === "reserved" ? "red" : "#ff6666",
-    //             cursor: params.row.status === "reserved" ? "pointer" : "not-allowed",
-    //           }}
-    //           disabled={params.row.status !== "reserved"}
-    //         >
-    //     {params.row.status === "cancelled" ? "Cancelled" : "Cancel"}
-    //       </Button>
-    //     </Box>
-    //   ),
-    //   },
-
+    {
+      field: "view",
+      headerName: "View",
+      renderCell: (params) => (
+        <Button
+          variant="contained"
+          onClick={() => handleView(params.row)}
+        >
+          View
+        </Button>
+      ),
+    },
   ];
+
   return (
     <Box m="20px">
-      <Header
-        title="Staff Details"
-        subtitle="List of Staff's and their Details "
-      />
+      <Header title="Staff Details" subtitle="List of Staff's and their Details " />
       <Box
         mt="40px"
         height="75vh"
@@ -184,6 +151,75 @@ const Viewassignedjobs = () => {
           checkboxSelection
         />
       </Box>
+
+      {/* Modal for Job Details */}
+      <Modal
+        open={openModal}
+        onClose={handleCloseModal}
+        aria-labelledby="modal-title"
+        aria-describedby="modal-description"
+      >
+       <Box
+  sx={{
+    position: "absolute",
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: 1080, // Increase width
+    maxHeight: '80vh', // Optional: Set a maximum height
+    overflowY: 'auto', // Optional: Allow scrolling if content overflows
+    bgcolor: "background.paper",
+    border: "2px solid #000",
+    boxShadow: 24,
+    p: 4,
+  }}
+>
+        
+          {selectedJob && (
+            <>
+              <Typography id="modal-title" variant="h6" component="h2">
+                Job Details
+              </Typography>
+              <Typography id="modal-description" sx={{ mt: 2 }}>
+                <strong>Room No:</strong> {selectedJob.roomNo}
+                <br />
+                <strong>Task Description:</strong> {selectedJob.taskDescription}
+                <br />
+                <strong>Task Date:</strong> {selectedJob.taskDate}
+                <br />
+                <strong>Status:</strong> {selectedJob.status}
+                <br />
+                <strong>Staff Name:</strong> {selectedJob.staffDisplayName}
+                <br />
+                <strong>Staff Role:</strong> {selectedJob.staffRole}
+                <br />
+                <strong>Staff Email:</strong> {selectedJob.staffEmail}
+                <br />
+                <strong>maintenanceRequired:</strong> {selectedJob.maintenanceRequired?selectedJob.maintenanceRequired:'job not completed'}
+                <br />
+                <strong>completedAt:</strong> {selectedJob.completedAt?selectedJob.completedAt:'job not completed'}
+                <br />
+                {/* Display Images */}
+                {selectedJob.photos && selectedJob.photos.length > 0 && (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', mt: 2 }}>
+                    <strong>Images:</strong>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {selectedJob.photos.map((photo, index) => (
+                        <img
+                          key={index}
+                          src={ `http://localhost:3001/cleanedrooms/${photo}` }
+                          alt={`Job Image ${index}`}
+                          style={{ width: '500px', height: 'auto', borderRadius: '5px' }} // Adjust size as needed
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                )}
+              </Typography>
+            </>
+          )}
+        </Box>
+      </Modal>
     </Box>
   );
 };

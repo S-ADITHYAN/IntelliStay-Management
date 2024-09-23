@@ -172,6 +172,24 @@ const SideBar = () => {
             colors={colors}
             icon={<PeopleAltOutlined />}
           />
+          <Item
+            title="Assign Jobs"
+            path="/admindashboard/jobassignment"
+            colors={colors}
+            icon={<PeopleAltOutlined />}
+          />
+          <Item
+            title="Attendence Mark"
+            path="/admindashboard/attendencemark"
+            colors={colors}
+            icon={<PeopleAltOutlined />}
+          />
+          <Item
+            title="view Leaves"
+            path="/admindashboard/viewleaveapplications"
+            colors={colors}
+            icon={<PeopleAltOutlined />}
+          />
           {/* <Item
             title="Manage Team"
             path="/admindashboard/team"
@@ -190,12 +208,12 @@ const SideBar = () => {
             colors={colors}
             icon={<ContactsOutlined />}
           />
-          <Item
+          {/* <Item
             title="Invoices Balances"
             path="/admindashboard/invoices"
             colors={colors}
             icon={<ReceiptOutlined />}
-          />
+          /> */}
         </Menu>
         <Typography
           variant="h6"
@@ -221,7 +239,7 @@ const SideBar = () => {
             colors={colors}
             icon={<PersonOutlined />}
           />
-          <Item
+          {/* <Item
             title="Calendar"
             path="/admindashboard/calendar"
             colors={colors}
@@ -232,7 +250,7 @@ const SideBar = () => {
             path="/admindashboard/faq"
             colors={colors}
             icon={<HelpOutlineOutlined />}
-          />
+          /> */}
         </Menu>
         <Typography
           variant="h6"
@@ -252,7 +270,7 @@ const SideBar = () => {
             },
           }}
         >
-          <Item
+          {/* <Item
             title="Bar Chart"
             path="/admindashboard/bar"
             colors={colors}
@@ -281,7 +299,7 @@ const SideBar = () => {
             path="/admindashboard/stream"
             colors={colors}
             icon={<WavesOutlined />}
-          />
+          /> */}
         </Menu>
       </Box>
     </Sidebar>

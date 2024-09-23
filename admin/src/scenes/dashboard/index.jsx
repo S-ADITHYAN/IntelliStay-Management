@@ -36,7 +36,7 @@ function Dashboard() {
     <Box m="20px">
       <Box display="flex" justifyContent="space-between">
         <Header title="DASHBOARD" subtitle="Welcome to your dashboard" />
-        {!isXsDevices && (
+        {/* {/* {!isXsDevices && (
           <Box>
             <Button
               variant="contained"
@@ -61,7 +61,7 @@ function Dashboard() {
       </Box>
 
       {/* GRID & CHARTS */}
-      <Box
+      {/* <Box
         display="grid"
         gridTemplateColumns={
           isXlDevices
@@ -74,7 +74,7 @@ function Dashboard() {
         gap="20px"
       >
         {/* Statistic Items */}
-        <Box
+        {/* <Box
           gridColumn="span 3"
           bgcolor={colors.primary[400]}
           display="flex"
@@ -92,8 +92,8 @@ function Dashboard() {
               />
             }
           />
-        </Box>
-        <Box
+        </Box> */}
+        {/* <Box
           gridColumn="span 3"
           backgroundColor={colors.primary[400]}
           display="flex"
@@ -102,8 +102,8 @@ function Dashboard() {
         >
           <StatBox
             title="431,225"
-            subtitle="Sales Obtained"
-            progress="0.50"
+            subtitle="Sales Obtained" */}
+            {/* progress="0.50"
             increase="+21%"
             icon={
               <PointOfSale
@@ -148,13 +148,13 @@ function Dashboard() {
                 sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
               />
             }
-          />
-        </Box>
+          /> */}
+        {/* </Box>  */}
 
         {/* ---------------- Row 2 ---------------- */}
 
         {/* Line Chart */}
-        <Box
+        {/* <Box
           gridColumn={
             isXlDevices ? "span 8" : isMdDevices ? "span 6" : "span 3"
           }
@@ -192,10 +192,10 @@ function Dashboard() {
           <Box height="250px" mt="-20px">
             <LineChart isDashboard={true} />
           </Box>
-        </Box>
+        </Box> */}
 
         {/* Transaction Data */}
-        <Box
+        {/* <Box
           gridColumn={isXlDevices ? "span 4" : "span 3"}
           gridRow="span 2"
           bgcolor={colors.primary[400]}
@@ -240,10 +240,10 @@ function Dashboard() {
               </Box>
             </Box>
           ))}
-        </Box>
+        </Box> */}
 
         {/* Revenue Details */}
-        <Box
+        {/* <Box
           gridColumn={isXlDevices ? "span 4" : "span 3"}
           gridRow="span 2"
           backgroundColor={colors.primary[400]}
@@ -271,10 +271,10 @@ function Dashboard() {
               Includes extra misc expenditures and costs
             </Typography>
           </Box>
-        </Box>
+        </Box> */}
 
         {/* Bar Chart */}
-        <Box
+        {/* <Box
           gridColumn={isXlDevices ? "span 4" : "span 3"}
           gridRow="span 2"
           backgroundColor={colors.primary[400]}
@@ -295,10 +295,10 @@ function Dashboard() {
           >
             <BarChart isDashboard={true} />
           </Box>
-        </Box>
+        </Box> */}
 
         {/* Geography Chart */}
-        <Box
+        {/* <Box
           gridColumn={isXlDevices ? "span 4" : "span 3"}
           gridRow="span 2"
           backgroundColor={colors.primary[400]}
@@ -315,9 +315,9 @@ function Dashboard() {
           >
             <GeographyChart isDashboard={true} />
           </Box>
-        </Box>
+        </Box> */} 
       </Box>
-    </Box>
+    </Box> 
   );
 }
 

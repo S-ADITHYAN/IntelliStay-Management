@@ -11,6 +11,9 @@ import {
   Invoices,
   Viewstaff,
   Viewassignedjobs,
+  ManualJobAssignment,
+  ViewLeaveApplications,
+  AttendanceMark,
   Form,
   Bar,
   Line,
@@ -37,6 +40,9 @@ const AppRouter = () => {
           <Route path="/admindashboard/team" element={<Team />} />
           <Route path="/admindashboard/viewstaff" element={<Viewstaff />} />
           <Route path="/admindashboard/viewassignedjobs" element={<Viewassignedjobs />} />
+          <Route path="/admindashboard/jobassignment" element={<ManualJobAssignment />} />
+          <Route path="/admindashboard/attendencemark" element={<AttendanceMark />} />
+          <Route path="/admindashboard/viewleaveapplications" element={<ViewLeaveApplications />} />
           <Route path="/admindashboard/invoices" element={<Invoices />} />
           <Route path="/admindashboard/form" element={<Form />} />
           <Route path="/admindashboard/calendar" element={<Calendar />} />
