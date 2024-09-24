@@ -145,7 +145,7 @@ import ScrollReveal from 'scrollreveal';
                   <li className="dropdown">
                         <a href="" className="username">{user}</a>
                             <div className="dropdown-content">
-                                  <a href="/profile">Profile</a>
+                                  {/* <a href="/profile">Profile</a> */}
                                    <a href="/my-bookings">My Bookings</a>
                                    <a href="" onClick={handleLogout}>Logout</a>
                             </div>

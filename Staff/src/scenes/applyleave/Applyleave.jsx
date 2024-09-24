@@ -28,15 +28,15 @@ const applyLeaveSchema = yup.object().shape({
 const Applyleave = () => {
     useAuth();
     const isNonMobile = useMediaQuery("(min-width:600px)");
-    const [leaveTypes, setLeaveTypes] = useState(["Sick Leave", "Casual Leave", "Vacation"]);
+    const [leaveTypes, setLeaveTypes] = useState(["Medical Leave", "Casual Leave"]);
     const [userData, setUserData] = useState(null);
 
     const handleFormSubmit = (values, { resetForm }) => {
         const formdata={staff_id:userData._id,...values};
         axios.post('http://localhost:3001/applyleave', formdata)
             .then(res => {
-                if (res.data === "exists") {
-                    Swal.fire("Error", "Leave application already exists!", "error");
+                if (res.status === 200) {
+                    Swal.fire("Error", res.data.message, "error");
                 } else {
                     resetForm({ values: initialValues });
                     Swal.fire("Success", "Leave application submitted successfully!", "success");

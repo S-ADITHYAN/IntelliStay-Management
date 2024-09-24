@@ -26,7 +26,8 @@ const ViewLeaveStatus = () => {
         const decodedToken = jwtDecode(token);
         setUserData(decodedToken);
 
-        axios.post(`http://localhost:3001/leaveDetails/${decodedToken._id}`)
+        axios
+          .post(`http://localhost:3001/leaveDetails/${decodedToken._id}`)
           .then((res) => setLeaveDetails(res.data))
           .catch((err) => console.error(err));
       } catch (error) {
@@ -36,12 +37,39 @@ const ViewLeaveStatus = () => {
   }, []);
 
   const fetchLeaveDetail = (leaveId) => {
-    axios.get(`http://localhost:3001/leaveDetail/${leaveId}`)
+    axios
+      .get(`http://localhost:3001/leaveDetail/${leaveId}`)
       .then((res) => {
         setSelectedLeaveDetail(res.data);
         setOpenDetailModal(true);
       })
       .catch((err) => console.error(err));
+  };
+
+  // Delete leave request
+  const deleteLeave = (leaveId) => {
+    Swal.fire({
+      title: "Are you sure?",
+      text: "You won't be able to revert this!",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Yes, delete it!",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        axios
+          .delete(`http://localhost:3001/deleteLeave/${leaveId}`)
+          .then((res) => {
+            setLeaveDetails((prev) => prev.filter((leave) => leave._id !== leaveId));
+            Swal.fire("Deleted!", "Your leave request has been deleted.", "success");
+          })
+          .catch((err) => {
+            console.error(err);
+            Swal.fire("Error!", "Failed to delete the leave request.", "error");
+          });
+      }
+    });
   };
 
   const columns = [
@@ -51,7 +79,7 @@ const ViewLeaveStatus = () => {
     { field: "endDate", headerName: "End Date", flex: 0.5 },
     { field: "status", headerName: "Status", flex: 0.5 },
     { field: "appliedon", headerName: "Leave Applied on", flex: 0.5},
-    { field: "approvedon", headerName: "Leave Approved on", flex: 0.5,valueGetter: (params) => params.row.approvedon || 'Not yet approved' },
+    { field: "approvedon", headerName: "Leave Approved on", flex: 0.5, valueGetter: (params) => params.row.approvedon || 'Not yet approved' },
     {
       field: "actions",
       headerName: "Actions",
@@ -65,6 +93,14 @@ const ViewLeaveStatus = () => {
             onClick={() => fetchLeaveDetail(params.row._id)}
           >
             View
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            size="small"
+            onClick={() => deleteLeave(params.row._id)}
+          >
+            Delete
           </Button>
         </Box>
       ),

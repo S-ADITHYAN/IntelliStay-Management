@@ -61,7 +61,7 @@ function Rooms() {
           {rooms.map(room => (
             <div key={room._id} className="room__card">
               <div className="room__card__image">
-                <img src={room1} alt="room" />
+                <img src={ (room.images.length > 0) ? `http://localhost:3001/uploads/${room.images[0]}`: {room1}} alt="room" />
                 <div className="room__card__icons">
                   <span><i className="ri-heart-fill"></i></span>
                   <span><i className="ri-paint-fill"></i></span>

@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import './css/Style.css';
 import axios from 'axios';
 import { useNavigate } from "react-router-dom";
-
+import LoginAuth from './LoginAuth';
 
 
 
 function Signin() {
+  LoginAuth();
   axios.defaults.withCredentials = true;
 
   const [formData, setFormData] = useState({

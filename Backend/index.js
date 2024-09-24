@@ -645,8 +645,8 @@ const stora = multer.diskStorage({
       }
   
       // Extract image file names from uploaded files
-      const images = req.files.map(file => file.filename); // Save file names for the database
-  
+      const images = req.files.map(file => file.originalname); // Save file names for the database
+    console.log(images)
       // Update the room in the database
       const updatedRoom = await RoomModel.findByIdAndUpdate(
         req.params.id,
@@ -1093,22 +1093,78 @@ app.get('/jobdetail/:id', async (req, res) => {
   app.post('/applyleave', async (req, res) => {
     try {
         const { staff_id, leaveType, startDate, endDate, reason } = req.body;
+        console.log(req.body);
 
-        // Check if leave application already exists
-        const existingApplication = await LeaveApplicationModel.findOne({ staff_id, startDate, endDate });
+        // Parse startDate and endDate into Date objects
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        console.log(start);
+
+        // Calculate the number of days for the leave application
+        const leaveDays = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+        // Check if the number of days applied for exceeds 5 days
+        if (leaveDays > 5) {
+            console.log(leaveDays);
+            return res.status(200).json({ message: "You cannot apply for more than 5 days leave at a time." });
+        }
+
+        // Get current year for leave count checks
+        const currentYear = new Date().getFullYear();
+        console.log(currentYear)
+        // Check if the staff has already taken 15 casual leaves this year
+        if (leaveType === 'Casual Leave') {
+            const casualLeaveTaken = await LeaveApplicationModel.countDocuments({
+                staff_id,
+                leaveType: 'Casual Leave',
+                startDate: {
+                    $gte: new Date(`${currentYear}-01-01T00:00:00.000+00:00`),
+                    $lt: new Date(`${currentYear}-12-31T23:59:59.999+00:00`)
+                }
+            });
+
+            if (casualLeaveTaken >= 15) {
+                console.log(casualLeaveTaken)
+                return res.status(200).json({ message: "You have already taken the maximum 15 Casual Leaves this year." });
+            }
+        }
+
+        // Check if the staff has already taken 2 sick (medical) leaves this year
+        if (leaveType === 'Sick Leave') {
+            const medicalLeaveTaken = await LeaveApplicationModel.countDocuments({
+                staff_id,
+                leaveType: 'Sick Leave',
+                startDate: {
+                    $gte: new Date(`${currentYear}-01-01T00:00:00.000+00:00`),
+                    $lt: new Date(`${currentYear}-12-31T23:59:59.999+00:00`)
+                }
+            });
+
+            if (medicalLeaveTaken >= 2) {
+                return res.status(200).json({ message: "You have already taken the maximum 2 Sick Leaves this year." });
+            }
+        }
+
+        // Check if a leave application already exists for the given dates
+        const existingApplication = await LeaveApplicationModel.findOne({
+            staff_id,
+            startDate: new Date(startDate),
+            endDate: new Date(endDate)
+        });
+
         if (existingApplication) {
-            return res.status(400).json("exists");
+            return res.status(200).json({message:"Leave already taken on these days "});
         }
 
         // Create a new leave application
         const newLeaveApplication = new LeaveApplicationModel({
             staff_id,
             leaveType,
-            startDate,
-            endDate,
+            startDate: new Date(startDate),  // ensure consistent Date format
+            endDate: new Date(endDate),      // ensure consistent Date format
             reason,
             status: 'Pending',
-            appliedon:new Date() // or whatever initial status you want
+            appliedon: new Date()
         });
 
         await newLeaveApplication.save();
@@ -1225,7 +1281,8 @@ app.get('/today', async (req, res) => {
 
 
 app.post('/attendance/mark', async (req, res) => {
-    const attendanceData = req.body; // { staffId: true/false }
+    const attendanceData = req.body;
+    console.log(attendanceData) // { staffId: true/false }
     const today = new Date();
     const startOfDay = new Date(today.setHours(0, 0, 0, 0)); // Start of the day for the date comparison
     const endOfDay = new Date(today.setHours(23, 59, 59, 999)); // End of the day for the date comparison
@@ -1395,8 +1452,46 @@ app.get('/leave-applications', async (req, res) => {
     }
   });
   
+  const getStartAndEndOfDay = (date) => {
+    const start = new Date(date.setHours(0, 0, 0, 0));
+    const end = new Date(date.setHours(23, 59, 59, 999));
+    return { start, end };
+  };
+  
+  // Fetch today's attendance for all staff
+  app.post('/attendance/today', async (req, res) => {
+    const today = new Date();
+    const { start, end } = getStartAndEndOfDay(today);
+  
+    try {
+      // Find attendance entries where the date is between start and end of today
+      const todaysAttendance = await AttendanceModel.find({
+        date: {
+          $gte: start,
+          $lte: end,
+        },
+      });
+      res.json(todaysAttendance);
+    } catch (err) {
+      res.status(500).json({ error: 'Failed to fetch attendance' });
+    }
+  });
 
 
+  app.delete("/deleteLeave/:leaveId", async (req, res) => {
+    const leaveId = req.params.leaveId;
+  
+    try {
+      const deletedLeave = await LeaveApplicationModel.findByIdAndDelete(leaveId);
+      if (!deletedLeave) {
+        return res.status(404).json({ message: "Leave request not found" });
+      }
+      res.json({ message: "Leave request deleted successfully" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Server error" });
+    }
+  });
 
 app.listen(3001, () => {
     console.log("Server connected");

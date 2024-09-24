@@ -73,6 +73,7 @@ const EditRoom = ({ roomData, onClose, onUpdateComplete }) => {
     updatedImages.forEach((image) => {
       formData.append('images', image); // Append each image
     });
+    console.log(formData)
   
     axios.post(`http://localhost:3001/updateroom/${roomData._id}`, formData, {
       headers: {

@@ -6,11 +6,13 @@ import { useNavigate } from "react-router-dom";
 import { getAuth, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { firebaseApp } from "./Firebase_config"; // Ensure firebaseApp is correctly initialized
 import Swal from 'sweetalert2';
+import LoginAuth from './LoginAuth';
 
 const auth = getAuth(firebaseApp);
 const googleProvider = new GoogleAuthProvider();
 
 function Signupin() {
+  LoginAuth();
   axios.defaults.withCredentials = true;
   const [signUpMode, setSignUpMode] = useState(false);
 
@@ -172,7 +174,7 @@ const signInWithGoogle = () => {
             <div className="input-fields-container">
             <div className="input-field">
               <i className="fas fa-user"></i>
-              <input type="text" pattern="^[A-Za-z]+$" className='input' name="firstname" placeholder="First name" value={FormData.firstname} onChange={handleChange} onBlur={()=>setFocus({...focus,errFirstname: true})} focus={focus.errFirstname.toString()} required/>
+              <input type="text" pattern="^[A-Za-z]+$" className='input' name="firstname" placeholder="Full name" value={FormData.firstname} onChange={handleChange} onBlur={()=>setFocus({...focus,errFirstname: true})} focus={focus.errFirstname.toString()} required/>
               <span>first name should be character</span>
             </div>
            

@@ -10,12 +10,24 @@ const AttendanceMark = () => {
   const colors = tokens(theme.palette.mode);
   const [staffList, setStaffList] = useState([]);
   const [attendance, setAttendance] = useState({});
+  const [isAttendanceMarked, setIsAttendanceMarked] = useState(false);
 
-  // Fetch all staff members on component mount
+  // Fetch all staff members and today's attendance on component mount
   useEffect(() => {
+    // Fetch staff list
     axios.post('http://localhost:3001/staffdetails')
       .then(response => setStaffList(response.data))
       .catch(error => console.error('Error fetching staff list', error));
+
+    // Check if today's attendance is marked
+    axios.post('http://localhost:3001/attendance/today')
+      .then(response => {
+        if (response.data.length > 0) {
+          console.log(response.data)
+          setIsAttendanceMarked(true);
+        }
+      })
+      .catch(error => console.error('Error checking attendance', error));
   }, []);
 
   // Handle checkbox change for marking attendance
@@ -27,18 +39,21 @@ const AttendanceMark = () => {
   };
 
   // Submit the attendance to the backend
+//   
+  // Submit the attendance to the backend
   const submitAttendance = () => {
+
     console.log(attendance)
     axios.post('http://localhost:3001/attendance/mark', attendance)
       .then(() => {
-        Swal.fire('Attendance marked successfully!');
+        Swal.fire('Success!','Attendance marked successfully!','succes');
       })
       .catch(error => console.error('Error submitting attendance', error));
   };
 
   const columns = [
     { field: 'displayName', headerName: 'Staff Name', flex: 1 },
-    { field: 'email', headerName: 'Staff Email_Id', flex: 1 },
+    { field: 'email', headerName: 'Staff Email', flex: 1 },
     { field: 'role', headerName: 'Role', flex: 1 },
     {
       field: 'attendance',
@@ -48,6 +63,7 @@ const AttendanceMark = () => {
         <input
           type="checkbox"
           checked={attendance[params.row._id] || false}
+          disabled={isAttendanceMarked} // Disable if attendance is already marked
           onChange={(e) => handleAttendanceChange(params.row._id, e.target.checked)}
         />
       ),
@@ -94,9 +110,10 @@ const AttendanceMark = () => {
         variant="contained" 
         color="success" 
         onClick={submitAttendance} 
+        disabled={isAttendanceMarked} // Disable button if already marked
         style={{ marginTop: '20px' }}
       >
-        Submit Attendance
+        {isAttendanceMarked ? 'Attendance Marked' : 'Submit Attendance'}
       </Button>
     </Box>
   );

@@ -232,7 +232,7 @@ console.log(userData);
             colors={colors}
             icon={<ReceiptOutlined />}
           /> */}
-        </Menu>
+        {/* </Menu>
         <Typography
           variant="h6"
           color={colors.gray[300]}
@@ -250,14 +250,14 @@ console.log(userData);
               },
             },
           }}
-        >
+        > */}
           {/* <Item
             title="Add Staff"
             path="/admindashboard/form"
             colors={colors}
             icon={<PersonOutlined />}
           /> */}
-          <Item
+          {/* {/* <Item
             title="Calendar"
             path="/admindashboard/calendar"
             colors={colors}
@@ -267,9 +267,9 @@ console.log(userData);
             title="FAQ Page"
             path="/admindashboard/faq"
             colors={colors}
-            icon={<HelpOutlineOutlined />}
-          />
-        </Menu>
+            icon={<HelpOutlineOutlined />} 
+          /> */}
+        {/* </Menu>
         <Typography
           variant="h6"
           color={colors.gray[300]}
@@ -287,7 +287,7 @@ console.log(userData);
               },
             },
           }}
-        >
+        > */}
           {/* <Item
             title="Bar Chart"
             path="/admindashboard/bar"
