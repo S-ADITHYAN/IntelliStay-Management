@@ -16,18 +16,30 @@ function Rooms() {
   const location = useLocation();
   const state = location.state || {};
   const searchdata = state.data || {};
-
+  const[roomNeed,setRoomNeed]=useState();
   const checkrooms = () => {
     axios.post("http://localhost:3001/checkrooms", { searchdata })
       .then(res => {
         if (res.status === 200) {
-          setRooms(res.data); // Assuming the response data contains the rooms
+          const { availableRooms, roomsNeeded, roomsAvailable, message } = res.data;
+          console.log(res.data);
+          // Handle the case where not enough rooms are available
+          if (availableRooms.length < roomsNeeded) {
+            console.log(message);
+            console.log(`Rooms needed: ${roomsNeeded}, Rooms available: ${roomsAvailable}`);
+            // You could also show a message to the user here
+          } else {
+            console.log(message);
+            setRoomNeed(roomsNeeded);
+            setRooms(availableRooms); // Set only the available rooms to state
+          }
         }
       })
       .catch(err => {
         console.error("Error", err);
       });
   };
+  
 
   useEffect(() => {
     checkrooms();
@@ -40,6 +52,9 @@ function Rooms() {
       </div>
       <Checkin searchdata={searchdata} />
       <section className="section__container room__container">
+      <p className="section__subheader" style={{ color: 'red' }}>
+  {`You need to book ${roomNeed} rooms for ${searchdata.adults} adults and ${searchdata.children} child`}
+</p>
         <p className="section__subheader">OUR LIVING ROOM</p>
         <h2 className="section__header">The Most Memorable Rest Time Starts Here.</h2>
         <div className="room__grid">

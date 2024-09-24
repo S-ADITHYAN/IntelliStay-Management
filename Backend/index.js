@@ -694,26 +694,48 @@ const stora = multer.diskStorage({
 
 app.post('/checkrooms', async (req, res) => {
     try {
-      const { checkInDate, checkOutDate } = req.body.searchdata;
-  
-      // Find reserved rooms for the check-in date
-      const reservedRooms = await ReservationModel.find({
-        check_in: { $eq: new Date(checkInDate) }
-       
-      }).distinct('room_id');
-      console.log(reservedRooms)
-  
-      // Find available rooms
-      const availableRooms = await RoomModel.find({
-        _id: { $nin: reservedRooms }
-      });
-      
-      res.status(200).json(availableRooms);
+        const { checkInDate, checkOutDate, adults, children } = req.body.searchdata;
+        
+        // Validation: Check if adults or children are within reasonable bounds
+        if (adults <= 0 || children < 0) {
+            return res.status(400).json({ message: 'Invalid number of adults or children' });
+        }
+
+        // Calculate the number of rooms needed based on 2 adults and 2 children per room
+        const totalPeople = adults + children;
+        const roomsNeeded = Math.ceil(totalPeople / 4); // Each room can have up to 4 people (2 adults, 2 children)
+
+        // Find reserved rooms for the check-in date
+        const reservedRooms = await ReservationModel.find({
+            check_in: { $eq: new Date(checkInDate) }
+        }).distinct('room_id');
+        console.log('Reserved rooms:', reservedRooms);
+
+        // Find available rooms
+        const availableRooms = await RoomModel.find({
+            _id: { $nin: reservedRooms }
+        });
+console.log(availableRooms)
+        if (availableRooms.length < roomsNeeded) {
+            return res.status(200).json({ 
+                message: 'Not enough available rooms', 
+                availableRooms, 
+                roomsNeeded, 
+                roomsAvailable: availableRooms.length 
+            });
+        }
+
+        // Return the available rooms and number of rooms needed
+        res.status(200).json({ 
+            message: 'Rooms available', 
+            availableRooms, 
+            roomsNeeded 
+        });
     } catch (error) {
-      console.error("Error fetching rooms:", error);
-      res.status(500).send("Server Error");
+        console.error('Error fetching rooms:', error);
+        res.status(500).send('Server Error');
     }
-  });
+});
 
 
   app.post('/confirmbook', async (req, res) => {
