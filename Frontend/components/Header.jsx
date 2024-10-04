@@ -127,7 +127,9 @@ import ScrollReveal from 'scrollreveal';
         <nav>
           <div className="nav__bar">
             <div className="logo">
-              <a href="#"><img src={logo} alt="logo" /></a>
+              {/* <a href="#"><img src={logo} alt="logo" /></a> */}
+              <h2 style={{ color: '#fff' }}>IntelliStay</h2>
+
             </div>
             <div className="nav__menu__btn" id="menu-btn">
               <i className="ri-menu-line"></i>

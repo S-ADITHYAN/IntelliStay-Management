@@ -22,6 +22,9 @@ const HousekeepingJobModel=require("./models/HousekeepingJobModel")
 const LeaveApplicationModel=require("./models/LeaveApplicationModel")
 const AttendanceModel=require("./models/AttendenceModel");
 const MaintenanceJobModel = require("./models/MaintenanceJobmodel");
+const nodemailer = require('nodemailer');
+const RoomGuestModel=require('./models/Guestroom')
+
 
 
 const app = express();
@@ -120,11 +123,13 @@ app.post("/authWithGoogle",async (req,res)=>{
 
 app.post('/login', (req, res) => {
     const { emailsign, passwordsign } = req.body;
+    console.log(passwordsign)
     GoogleRegisterModel.findOne({ email: emailsign })
         .then(user => {
             if (user) {
-                if (user.password === passwordsign) {
-                  
+            
+                if (user.password && user.password.length > 0 && user.password === passwordsign) {
+                    console.log("hello")
                     req.session.email =  emailsign ;
                     res.status(200).json({message:"success",data: req.session.email,id:user._id});
                     
@@ -192,28 +197,185 @@ app.get('/profile', (req, res) => {
     }
   });
 
-app.post('/register', async(req, res) => {
-    const{email,password}=req.body;
+// app.post('/register', async(req, res) => {
+//     const{email,password}=req.body;
+//     try {
+//         let user = await GoogleRegisterModel.findOne({ email: email });
+//         if (!user) {
+//             user = new GoogleRegisterModel({
+               
+//                 email: email ,
+//                 password: password,
+//             });
+//             await user.save();
+//             return res.status(200).json("success");
+//              // Save the new user to the database
+//         }
+//         else{
+//         return res.json("exists");
+//         }
+//     } catch (error) {
+//         return done(error, null);
+//     }
+// });
+
+
+
+// Function to generate a random OTP
+const otpStore = {};
+
+// Generate OTP function
+const generateOTP = () => {
+    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+    console.log(`Generated OTP: ${otp}`);
+    return otp;
+};
+
+// Function to send OTP via email
+const sendOtpEmail = async (email, otp) => {
+    let transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.email_id,
+            pass: process.env.password,
+        },
+    });
+
+    let mailOptions = {
+        from: process.env.email_id,
+        to: email,
+        subject: 'Your OTP for Registration',
+        text: `Your OTP code is ${otp}. It is valid for 10 minutes.`,
+    };
+
+    return transporter.sendMail(mailOptions);
+};
+
+// Route to handle registration and OTP generation
+app.post('/register', async (req, res) => {
+    console.log("Request Body:", req.body);
+    const { email, password, firstname } = req.body;
+
     try {
         let user = await GoogleRegisterModel.findOne({ email: email });
-        if (!user) {
-            user = new GoogleRegisterModel({
-               
-                email: email ,
-                password: password,
+        console.log(user);
+        if (user) {
+            return res.status(200).json({ message: "Email already exists." });
+        } else {
+            // Generate OTP
+            const otp = generateOTP();
+            console.log('Generated OTP:', otp);
+
+            // Store OTP and password in memory for 10 minutes
+            otpStore[email] = { otp, password, expires: Date.now() + 10 * 60 * 1000 }; // expires in 10 minutes
+
+            // Send OTP to the user's email
+            await sendOtpEmail(email, otp);
+
+            // Send response with all form data
+            return res.status(200).json({
+                message: "OTP sent to your email.",
+                formdata: { ...req.body },
             });
-            await user.save();
-             // Save the new user to the database
         }
-        return res.json("exists");
     } catch (error) {
-        return done(error, null);
+        console.error(error);
+        return res.status(500).json({ message: "Server error. Please try again." });
     }
 });
 
+// Route to verify OTP
+// app.post('/verify-otp', async (req, res) => {
+//     console.log(req.body)
+//     const { email, otp, firstname } = req.body;
 
+//     try {
+//         // Check if the OTP exists and is still valid
+//         const storedData = otpStore[email];
+//         if (!storedData || Date.now() > storedData.expires) {
+//             delete otpStore[email]; // Clean up expired OTP
+//             return res.status(400).json({ message: "OTP has expired or is invalid." });
+//         }
 
+//         // Check if the OTP matches
+//         if (otp === storedData.otp) {
+//             // OTP is correct, save user to the database
+//             let user = new GoogleRegisterModel({
+//                 email,
+//                 password: storedData.password, // Ideally, hash this before saving
+//                 displayName: firstname,
+//             });
+//             await user.save();
 
+//             // Remove OTP from memory after successful registration
+//             delete otpStore[email];
+
+//             return res.status(200).json({ message: "OTP verified. Registration complete." });
+//         } else {
+//             return res.status(400).json({ message: "Invalid OTP." });
+//         }
+//     } catch (error) {
+//         console.error(error);
+//         return res.status(500).json({ message: "Server error. Please try again." });
+//     }
+// });
+
+const sendAccountConfirmationEmail = async (email,firstname) => {
+    let transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+            user: process.env.email_id,
+            pass: process.env.password,
+        },
+    });
+
+    let mailOptions = {
+        from: process.env.email_id,
+        to: email,
+        subject: 'Account Successfully Created',
+        text: `Your account has been successfully created! Welcome, ${firstname} to IntelliStay platform.`,
+    };
+
+    return transporter.sendMail(mailOptions);
+};
+
+app.post('/verify-otp', async (req, res) => {
+    console.log(req.body);
+    const { email, otp, firstname } = req.body;
+
+    try {
+        // Check if the OTP exists and is still valid
+        const storedData = otpStore[email];
+        if (!storedData || Date.now() > storedData.expires) {
+            delete otpStore[email]; // Clean up expired OTP
+            return res.status(400).json({ message: "OTP has expired or is invalid." });
+        }
+
+        // Check if the OTP matches
+        if (otp === storedData.otp) {
+            // OTP is correct, save user to the database
+            let user = new GoogleRegisterModel({
+                email,
+                password: storedData.password, // Ideally, hash this before saving
+                displayName: firstname,
+            });
+            await user.save();
+
+            // Send account creation confirmation email
+            await sendAccountConfirmationEmail(email,firstname);
+
+            // Remove OTP from memory after successful registration
+            delete otpStore[email];
+
+            return res.status(200).json({ message: "OTP verified. Registration complete." });
+        } else {
+            return res.status(400).json({ message: "Invalid OTP." });
+        }
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: "Server error. Please try again." });
+    }
+});
 
 
 const storage = multer.diskStorage({
@@ -709,13 +871,13 @@ app.post('/checkrooms', async (req, res) => {
         const reservedRooms = await ReservationModel.find({
             check_in: { $eq: new Date(checkInDate) }
         }).distinct('room_id');
-        console.log('Reserved rooms:', reservedRooms);
+        // console.log('Reserved rooms:', reservedRooms);
 
         // Find available rooms
         const availableRooms = await RoomModel.find({
             _id: { $nin: reservedRooms }
         });
-console.log(availableRooms)
+console.log("avaiable",availableRooms)
         if (availableRooms.length < roomsNeeded) {
             return res.status(200).json({ 
                 message: 'Not enough available rooms', 
@@ -738,33 +900,177 @@ console.log(availableRooms)
 });
 
 
-  app.post('/confirmbook', async (req, res) => {
-    try {
-        const { roomdatas, datas, userid,trateString } = req.body;
-         console.log(datas);
-         console.log(roomdatas);
-        const newReservation = new ReservationModel({
-            user_id: userid,
-            room_id: roomdatas._id,
-            check_in: new Date(datas.checkInDate),
-            check_out: new Date(datas.checkOutDate),
-            booking_date: new Date(),
-            status: 'booked', // Example status
-            check_in_time: datas.check_in_time ? new Date() : null,
-            check_out_time: datas.check_out_time ? new Date() : null,
-            total_amount: trateString,
-        });
+//   app.post('/confirmbook', async (req, res) => {
+//     try {
+//         const { roomdatas, datas, userid,trateString } = req.body;
+//          console.log(datas);
+//          console.log(roomdatas);
+//         const newReservation = new ReservationModel({
+//             user_id: userid,
+//             room_id: roomdatas._id,
+//             check_in: new Date(datas.checkInDate),
+//             check_out: new Date(datas.checkOutDate),
+//             booking_date: new Date(),
+//             status: 'booked', // Example status
+//             check_in_time: datas.check_in_time ? new Date() : null,
+//             check_out_time: datas.check_out_time ? new Date() : null,
+//             total_amount: trateString,
+//         });
 
-        await newReservation.save();
+//         await newReservation.save();
 
-        res.status(200).json({ message: 'Booking confirmed', reservation: newReservation });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: 'Server Error', error: err });
+//         res.status(200).json({ message: 'Booking confirmed', reservation: newReservation });
+//     } catch (err) {
+//         console.error(err);
+//         res.status(500).json({ message: 'Server Error', error: err });
+//     }
+// });
+
+
+
+// Define storage for the uploaded files
+const pack = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, './uploads/proofdocs'); // Specify the destination folder for uploaded files
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`); // Define unique filename
     }
 });
 
+// File filter to restrict file types
+const Filter = (req, file, cb) => {
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png'];
 
+    if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true); // Accept file
+    } else {
+        cb(new Error('Invalid file type. Only PDF, DOC, DOCX, JPEG, JPG, and PNG are allowed.'), false); // Reject file
+    }
+};
+
+// Create a multer instance with file filter
+const uploadssss = multer({
+    storage: pack,
+    limits: { fileSize: 5 * 1024 * 1024 }, // Limit file size to 5MB
+    fileFilter: Filter
+});
+
+// Middleware to handle file uploads (you can adjust the number of files as needed)
+const uploadHandler = uploadssss.array('proofDocuments', 10); // Maximum 10 files at a time
+
+app.post('/confirmbook', (req, res) => {
+    uploadHandler(req, res, async (err) => {
+        if (err) {
+          console.log('Upload Error:', err);
+          return res.status(500).json({
+            success: false,
+            message: 'File upload failed',
+            error: err.message,
+          });
+        }
+    
+        console.log('Uploaded Files:', req.files);
+
+        try {
+            // Parse request body data (they come as strings in multipart/form-data)
+            const roomDetails = JSON.parse(req.body.roomDetails);
+            console.log("roomdetails", roomDetails);
+            const datas = JSON.parse(req.body.datas);
+            const adultDetails = Array.isArray(req.body.adultDetails) 
+                ? req.body.adultDetails.map(detail => JSON.parse(detail)) 
+                : [];
+            const childrenDetails = Array.isArray(req.body.childrenDetails) 
+                ? req.body.childrenDetails.map(detail => JSON.parse(detail)) 
+                : []; 
+            const userid = req.body.userid;
+            const totalRate = req.body.totalRate;
+            const totldays = req.body.totldays;
+
+            // Extract specific details
+            const roomId = roomDetails._id;
+            const checkInDate = datas.checkInDate;
+            const checkOutDate = datas.checkOutDate;
+            const totalAmount = totalRate;
+            const userId = userid;
+
+            // Save Guest Details (Adults and Children)
+            const guestIds = [];
+            console.log(adultDetails);
+            console.log(childrenDetails);
+            console.log(typeof(adultDetails))
+            // Process Adults
+            if (Array.isArray(adultDetails) && adultDetails.length > 0) {
+                for (let i = 0; i < adultDetails.length; i++) {
+                    const adult = adultDetails[i];
+                    console.log(adult)
+                    // Link proof document (if any) to the adult based on file order
+                    const proofDocument = req.files && req.files[i] ? req.files[i].filename : null;
+
+                    const newGuest = new RoomGuestModel({
+                        name: adult.name,
+                        email: adult.email,
+                        phone: adult.phone,
+                        address: adult.address,
+                        dob: adult.dob, // Date of Birth
+                        role: 'adult',
+                        proofType: adult.proofType,
+                        proofNumber: adult.proofNumber,
+                        proofDocument, // Store file path if document uploaded
+                    });
+
+                    const savedGuest = await newGuest.save();
+                    guestIds.push(savedGuest._id);
+                }
+            }
+
+            // Process Children
+            if (Array.isArray(childrenDetails) && childrenDetails.length > 0) {
+                for (const child of childrenDetails) {
+                    const newChildGuest = new RoomGuestModel({
+                        name: child.name,
+                        dob: child.dob, // Date of Birth
+                        role: 'child',
+                    });
+                    const savedChild = await newChildGuest.save();
+                    guestIds.push(savedChild._id);
+                }
+            }
+
+            // Create Reservation
+            const newReservation = new ReservationModel({
+                user_id: userId,
+                room_id: roomId,
+                check_in: new Date(checkInDate),
+                check_out: new Date(checkOutDate),
+                booking_date: new Date(), // Current date for booking
+                status: 'booked', // Default status
+                total_amount: totalAmount,
+                totaldays: totldays,
+                check_in_time: datas.check_in_time ? new Date() : null,
+                check_out_time: datas.check_out_time ? new Date() : null,
+                guestids: guestIds, // Link guests to this reservation
+            });
+
+            // Save reservation to the database
+            const savedReservation = await newReservation.save();
+
+            res.status(201).json({
+                success: true,
+                message: 'Room booking confirmed!',
+                reservation: savedReservation,
+            });
+        } catch (error) {
+            res.status(500).json({
+                success: false,
+                message: 'Error booking room',
+                error: error.message,
+            });
+        }
+    });
+});
+
+  
 
 app.get('/my-bookings/:userId', async (req, res) => {
     try {
@@ -1492,6 +1798,95 @@ app.get('/leave-applications', async (req, res) => {
       res.status(500).json({ message: "Server error" });
     }
   });
+
+
+// forgot password field
+const transporterr = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.email_id,
+      pass: process.env.password,
+    },
+  });
+  
+  // 1. Request OTP (Send Email)
+  app.post('/send-otp', async (req, res) => {
+    const { email } = req.body;
+    const user = await GoogleRegisterModel.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+  
+    // Generate a random OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  
+    // Save OTP in the user model or in a temporary database with expiration
+    user.otp = otp;
+    user.otpExpires = Date.now() + 3600000; // 1 hour expiry
+    await user.save();
+  
+    // Send OTP via email
+    const mailOptions = {
+      from: process.env.email_id,
+      to: email,
+      subject: 'Password Reset OTP',
+      text: `Your OTP is: ${otp}`,
+    };
+  
+    transporterr.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        return res.status(500).json({ message: 'Error sending email' });
+      }
+      res.status(200).json({ message: 'OTP sent to email' });
+    });
+  });
+  
+  // 2. Verify OTP
+  app.post('/verify', async (req, res) => {
+    const { email, otp } = req.body;
+    console.log(req.body)
+    const user = await GoogleRegisterModel.findOne({ email });
+    console.log(user)
+    console.log(user.otp)
+    console.log(user.otpExpires)
+    if (!user || user.otp !== otp || Date.now() > user.otpExpires) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+  
+    // Generate token to allow password reset
+    const token = jwt.sign({ email }, process.env.JWT_SECRET_KEY, { expiresIn: '15m' });
+    res.status(200).json({ message: 'OTP verified', token });
+  });
+  
+  // 3. Reset Password
+  app.post('/reset-password', async (req, res) => {
+    const { token, password } = req.body;
+    console.log(password)
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+      console.log(decoded.email)
+      const user = await GoogleRegisterModel.findOne({ email: decoded.email });
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      else{
+      // Hash the new password and save
+    //   const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = password;
+      await user.save();
+  
+      res.status(200).json({ message: 'Password reset successful' });
+      }
+    } catch (error) {
+      res.status(400).json({ message: 'Invalid token or expired token' });
+    }
+  });
+
+
+// forgot password end
+
+
+
 
 app.listen(3001, () => {
     console.log("Server connected");

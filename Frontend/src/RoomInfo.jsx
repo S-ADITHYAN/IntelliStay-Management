@@ -78,18 +78,19 @@ const handleBook=()=>{
   navigate('/signup');
 }
 else{
-  axios.post("http://localhost:3001/confirmbook", { roomdatas,datas,userid,trateString })
-  .then(res => {
-    if (res.status === 200) {
-      Swal.fire("booking succesful");
-    }
-    else{
-      Swal.fire(error);
-    }
-  })
-  .catch(err => {
-    console.error("Error", err);
-  });
+  navigate('/guestdetails',{state:{data: datas,roomdata:roomdatas,totlrate: trateString,totldays:differenceInDaysString}});
+  // axios.post("http://localhost:3001/confirmbook", { roomdatas,datas,userid,trateString })
+  // .then(res => {
+  //   if (res.status === 200) {
+  //     Swal.fire("booking succesful");
+  //   }
+  //   else{
+  //     Swal.fire(error);
+  //   }
+  // })
+  // .catch(err => {
+  //   console.error("Error", err);
+  // });
 };
 }
 

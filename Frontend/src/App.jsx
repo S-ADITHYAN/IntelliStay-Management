@@ -8,6 +8,8 @@ import Rooms from "./Rooms.jsx"
 import RoomInfo from "./RoomInfo.jsx"
 import List from "./List.jsx"
 import MyBookings from "../components/Mybookings/MyBookings.jsx"
+import GuestDetailsForm from "./GuestDetailsForm.jsx"
+import ReserveRoom from "./Roomreserve.jsx"
 
 function App(){
 
@@ -21,6 +23,8 @@ function App(){
             <Route path='/rooms' element={ <Rooms /> }></Route> 
             <Route path='/roominfo' element={ <RoomInfo /> }></Route> 
             <Route path='/list' element={ <List /> }></Route> 
+            <Route path='/guestdetails' element={ <GuestDetailsForm /> }></Route> 
+            <Route path='/reserveroom' element={ <ReserveRoom /> }></Route> 
             <Route path="/my-bookings" element={<MyBookings />} />
             </Routes>
          </BrowserRouter> 

@@ -10,6 +10,8 @@ const ReservationSchema = new mongoose.Schema({
     check_in_time:Date,
     check_out_time:Date,
     total_amount: Number,
+    guestids:[String],
+    totaldays:String
     
 },{timestamps:true});
 

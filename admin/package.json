@@ -28,6 +28,7 @@
     "@nivo/pie": "^0.87.0",
     "@nivo/stream": "^0.87.0",
     "axios": "^1.7.4",
+    "date-fns": "^4.1.0",
     "file-saver": "^2.0.5",
     "formik": "^2.4.5",
     "papaparse": "^5.4.1",

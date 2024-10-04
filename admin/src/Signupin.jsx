@@ -95,8 +95,8 @@ function Signin() {
       <div className="custom-panels-container">
         <div className="custom-panel custom-left-panel">
           <div className="custom-content">
-            <h3>Welcome to Admin Login.</h3>
-            <p>                                              </p> 
+            <h3>Welcome to IntelliStay.</h3>
+            <p>        Admin Sign in                                      </p> 
           </div>
            <img src="img/log.svg" className="custom-image" alt="" /> 
         </div>

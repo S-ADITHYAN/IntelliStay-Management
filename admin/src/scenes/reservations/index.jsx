@@ -7,6 +7,7 @@ import { useEffect,useState } from "react";
 import axios from "axios";
 import Swal from 'sweetalert2';
 import useAuth from "../../useAuth";
+import { differenceInMinutes } from 'date-fns'; 
 
 const Reservation = () => {
   useAuth();
@@ -41,75 +42,74 @@ const Reservation = () => {
         resdetails();
       }, []);
 
-  const columns = [
-    { field: "_id", headerName: "Reservation_ID", flex: 0.5 },
-    { field: "user_id", headerName: "User_ID" },
-    {
-      field: "room_id",
-      headerName: "Room_ID",
-      flex: 1,
-      cellClassName: "name-column--cell",
-    },
-    {
-      field: "check_in",
-      headerName: "Check_in Date",
-      headerAlign: "left",
-      align: "left",
-    },
-    {
-      field: "check_out",
-      headerName: "Check_out Date",
-      flex: 1,
-    },
-    {
-      field: "booking_date",
-      headerName: "Booking Date",
-      flex: 1,
-    },
-    {
-      field: "status",
-      headerName: "Status",
-      flex: 1,
-    },
-    {
-      field: "total_amount",
-      headerName: "Total Amount",
-      flex: 1,
-    },
-    {
-        field: "actions",
-      headerName: "Actions",
-      flex: 1,
-      renderCell: (params) => (
-        <Box display="flex" gap="10px">
-         {/* <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            onClick={() => handleEdit(params.row._id)}
-          > 
-            Edit
-          </Button> */}
-          <Button
-            variant="contained"
-            
-            size="small"
-            onClick={() =>
-                params.row.status === "reserved" ? handleCancellation(params.row._id) : null
-              }
-              style={{
-                backgroundColor: params.row.status === "reserved" ? "red" : "#ff6666",
-                cursor: params.row.status === "reserved" ? "pointer" : "not-allowed",
-              }}
-              disabled={params.row.status !== "reserved"}
-            >
-        {params.row.status === "cancelled" ? "Cancelled" : "Cancel"}
-          </Button>
-        </Box>
-      ),
-      },
-
-  ];
+      const columns = [
+        { field: "_id", headerName: "Reservation_ID", flex: 0.5 },
+        { field: "user_id", headerName: "User_ID" },
+        {
+          field: "room_id",
+          headerName: "Room_ID",
+          flex: 1,
+          cellClassName: "name-column--cell",
+        },
+        {
+          field: "check_in",
+          headerName: "Check_in Date",
+          headerAlign: "left",
+          align: "left",
+        },
+        {
+          field: "check_out",
+          headerName: "Check_out Date",
+          flex: 1,
+        },
+        {
+          field: "booking_date",
+          headerName: "Booking Date",
+          flex: 1,
+        },
+        {
+          field: "status",
+          headerName: "Status",
+          flex: 1,
+        },
+        {
+          field: "total_amount",
+          headerName: "Total Amount",
+          flex: 1,
+        },
+        {
+          field: "actions",
+          headerName: "Actions",
+          flex: 1,
+          renderCell: (params) => {
+            const currentTime = new Date();
+            const bookingTime = new Date(params.row.booking_date);
+      
+            // Calculate the difference in minutes
+            const timeDifference = differenceInMinutes(currentTime, bookingTime);
+      
+            // Enable button if timeDifference is 10 minutes or less
+            const canCancel = timeDifference <= 10 && params.row.status === "reserved";
+      
+            return (
+              <Box display="flex" gap="10px">
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={() => canCancel ? handleCancellation(params.row._id) : null}
+                  style={{
+                    backgroundColor: canCancel ? "red" : "#ff6666",
+                    cursor: canCancel ? "pointer" : "not-allowed",
+                  }}
+                  disabled={!canCancel}
+                >
+                  {params.row.status === "cancelled" ? "Cancelled" : "Cancel"}
+                </Button>
+              </Box>
+            );
+          }
+        }
+      ];
   return (
     <Box m="20px">
       <Header

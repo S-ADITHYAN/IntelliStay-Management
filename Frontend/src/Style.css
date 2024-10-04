@@ -65,6 +65,11 @@ form.sign-in-form {
   color: #444;
   margin-bottom: 10px;
 }
+.titleOtp {
+  font-size: 1.2rem;
+  color: #f01818;
+  margin-bottom: 10px;
+}
 
 .input-fields-container {
     display: grid;
@@ -142,7 +147,7 @@ form.sign-in-form {
 }
 
 .btn {
-  width: 150px;
+  width: 180px;
   background-color: #5995fd;
   border: none;
   outline: none;

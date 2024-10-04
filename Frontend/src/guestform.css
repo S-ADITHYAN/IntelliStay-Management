@@ -1,0 +1,12 @@
+.guestnav{
+    background-color: rgb(17, 186, 212);
+}
+
+@media (max-width: 600px) {
+    .guestnav {
+        padding-bottom: 60px; /* Adjust padding to avoid overlap */
+    }
+    .guest-header {
+        margin-top: 60px; /* Give enough space so that the "Guest Details" header is visible */
+    }
+}

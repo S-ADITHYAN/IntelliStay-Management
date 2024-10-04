@@ -105,7 +105,7 @@ console.log(userData);
                   textTransform="capitalize"
                   color={colors.greenAccent[500]}
                 >
-                  Staff
+                  IntelliStay
                 </Typography>
               </Box>
             )}
