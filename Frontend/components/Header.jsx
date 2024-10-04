@@ -4,6 +4,7 @@ import logo from '../src/assets/logo.png';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ScrollReveal from 'scrollreveal'; 
+import { jwtDecode } from "jwt-decode";
 
  function Header() {
     const navigate = useNavigate();
@@ -91,6 +92,7 @@ import ScrollReveal from 'scrollreveal';
             localStorage.removeItem('userEmail');
             localStorage.removeItem("token");
             localStorage.removeItem("userId");
+            localStorage.removeItem("displayName");
             // localStorage.setItem('signout', 'signout');
             navigate("/signup"); // Redirect to public route
           }
@@ -100,9 +102,9 @@ import ScrollReveal from 'scrollreveal';
         });
     };
     const [user, setUser] = useState('');
-    const handleUser=(email)=>{
-      if(email){
-        setUser(email);
+    const handleUser=(displayName)=>{
+      if(displayName){
+        setUser(displayName);
       }
       else{
         navigate('/signup')
@@ -111,9 +113,9 @@ import ScrollReveal from 'scrollreveal';
     }
   
     useEffect(() => {
-      const email = localStorage.getItem('userEmail');
-      if (email) {
-        handleUser(email);
+      const displayName = localStorage.getItem('displayName');
+      if (displayName) {
+        handleUser(displayName);
        
       } else {
         setUser('');
@@ -145,9 +147,9 @@ import ScrollReveal from 'scrollreveal';
                 <>
                  
                   <li className="dropdown">
-                        <a href="" className="username">{user}</a>
+                        <a href="" className="username">Hi, {user}</a>
                             <div className="dropdown-content">
-                                  {/* <a href="/profile">Profile</a> */}
+                                  <a href="/myprofile">Profile</a>
                                    <a href="/my-bookings">My Bookings</a>
                                    <a href="" onClick={handleLogout}>Logout</a>
                             </div>

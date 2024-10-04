@@ -77,7 +77,7 @@ app.post("/authWithGoogle",async (req,res)=>{
                 });
     
         
-                const token = jwt.sign({email:result.email, id: result._id}, process.env.JWT_SECRET_KEY);
+                const token = jwt.sign({displayName:result.displayName,email:result.email,_id: result._id}, process.env.JWT_SECRET_KEY);
     
                 return res.status(200).send({
                      user:result,
@@ -89,7 +89,7 @@ app.post("/authWithGoogle",async (req,res)=>{
     
             else{
                 const existingUser = await GoogleRegisterModel.findOne({ email: email });
-                const token = jwt.sign({email:existingUser.email, id: existingUser._id}, process.env.JWT_SECRET_KEY);
+                const token = jwt.sign({displayName:existingUser.displayName,email:existingUser.email,_id: existingUser._id}, process.env.JWT_SECRET_KEY);
     
                 return res.status(200).send({
                      user:existingUser,
@@ -131,7 +131,8 @@ app.post('/login', (req, res) => {
                 if (user.password && user.password.length > 0 && user.password === passwordsign) {
                     console.log("hello")
                     req.session.email =  emailsign ;
-                    res.status(200).json({message:"success",data: req.session.email,id:user._id});
+                    const token = jwt.sign({ displayName:user.displayName,email:user.email,_id:user._id,image:user.image }, process.env.JWT_SECRET_KEY);
+                    res.status(200).json({message:"success",data: req.session.email,id:user._id,token:token,displayName:user.displayName});
                     
                 } else {
                     res.json("the password is incorrect");
@@ -1885,7 +1886,99 @@ const transporterr = nodemailer.createTransport({
 
 // forgot password end
 
+app.get('/profile/:id', async (req, res) => {
+    try {
+    
+      const staff = await GoogleRegisterModel.findById(req.params.id);
+      if (!staff) {
+        return res.status(404).json({ message: "Staff not found" });
+      }
+      
+      res.json(staff);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching profile", error });
+    }
+  });
 
+  app.put('/profile/update/:id', async (req, res) => {
+    try {
+        console.log(req.params.id)
+      const { displayName, email, address,image,phone_no,dob } = req.body;
+      const staff = await GoogleRegisterModel.findByIdAndUpdate(
+        req.params.id,
+        { displayName, email, address,image,phone_no,dob },
+        { new: true, runValidators: true }
+      );
+  
+      if (!staff) {
+        return res.status(404).json({ message: "Staff not found" });
+      }
+  
+      res.json({ message: "Profile updated successfully", staff });
+    } catch (error) {
+      res.status(500).json({ message: "Error updating profile", error });
+    }
+  });
+
+
+  // routes/staff.js
+
+
+
+// Change password route
+app.put('/change-password/:id', async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const staff = await GoogleRegisterModel.findById(req.params.id);
+
+    if (!staff) {
+      return res.status(404).json({ message: 'Staff member not found' });
+    }
+
+    // Check if current password matches
+    if (currentPassword !== staff.password) {
+        return res.status(400).json({ message: 'Incorrect current password' });
+      }
+
+    // Hash new password and update it
+    // const salt = await bcrypt.genSalt(10);
+    // const hashedPassword = await bcrypt.hash(newPassword, salt);
+    staff.password = newPassword;
+
+    // Save the updated staff member
+    await staff.save();
+    res.status(200).json({ message: 'Password updated successfully' });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+});
+
+
+app.post('/upload-photo/:id', upld.single('image'), async (req, res) => {
+    try {
+        const userId = req.params.id;
+        
+        // Check if a file is uploaded
+        if (!req.file) {
+            return res.status(400).json({ message: 'No file uploaded' });
+        }
+
+        // Store only the filename
+        const imagePath = req.file.filename;
+
+        // Update the user's profile image in the database
+        const updatedUser = await GoogleRegisterModel.findByIdAndUpdate(userId, { image: imagePath }, { new: true });
+
+        if (!updatedUser) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        res.json({ message: 'Profile image updated', image: imagePath });
+    } catch (error) {
+        res.status(500).json({ message: 'Error updating profile image', error: error.message });
+    }
+});
 
 
 app.listen(3001, () => {

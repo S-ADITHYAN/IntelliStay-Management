@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import Header from '../Header';
 import axios from 'axios';
-import './MyBookings.css'; // Create this CSS file for styling
+import './MyBookings.css';
+import useAuth from '../../src/useAuth'; // Create this CSS file for styling
 
 function MyBookings() {
+  useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

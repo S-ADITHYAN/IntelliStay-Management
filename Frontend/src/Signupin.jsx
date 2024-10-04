@@ -197,6 +197,8 @@ const handleLogin=(e)=>{
         if(res.data.message === 'success'){
           localStorage.setItem('userEmail', res.data.data);
           localStorage.setItem('userId', res.data.id);
+          localStorage.setItem('token', res.data.token);
+          localStorage.setItem("displayName",res.data.displayName);
             navigate('/')
         }else
         {
@@ -237,10 +239,12 @@ const signInWithGoogle = () => {
                 name: res.data.user?.name,
                 email: res.data.user?.email,
                 userId: res.data.user?._id,
+                displayName: res.data.user?.displayName
               };
 
               localStorage.setItem("userEmail", user.email);
               localStorage.setItem("userId", user.userId);
+              localStorage.setItem("displayName",user.displayName);
 
               Swal.fire(res.data.msg);
               navigate('/')

@@ -8,6 +8,9 @@ const GoogleRegisterSchema = new mongoose.Schema({
     password:String,
     otp:String,
     otpExpires:String,
+    dob:String,
+    address:String,
+    phone_no:String,
 },{timestamps:true});
 
  const GoogleRegisterModel = mongoose.model("GoogleRegisters",GoogleRegisterSchema);
