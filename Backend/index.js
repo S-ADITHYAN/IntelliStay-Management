@@ -2065,6 +2065,68 @@ app.get("/reservations/todays-reservations", async (req, res) => {
     }
   });
 
+  app.get("/reservations/todays-checkouts", async (req, res) => {
+    try {
+      const today = new Date();
+      const reservations = await ReservationModel.find({
+        check_out: {
+          $gte: new Date(today.setHours(0, 0, 0, 0)),
+          $lt: new Date(today.setHours(23, 59, 59, 999)),
+        },
+      });
+  
+      const enrichedReservations = [];
+  
+      for (const reservation of reservations) {
+        const guest = await GoogleRegisterModel.findById(reservation.user_id);
+        const room = await RoomModel.findById(reservation.room_id);
+  
+        enrichedReservations.push({
+          _id: reservation._id,
+          guestName: guest ? guest.name : "Unknown",
+          guestEmail: guest ? guest.email : "Unknown",
+          guestPhone: guest ? guest.phone : "Unknown",
+          roomNumber: room ? room.room_number : "Unknown",
+          checkOutDate: reservation.check_out,
+          status: reservation.status,
+          checkoutTime: reservation.check_out_time || null,
+        });
+      }
+  
+      res.json(enrichedReservations);
+    } catch (error) {
+      console.error("Error fetching today's checkouts", error);
+      res.status(500).json({ error: "Error fetching today's checkouts." });
+    }
+  });
+
+//   app.put("/reservations/check-verify/:reservationId", async (req, res) => {
+//     try {
+//       const reservation = await ReservationModel.findByIdAndUpdate(req.params.reservationId, {
+//         is_verified: "yes",
+//       });
+//       res.json({ message: "Reservation verified successfully" });
+//     } catch (error) {
+//       res.status(500).json({ error: "Error verifying reservation." });
+//     }
+//   });
+
+  app.put("/reservations/checkout/:reservationId", async (req, res) => {
+    try {
+      const reservation = await ReservationModel.findByIdAndUpdate(
+        req.params.reservationId,
+        {
+          status: "checked_out",
+          check_out_time: new Date(),
+        },
+        { new: true }
+      );
+      res.json({ message: "Checkout completed successfully" });
+    } catch (error) {
+      res.status(500).json({ error: "Error during checkout." });
+    }
+  });
+
 //frontdesk staff end
 
 app.listen(3001, () => {

@@ -4,25 +4,17 @@ import { useContext, useState, useEffect } from "react";
 import { tokens } from "../../../theme";
 import { Menu, MenuItem, Sidebar } from "react-pro-sidebar";
 import {
-  BarChartOutlined,
-  CalendarTodayOutlined,
-  ContactsOutlined,
   DashboardOutlined,
-  DonutLargeOutlined,
-  HelpOutlineOutlined,
-  MapOutlined,
-  MenuOutlined,
-  PeopleAltOutlined,
   PersonOutlined,
-  ReceiptOutlined,
-  TimelineOutlined,
-  WavesOutlined,
+  ContactsOutlined,
+  PeopleAltOutlined,
+  MenuOutlined,
 } from "@mui/icons-material";
 import avatar from "../../../assets/images/avatar.png";
 import logo from "../../../assets/images/logo.png";
 import Item from "./Item";
 import { ToggledContext } from "../../../App";
-import { jwtDecode } from "jwt-decode";
+import {jwtDecode} from "jwt-decode";
 import axios from "axios";
 
 const StaffSideBar = () => {
@@ -149,12 +141,30 @@ const StaffSideBar = () => {
             },
           }}
         >
-          {/* Always displayed items */}
+          {/* Common items for all staff */}
           <Item
             title="Dashboard"
             path="/dashboard"
             colors={colors}
             icon={<DashboardOutlined />}
+          />
+          <Item
+            title="My Profile"
+            path="/dashboard/myprofile"
+            colors={colors}
+            icon={<PeopleAltOutlined />}
+          />
+          <Item
+            title="Apply Leave"
+            path="/dashboard/applyleave"
+            colors={colors}
+            icon={<PeopleAltOutlined />}
+          />
+          <Item
+            title="View Leave Status"
+            path="/dashboard/viewleavestatus"
+            colors={colors}
+            icon={<PeopleAltOutlined />}
           />
 
           {/* Role-based items */}
@@ -181,35 +191,7 @@ const StaffSideBar = () => {
             </>
           )}
 
-          {/* Other staff menu items */}
-          {userData?.role !== "frontdesk" && (
-            <>
-              <Item
-                title="My Profile"
-                path="/dashboard/myprofile"
-                colors={colors}
-                icon={<PeopleAltOutlined />}
-              />
-              <Item
-                title="View Jobs"
-                path="/dashboard/viewjobs"
-                colors={colors}
-                icon={<PeopleAltOutlined />}
-              />
-              <Item
-                title="Apply Leave"
-                path="/dashboard/applyleave"
-                colors={colors}
-                icon={<PeopleAltOutlined />}
-              />
-              <Item
-                title="View Leave Status"
-                path="/dashboard/viewleavestatus"
-                colors={colors}
-                icon={<PeopleAltOutlined />}
-              />
-            </>
-          )}
+          {/* Add more role-based conditions as needed */}
         </Menu>
       </Box>
     </Sidebar>

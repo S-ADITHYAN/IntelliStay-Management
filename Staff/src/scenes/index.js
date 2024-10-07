@@ -22,6 +22,8 @@ import Viewjobs from "./viewJobs/Viewjobs";
 import Applyleave from "./applyleave/Applyleave";
 import ViewLeaveStatus from "./viewleavestatus/Leavestatus";
 import CheckIn from "./checkin";
+import Checkout from "./checkout";
+
 
 export {
   Navbar,
@@ -40,6 +42,7 @@ export {
   Viewstaff,
   Viewassignedjobs,
   CheckIn,
+  Checkout,
   Form,
   Calendar,
   Bar,
