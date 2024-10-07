@@ -11,7 +11,8 @@ const ReservationSchema = new mongoose.Schema({
     check_out_time:Date,
     total_amount: Number,
     guestids:[String],
-    totaldays:String
+    totaldays:String,
+    is_verified:String,
     
 },{timestamps:true});
 

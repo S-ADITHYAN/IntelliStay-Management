@@ -11,6 +11,7 @@ import {
   Viewjobs,
   Applyleave,
   ViewLeaveStatus,
+  CheckIn,
   Team,
   Invoices,
   Viewstaff,
@@ -44,6 +45,7 @@ const AppRouter = () => {
           <Route path="/dashboard/team" element={<Team />} />
           <Route path="/dashboard/viewstaff" element={<Viewstaff />} />
           <Route path="/dashboard/viewassignedjobs" element={<Viewassignedjobs />} />
+          <Route path="/dashboard/checkin" element={<CheckIn />} />
           <Route path="/dashboard/invoices" element={<Invoices />} />
           <Route path="/dashboard/form" element={<Form />} />
           <Route path="/dashboard/calendar" element={<Calendar />} />

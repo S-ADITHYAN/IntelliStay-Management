@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import { Avatar, Box, IconButton, Typography, useTheme } from "@mui/material";
-import { useContext, useState,useEffect } from "react";
+import { useContext, useState, useEffect } from "react";
 import { tokens } from "../../../theme";
 import { Menu, MenuItem, Sidebar } from "react-pro-sidebar";
 import {
@@ -22,18 +22,11 @@ import avatar from "../../../assets/images/avatar.png";
 import logo from "../../../assets/images/logo.png";
 import Item from "./Item";
 import { ToggledContext } from "../../../App";
-import {jwtDecode} from "jwt-decode";
-import axios from "axios"; 
-
+import { jwtDecode } from "jwt-decode";
+import axios from "axios";
 
 const StaffSideBar = () => {
-
-
-   const [userData, setUserData] = useState(null);
-
- 
-
-
+  const [userData, setUserData] = useState(null);
   const [collapsed, setCollapsed] = useState(false);
   const { toggled, setToggled } = useContext(ToggledContext);
   const theme = useTheme();
@@ -51,11 +44,7 @@ const StaffSideBar = () => {
     }
   }, []); // Runs once after the component is mounted
 
-  // if (!userData) {
-  //   return <div>No user data available</div>;
-  // }
-
-console.log(userData);
+  console.log(userData);
 
   return (
     <Sidebar
@@ -115,6 +104,7 @@ console.log(userData);
           </Box>
         </MenuItem>
       </Menu>
+
       {!collapsed && (
         <Box
           sx={{
@@ -127,26 +117,27 @@ console.log(userData);
         >
           <Avatar
             alt="avatar"
-            src={`http://localhost:3001/profilepicture/${userData?.image || avatar}`} 
+            src={`http://localhost:3001/profilepicture/${
+              userData?.image || avatar
+            }`}
             sx={{ width: "100px", height: "100px" }}
           />
           <Box sx={{ textAlign: "center" }}>
             <Typography variant="h3" fontWeight="bold" color={colors.gray[100]}>
-            {userData ? userData.displayName : "Staff"}
+              {userData ? userData.displayName : "Staff"}
             </Typography>
             <Typography
               variant="h6"
               fontWeight="500"
               color={colors.greenAccent[500]}
             >
-             {userData ? userData.role : "Dashboard"} 
+              {userData ? userData.role : "Dashboard"}
             </Typography>
           </Box>
         </Box>
       )}
 
       <Box mb={5} pl={collapsed ? undefined : "5%"}>
-       
         <Menu
           menuItemStyles={{
             button: {
@@ -158,173 +149,71 @@ console.log(userData);
             },
           }}
         >
+          {/* Always displayed items */}
           <Item
             title="Dashboard"
             path="/dashboard"
             colors={colors}
             icon={<DashboardOutlined />}
           />
-        </Menu>
-        <Typography
-          variant="h6"
-          color={colors.gray[300]}
-          sx={{ m: "15px 0 5px 20px" }}
-        >
-          {!collapsed ? "Data" : " "}
-        </Typography>{" "}
-        <Menu
-          menuItemStyles={{
-            button: {
-              ":hover": {
-                color: "#868dfb",
-                background: "transparent",
-                transition: ".4s ease",
-              },
-            },
-          }}
-        >
-           <Item
-            title="My Profile"
-            path="/dashboard/myprofile"
-            colors={colors}
-            icon={<PeopleAltOutlined />}
-          />
 
-          <Item
-            title="View Jobs"
-            path="/dashboard/viewjobs"
-            colors={colors}
-            icon={<PeopleAltOutlined />}
-          />
-          <Item
-            title="Apply Leave"
-            path="/dashboard/applyleave"
-            colors={colors}
-            icon={<PeopleAltOutlined />}
-          />
-          <Item
-            title="View Leave Status"
-            path="/dashboard/viewleavestatus"
-            colors={colors}
-            icon={<PeopleAltOutlined />}
-          />
-          {/* <Item
-            title="Manage Team"
-            path="/admindashboard/team"
-            colors={colors}
-            icon={<PeopleAltOutlined />}
-          /> */}
-          {/* <Item
-            title="View Staff"
-            path="/admindashboard/viewstaff"
-            colors={colors}
-            icon={<ContactsOutlined />}
-          />
-          <Item
-            title="View Assigned Jobs"
-            path="/admindashboard/viewassignedjobs"
-            colors={colors}
-            icon={<ContactsOutlined />}
-          />
-          <Item
-            title="Invoices Balances"
-            path="/admindashboard/invoices"
-            colors={colors}
-            icon={<ReceiptOutlined />}
-          /> */}
-        {/* </Menu>
-        <Typography
-          variant="h6"
-          color={colors.gray[300]}
-          sx={{ m: "15px 0 5px 20px" }}
-        >
-          {!collapsed ? "Pages" : " "}
-        </Typography>
-        <Menu
-          menuItemStyles={{
-            button: {
-              ":hover": {
-                color: "#868dfb",
-                background: "transparent",
-                transition: ".4s ease",
-              },
-            },
-          }}
-        > */}
-          {/* <Item
-            title="Add Staff"
-            path="/admindashboard/form"
-            colors={colors}
-            icon={<PersonOutlined />}
-          /> */}
-          {/* {/* <Item
-            title="Calendar"
-            path="/admindashboard/calendar"
-            colors={colors}
-            icon={<CalendarTodayOutlined />}
-          />
-          <Item
-            title="FAQ Page"
-            path="/admindashboard/faq"
-            colors={colors}
-            icon={<HelpOutlineOutlined />} 
-          /> */}
-        {/* </Menu>
-        <Typography
-          variant="h6"
-          color={colors.gray[300]}
-          sx={{ m: "15px 0 5px 20px" }}
-        >
-          {!collapsed ? "Charts" : " "}
-        </Typography>
-        <Menu
-          menuItemStyles={{
-            button: {
-              ":hover": {
-                color: "#868dfb",
-                background: "transparent",
-                transition: ".4s ease",
-              },
-            },
-          }}
-        > */}
-          {/* <Item
-            title="Bar Chart"
-            path="/admindashboard/bar"
-            colors={colors}
-            icon={<BarChartOutlined />}
-          />
-          <Item
-            title="Pie Chart"
-            path="/admindashboard/pie"
-            colors={colors}
-            icon={<DonutLargeOutlined />}
-          />
-          <Item
-            title="Line Chart"
-            path="/admindashboard/line"
-            colors={colors}
-            icon={<TimelineOutlined />}
-          />
-          <Item
-            title="Geography Chart"
-            path="/admindashboard/geography"
-            colors={colors}
-            icon={<MapOutlined />}
-          />
-          <Item
-            title="Stream Chart"
-            path="/admindashboard/stream"
-            colors={colors}
-            icon={<WavesOutlined />}
-          /> */}
+          {/* Role-based items */}
+          {userData?.role === "frontdesk" && (
+            <>
+              <Item
+                title="Check In Handle"
+                path="/dashboard/checkin"
+                colors={colors}
+                icon={<PersonOutlined />}
+              />
+              <Item
+                title="Check Out Handle"
+                path="/dashboard/checkout"
+                colors={colors}
+                icon={<PersonOutlined />}
+              />
+              <Item
+                title="Reserve Room"
+                path="/dashboard/reserveroom"
+                colors={colors}
+                icon={<ContactsOutlined />}
+              />
+            </>
+          )}
+
+          {/* Other staff menu items */}
+          {userData?.role !== "frontdesk" && (
+            <>
+              <Item
+                title="My Profile"
+                path="/dashboard/myprofile"
+                colors={colors}
+                icon={<PeopleAltOutlined />}
+              />
+              <Item
+                title="View Jobs"
+                path="/dashboard/viewjobs"
+                colors={colors}
+                icon={<PeopleAltOutlined />}
+              />
+              <Item
+                title="Apply Leave"
+                path="/dashboard/applyleave"
+                colors={colors}
+                icon={<PeopleAltOutlined />}
+              />
+              <Item
+                title="View Leave Status"
+                path="/dashboard/viewleavestatus"
+                colors={colors}
+                icon={<PeopleAltOutlined />}
+              />
+            </>
+          )}
         </Menu>
       </Box>
     </Sidebar>
   );
- 
- 
 };
-
 
 export default StaffSideBar;

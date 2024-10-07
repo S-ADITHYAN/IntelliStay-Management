@@ -21,6 +21,7 @@ import MyProfile from "./Myprofile/MyProfile";
 import Viewjobs from "./viewJobs/Viewjobs";
 import Applyleave from "./applyleave/Applyleave";
 import ViewLeaveStatus from "./viewleavestatus/Leavestatus";
+import CheckIn from "./checkin";
 
 export {
   Navbar,
@@ -38,6 +39,7 @@ export {
   Invoices,
   Viewstaff,
   Viewassignedjobs,
+  CheckIn,
   Form,
   Calendar,
   Bar,

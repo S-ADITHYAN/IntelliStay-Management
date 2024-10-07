@@ -1979,7 +1979,93 @@ app.post('/upload-photo/:id', upld.single('image'), async (req, res) => {
         res.status(500).json({ message: 'Error updating profile image', error: error.message });
     }
 });
+//frontdesk staff
+app.get("/reservations/todays-reservations", async (req, res) => {
+    try {
+      const today = new Date();
+      
+      // Find reservations for today
+      const reservations = await ReservationModel.find({
+        check_in: {
+          $gte: new Date(today.setHours(0, 0, 0, 0)),
+          $lt: new Date(today.setHours(23, 59, 59, 999)),
+        },
+      });
+  
+      // Prepare to store enriched reservation details
+      const enrichedReservations = [];
+  
+      for (const reservation of reservations) {
+        // Get guest name from GoogleSignModel using user_id
+        const guest = await GoogleRegisterModel.findById(reservation.user_id);
+        const guestName = guest ? guest.displayName : "Unknown";
+        const guestemail=guest? guest.email : "unknown";
+        const guestphno=guest? guest.phone_no : "unknown";
+        // Get room number from RoomModel using room_id
+        const room = await RoomModel.findById(reservation.room_id);
+        const roomNumber = room ? room.roomno : "Unknown";
+        
+        // Add reservation data with guest name and room number
+        enrichedReservations.push({
+          _id: reservation._id,
+          guestName,
+          roomNumber,
+          guestemail,
+          guestphno,
+          checkInDate: reservation.check_in,
+          checkOutDate: reservation.check_out,
+          check_in_time: reservation.check_in_time,
+          status: reservation.status,
+        });
+      }
+  
+      // Send enriched reservation details
+      res.json(enrichedReservations);
+  
+    } catch (error) {
+      console.error("Error fetching today's reservations", error);
+      res.status(500).json({ error: "Error fetching today's reservations." });
+    }
+  });
+  
+  // Verify reservation
+  app.put("/reservations/verify/:id", async (req, res) => {
+    try {
+      const reservation = await ReservationModel.findById(req.params.id);
+      if (!reservation) {
+        return res.status(404).json({ error: "Reservation not found" });
+      }
+  
+      reservation.is_verified = "yes"; // Update status to verified
+      await reservation.save();
+      res.json({ message: "Reservation verified", reservation });
+    } catch (error) {
+      res.status(500).json({ error: "Error verifying reservation" });
+    }
+  });
+  
+  // Check-in reservation
+  app.put("/reservations/checkin/:id", async (req, res) => {
+    try {
+      const reservation = await ReservationModel.findById(req.params.id);
+      if (!reservation) {
+        return res.status(404).json({ error: "Reservation not found" });
+      }
+  
+      if (reservation.is_verified !== "yes") {
+        return res.status(400).json({ error: "Reservation must be verified first" });
+      }
+  
+      reservation.check_in_time = new Date(); // Set current time as check-in time
+      reservation.status = "checked_in"; // Mark reservation as checked-in
+      await reservation.save();
+      res.json({ message: "Check-in completed", reservation });
+    } catch (error) {
+      res.status(500).json({ error: "Error checking in reservation" });
+    }
+  });
 
+//frontdesk staff end
 
 app.listen(3001, () => {
     console.log("Server connected");
