@@ -1,6 +1,6 @@
 import React, { useEffect,useState } from 'react';
 import './Header.css';
-import logo from '../src/assets/logo.png';
+import logo from '../public/logo.png';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ScrollReveal from 'scrollreveal'; 
@@ -129,8 +129,8 @@ import { jwtDecode } from "jwt-decode";
         <nav>
           <div className="nav__bar">
             <div className="logo">
-              {/* <a href="#"><img src={logo} alt="logo" /></a> */}
-              <h2 style={{ color: '#fff' }}>IntelliStay</h2>
+              <a href="#"><img src={logo} alt="logo" /></a> 
+              {/* <h2 style={{ color: '#fff' }}>IntelliStay</h2> */}
 
             </div>
             <div className="nav__menu__btn" id="menu-btn">

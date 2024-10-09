@@ -1,5 +1,6 @@
 require("dotenv").config()
 const express = require("express");
+const Razorpay= require("razorpay")
 const mongoose = require("mongoose");
 const cors = require("cors");
 const session = require("express-session");
@@ -32,7 +33,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(bodyParser.json());
 app.use(cors({
-    origin: ["http://localhost:5173"],
+    origin: ["http://localhost:5173","http://localhost:5174","http://localhost:5175"],
     methods: ["GET","POST","PUT","DELETE"],
     credentials: true // Allows cookies to be sent with the request
 }));
@@ -57,6 +58,30 @@ app.use(session({
         maxAge:1000*60*60*24
     },
 }));
+
+// Razorpay instance
+
+// var instance = new Razorpay({
+//     key_id: process.env.RAZORPAY_KEY_ID,
+//     key_secret: process.env.RAZORPAY_KEY_SECRET,
+//   });
+
+
+//   var options = {
+//     amount: 50000,  // amount in the smallest currency unit
+//     currency: "INR",
+//     receipt: "order_rcptid_11"
+//   };
+//   instance.orders.create(options, function(err, order) {
+//     console.log(order);
+//   });
+
+// Razorpay end
+
+
+
+
+
 
 // Setup passport
 app.post("/authWithGoogle",async (req,res)=>{
@@ -2126,6 +2151,297 @@ app.get("/reservations/todays-reservations", async (req, res) => {
       res.status(500).json({ error: "Error during checkout." });
     }
   });
+
+//frontdesk roomreserve
+
+app.get('/staff/rooms/types', async (req, res) => {
+  try {
+    const roomTypes = await RoomModel.distinct('roomtype');
+    console.log(roomTypes)
+    res.json(roomTypes);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch room types' });
+  }
+});
+
+
+// Get available rooms
+app.get('/staff/rooms/available', async (req, res) => {
+  const { roomType, checkInDate, checkOutDate, adults, children } = req.query;
+
+  try {
+    // Validation: Check if adults or children are within reasonable bounds
+    if (adults <= 0 || children < 0) {
+      return res.status(400).json({ message: 'Invalid number of adults or children' });
+    }
+
+    // Calculate the number of rooms needed based on 2 adults and 2 children per room
+    const totalPeople = parseInt(adults) + parseInt(children);
+    const roomsNeeded = Math.ceil(totalPeople / 4); // Each room can accommodate up to 4 people
+
+    // Find reserved rooms for the check-in and check-out dates
+    const reservedRooms = await ReservationModel.find({
+      $or: [
+        {
+          check_in: { $lt: new Date(checkOutDate) }, 
+          check_out: { $gt: new Date(checkInDate) }
+        }
+      ]
+    }).distinct('room_id');
+
+    // Find available rooms excluding reserved rooms
+    const availableRooms = await RoomModel.find({
+      _id: { $nin: reservedRooms },
+      roomtype: roomType // Filter by room type if provided
+    });
+
+    // Check if there are enough available rooms
+    if (availableRooms.length < roomsNeeded) {
+      return res.status(200).json({ 
+        message: 'Not enough available rooms', 
+        availableRooms, 
+        roomsNeeded, 
+        roomsAvailable: availableRooms.length 
+      });
+    }
+
+    // Return available rooms and number of rooms needed
+    res.status(200).json({ 
+      message: 'Rooms available', 
+      availableRooms, 
+      roomsNeeded 
+    });
+
+  } catch (error) {
+    console.error('Error fetching available rooms:', error);
+    res.status(500).json({ message: 'Failed to fetch available rooms' });
+  }
+});
+
+
+
+
+
+
+// Configure Multer storage and file filter
+const storeg = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, './uploads/proofdocs'); // Destination for uploaded files
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`); // Unique filename
+  }
+});
+
+const filFilt = (req, file, cb) => {
+  const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'image/jpeg', 'image/png'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true); // Accept file
+  } else {
+    cb(new Error('Invalid file type. Only PDF, DOC, DOCX, JPEG, and PNG are allowed.'), false); // Reject file
+  }
+};
+
+// Multer instance
+const pload = multer({
+  storage: storeg,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB file size limit
+  fileFilter: filFilt
+});
+
+// Handle room booking and file upload
+app.post('/staff/rooms/confirmbook', pload.array('proofDocuments', 10), async (req, res) => {
+  try {
+    // Parse request body (they come as strings in multipart/form-data)
+    const roomDetails = JSON.parse(req.body.roomDetails);
+    const datas = JSON.parse(req.body.datas);
+    const adultDetails = Array.isArray(req.body.adultDetails) 
+        ? req.body.adultDetails.map(detail => JSON.parse(detail)) 
+        : [];
+    const childrenDetails = Array.isArray(req.body.childrenDetails) 
+        ? req.body.childrenDetails.map(detail => JSON.parse(detail)) 
+        : [];
+    const userid = req.body.userid;
+    const totalRate = req.body.totalRate;
+    const totldays = req.body.totldays;
+
+    const roomId = roomDetails._id;
+    const checkInDate = datas.checkInDate;
+    const checkOutDate = datas.checkOutDate;
+    const totalAmount = totalRate;
+    const userId = userid;
+
+    // Save guest details (adults and children)
+    const guestIds = [];
+
+    // Process adults with proof documents
+    for (let i = 0; i < adultDetails.length; i++) {
+      const adult = adultDetails[i];
+      const proofDocument = req.files && req.files[i] ? req.files[i].filename : null;
+
+      const newGuest = new RoomGuestModel({
+        name: adult.name,
+        email: adult.email,
+        phone: adult.phone,
+        address: adult.address,
+        dob: adult.dob,
+        role: 'adult',
+        proofType: adult.proofType,
+        proofNumber: adult.proofNumber,
+        proofDocument: proofDocument, // Store proof document if available
+      });
+
+      const savedGuest = await newGuest.save();
+      guestIds.push(savedGuest._id);
+    }
+
+    // Process children
+    for (const child of childrenDetails) {
+      const newChildGuest = new RoomGuestModel({
+        name: child.name,
+        dob: child.dob,
+        role: 'child',
+      });
+
+      const savedChild = await newChildGuest.save();
+      guestIds.push(savedChild._id);
+    }
+
+    // Create the reservation
+    const newReservation = new ReservationModel({
+      user_id: userId,
+      room_id: roomId,
+      check_in: new Date(checkInDate),
+      check_out: new Date(checkOutDate),
+      booking_date: new Date(),
+      status: 'booked',
+      total_amount: totalAmount,
+      totaldays: totldays,
+      check_in_time: datas.check_in_time ? new Date() : null,
+      check_out_time: datas.check_out_time ? new Date() : null,
+      guestids: guestIds, // Link guests to this reservation
+    });
+
+    const savedReservation = await newReservation.save();
+
+    // Update room availability
+    await Room.findByIdAndUpdate(roomId, {
+      $push: { bookings: { checkInDate, checkOutDate } },
+      isAvailable: false, // Mark the room as unavailable
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Room booking confirmed!',
+      reservation: savedReservation,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error booking room',
+      error: error.message,
+    });
+  }
+});
+
+
+
+const packss= multer.diskStorage({
+  destination: (req, file, cb) => {
+      cb(null, './uploads/proofdocs'); // Define the destination folder for file uploads
+  },
+  filename: (req, file, cb) => {
+      cb(null, `${Date.now()}-${file.originalname}`); // Unique filename
+  }
+});
+
+// File filter to restrict file types
+const Filterrrr = (req, file, cb) => {
+  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+  if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true); // Accept file
+  } else {
+      cb(new Error('Invalid file type. Only PDF, JPEG, and PNG are allowed.'), false); // Reject file
+  }
+};
+
+// Multer instance (optional, based on file upload requirements)
+const updssss = multer({
+  storage: packss,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB file size limit
+  fileFilter: Filterrrr
+});
+
+// updssss.array('proofDocuments', 10); 
+app.post('/staff/confirmbook', async (req, res) => {
+  try {
+      const { roomDetails, adults, children, totalRate, totldays ,checkOutDate,checkInDate} = req.body;
+
+      // Validate and extract room details
+      const roomId = roomDetails._id;
+      const totalAmount = totalRate;
+
+      // Handle adult and child details
+      const guestIds = [];
+
+      // Process adults
+      if (Array.isArray(adults) && adults.length > 0) {
+          for (const adult of adults) {
+              const newGuest = new RoomGuestModel({
+                  name: adult.name,
+                  dob:adult.dob,
+                  role: 'adult',
+                  proofType: adult.proofType
+              });
+
+              const savedGuest = await newGuest.save();
+              guestIds.push(savedGuest._id);
+          }
+      }
+
+      // Process children
+      if (Array.isArray(children) && children.length > 0) {
+          for (const child of children) {
+              const newChildGuest = new RoomGuestModel({
+                  name: child.name,
+                  dob: child.dob,
+                  role: 'child'
+              });
+
+              const savedChild = await newChildGuest.save();
+              guestIds.push(savedChild._id);
+          }
+      }
+
+      // Create the reservation
+      const newReservation = new ReservationModel({
+          room_id: roomId,
+          booking_date: new Date(), // Current date as booking date
+          status: 'booked',
+          total_amount: totalAmount,
+          totaldays: totldays,
+          check_in:checkInDate,
+          check_out:checkOutDate,
+          guestids: guestIds // Link guests to the reservation
+      });
+
+      // Save the reservation
+      const savedReservation = await newReservation.save();
+
+      return res.status(201).json({
+          success: true,
+          message: 'Room booking confirmed!',
+          reservation: savedReservation
+      });
+  } catch (error) {
+      console.error('Error during booking:', error);
+      return res.status(500).json({
+          success: false,
+          message: 'Error booking room',
+          error: error.message
+      });
+  }
+});
 
 //frontdesk staff end
 

@@ -23,7 +23,9 @@ import Applyleave from "./applyleave/Applyleave";
 import ViewLeaveStatus from "./viewleavestatus/Leavestatus";
 import CheckIn from "./checkin";
 import Checkout from "./checkout";
-
+import ReserveRoom from "./ReserveRoom";
+import GuestDetails from "./guestdetails";
+import ConfirmRoom from "./confirmroom";
 
 export {
   Navbar,
@@ -38,11 +40,14 @@ export {
   Roomadd,
   Showroom,
   Reservation,
+  GuestDetails,
   Invoices,
   Viewstaff,
   Viewassignedjobs,
   CheckIn,
   Checkout,
+  ReserveRoom,
+  ConfirmRoom,
   Form,
   Calendar,
   Bar,

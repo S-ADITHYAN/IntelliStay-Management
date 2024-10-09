@@ -25,6 +25,7 @@
     "papaparse": "^5.4.1",
     "passport": "^0.7.0",
     "passport-google-oauth2": "^0.2.0",
+    "razorpay": "^2.9.4",
     "redis": "^4.7.0",
     "util": "^0.12.5",
     "xlsx": "^0.18.5"

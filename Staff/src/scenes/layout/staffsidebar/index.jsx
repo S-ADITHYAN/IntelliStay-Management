@@ -12,6 +12,7 @@ import {
 } from "@mui/icons-material";
 import avatar from "../../../assets/images/avatar.png";
 import logo from "../../../assets/images/logo.png";
+import Logo from "../../../../public/logo1.png";
 import Item from "./Item";
 import { ToggledContext } from "../../../App";
 import {jwtDecode} from "jwt-decode";
@@ -77,8 +78,8 @@ const StaffSideBar = () => {
               >
                 <img
                   style={{ width: "30px", height: "30px", borderRadius: "8px" }}
-                  src={logo}
-                  alt="Argon"
+                  src={Logo}
+                  alt="IntelliStay"
                 />
                 <Typography
                   variant="h4"
@@ -108,7 +109,7 @@ const StaffSideBar = () => {
           }}
         >
           <Avatar
-            alt="avatar"
+            alt={ (userData)? userData.displayName:"avatar"}
             src={`http://localhost:3001/profilepicture/${
               userData?.image || avatar
             }`}
@@ -185,6 +186,12 @@ const StaffSideBar = () => {
               <Item
                 title="Reserve Room"
                 path="/dashboard/reserveroom"
+                colors={colors}
+                icon={<ContactsOutlined />}
+              />
+              <Item
+                title="View all Reservations"
+                path="/dashboard/viewallreservations"
                 colors={colors}
                 icon={<ContactsOutlined />}
               />

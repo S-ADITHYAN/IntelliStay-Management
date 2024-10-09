@@ -20,6 +20,7 @@ import {
 } from "@mui/icons-material";
 import avatar from "../../../assets/images/avatar.png";
 import logo from "../../../assets/images/logo.png";
+import Logo from "../../../../public/logo1.png";
 import Item from "./Item";
 import { ToggledContext } from "../../../App";
 
@@ -67,8 +68,8 @@ const SideBar = () => {
               >
                 <img
                   style={{ width: "30px", height: "30px", borderRadius: "8px" }}
-                  src={logo}
-                  alt="Argon"
+                  src={Logo}
+                  alt="IntelliStay"
                 />
                 <Typography
                   variant="h4"
