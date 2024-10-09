@@ -20,6 +20,7 @@ import {
   Invoices,
   Viewstaff,
   Viewassignedjobs,
+  ReservationDetails,
   Form,
   Bar,
   Line,
@@ -55,6 +56,7 @@ const AppRouter = () => {
           <Route path="/dashboard/guestdetails" element={<GuestDetails />} />
           <Route path="/dashboard/confirmreservation" element={<ConfirmRoom />} />
           <Route path="/dashboard/viewallreservations" element={<Reservation />} />
+          <Route path="/dashboard/reservation-details/:id" element={<ReservationDetails />} />
           <Route path="/dashboard/invoices" element={<Invoices />} />
           <Route path="/dashboard/form" element={<Form />} />
           <Route path="/dashboard/calendar" element={<Calendar />} />

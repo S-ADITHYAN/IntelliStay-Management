@@ -26,6 +26,7 @@ import Checkout from "./checkout";
 import ReserveRoom from "./ReserveRoom";
 import GuestDetails from "./guestdetails";
 import ConfirmRoom from "./confirmroom";
+import ReservationDetails from "./reservationdetails";
 
 export {
   Navbar,
@@ -48,6 +49,7 @@ export {
   Checkout,
   ReserveRoom,
   ConfirmRoom,
+  ReservationDetails,
   Form,
   Calendar,
   Bar,

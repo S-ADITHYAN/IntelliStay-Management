@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Button, Table, TableBody, TableCell, TableHead, TableRow, Box, Typography } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import VisibilityIcon from '@mui/icons-material/Visibility';
 
 const CheckIn = () => {
   const [reservations, setReservations] = useState([]);
-  const [verifyStatus, setVerifyStatus] = useState({}); // Track verification state
-  const [loading, setLoading] = useState(true); // Loading state to show until data is fetched
+  const [verifyStatus, setVerifyStatus] = useState({});
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate(); // useNavigate for routing
 
-  // Fetch today's reservations
   useEffect(() => {
     const fetchReservations = async () => {
       try {
@@ -16,13 +18,12 @@ const CheckIn = () => {
       } catch (error) {
         console.error("Error fetching reservations", error);
       } finally {
-        setLoading(false); // Set loading to false when fetch is complete
+        setLoading(false);
       }
     };
     fetchReservations();
   }, []);
 
-  // Handle verification of a reservation
   const handleVerify = async (reservationId) => {
     try {
       await axios.put(`http://localhost:3001/reservations/verify/${reservationId}`);
@@ -35,7 +36,6 @@ const CheckIn = () => {
     }
   };
 
-  // Handle check-in
   const handleCheckIn = async (reservationId) => {
     try {
       await axios.put(`http://localhost:3001/reservations/checkin/${reservationId}`);
@@ -51,6 +51,10 @@ const CheckIn = () => {
     }
   };
 
+  const handleViewDetails = (reservationId) => {
+    navigate(`/dashboard/reservation-details/${reservationId}`); // Navigate to details page
+  };
+
   return (
     <Box p={3}>
       <Typography variant="h4" mb={2}>
@@ -58,9 +62,9 @@ const CheckIn = () => {
       </Typography>
 
       {loading ? (
-        <Typography variant="body1">Loading...</Typography> // Show loading message while data is being fetched
+        <Typography variant="body1">Loading...</Typography>
       ) : reservations.length === 0 ? (
-        <Typography variant="body1">No reservations for today.</Typography> // Show message if no reservations
+        <Typography variant="body1">No reservations for today.</Typography>
       ) : (
         <Table>
           <TableHead>
@@ -73,7 +77,6 @@ const CheckIn = () => {
               <TableCell>Check-Out Date</TableCell>
               <TableCell>Check-In Time</TableCell>
               <TableCell>Check-In Status</TableCell>
-              
               <TableCell>Actions</TableCell>
             </TableRow>
           </TableHead>
@@ -86,7 +89,7 @@ const CheckIn = () => {
                 <TableCell>{reservation.roomNumber}</TableCell>
                 <TableCell>{new Date(reservation.checkInDate).toLocaleDateString()}</TableCell>
                 <TableCell>{new Date(reservation.checkOutDate).toLocaleDateString()}</TableCell>
-                <TableCell>{new Date(reservation.check_in_time).toLocaleDateString()}</TableCell>
+                <TableCell>{new Date(reservation.check_in_time).toLocaleTimeString()}</TableCell>
                 <TableCell>
                   {reservation.status === "checked_in" ? (
                     <Typography variant="body2" color="green">
@@ -118,6 +121,24 @@ const CheckIn = () => {
                       </Button>
                     </>
                   )}
+                  <Button
+                    variant="contained"
+                    startIcon={<VisibilityIcon />}
+                    onClick={() => handleViewDetails(reservation._id)}
+                    style={{ marginLeft: "10px" }}
+                    onMouseEnter={(e) => {
+                      const tooltip = document.createElement("div");
+                      tooltip.className = "tooltip";
+                      tooltip.innerText = "View Details";
+                      e.currentTarget.appendChild(tooltip);
+                    }}
+                    onMouseLeave={(e) => {
+                      const tooltip = e.currentTarget.querySelector(".tooltip");
+                      if (tooltip) tooltip.remove();
+                    }}
+                  >
+                    View More Details
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

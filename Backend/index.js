@@ -44,6 +44,7 @@ mongoose.connect("mongodb://127.0.0.1:27017/test2");
 app.use("/uploads",express.static("./uploads/rooms"))
 app.use("/cleanedrooms",express.static("./uploads/cleanedrooms"))
 app.use("/profilepicture",express.static("./uploads/staffprofilepicture"))
+app.use("/profdocs",express.static("./uploads/proofdocs"))
 // Setup session
 var MemoryStore =session.MemoryStore;
 app.use(session({
@@ -2111,7 +2112,7 @@ app.get("/reservations/todays-reservations", async (req, res) => {
           guestName: guest ? guest.name : "Unknown",
           guestEmail: guest ? guest.email : "Unknown",
           guestPhone: guest ? guest.phone : "Unknown",
-          roomNumber: room ? room.room_number : "Unknown",
+          roomNumber: room ? room.roomno : "Unknown",
           checkOutDate: reservation.check_out,
           status: reservation.status,
           checkoutTime: reservation.check_out_time || null,
@@ -2442,6 +2443,40 @@ app.post('/staff/confirmbook', async (req, res) => {
       });
   }
 });
+
+
+
+app.get("/staff-reservations_details/:id", async (req, res) => {
+  try {
+    const reservationId = req.params.id;
+
+    // Fetch the reservation based on ID
+    const reservation = await ReservationModel.findById(reservationId);
+
+    if (!reservation) {
+      return res.status(404).json({ message: "Reservation not found" });
+    }
+
+    // Fetch room details using room_id from the reservation
+    const room = await RoomModel.findById(reservation.room_id);
+
+    // Fetch guest details using the array of guest ids
+    const guests = await RoomGuestModel.find({ _id: { $in: reservation.guestids } });
+
+    // Combine all data into a single response object
+    const response = {
+      reservation,
+      room,
+      guests,
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error("Error fetching reservation details:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 
 //frontdesk staff end
 
