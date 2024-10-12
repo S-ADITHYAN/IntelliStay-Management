@@ -180,7 +180,7 @@ const StaffSideBar = () => {
           />
 
           {/* Role-based items */}
-          {userData?.role === "frontdesk" && (
+          {userData?.role === "receptionist" && (
             <>
               <Item
                 title="Check In Handle"

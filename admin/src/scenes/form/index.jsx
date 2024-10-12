@@ -72,20 +72,42 @@ const Form = () => {
   };
  
   const handleFormSubmit = (values, { resetForm }) => {
+    
     console.log(values);
+    Swal.fire({
+      title: 'Adding staff...',
+      text: 'Please wait while we process your request.',
+      allowEscapeKey: false,
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading(); // Show loading animation
+      },
+    });
     axios.post('http://localhost:3001/staffregister', values)
       .then(res => {
         console.log(res);
+        Swal.close();
+        
         if (res.data === "exists") {
+          // Show an error if the staff already exists
           Swal.fire("Error", "Staff already exists!", "error");
         } else {
+          // Reset the form to its initial state
           resetForm({ values: initialValues });
+          
+          // Show success message
           Swal.fire("Success", "Staff added successfully. :)", "success");
         }
       })
-      .catch(err => console.log(err));
+      .catch(err => {
+        console.error("Error during submission:", err);
+        
+        // Show an error message if something goes wrong
+        Swal.fire("Error", "Something went wrong. Please try again later.", "error");
+      });
   };
-
+  
   const today = new Date();
   const eighteenYearsAgo = new Date(today.setFullYear(today.getFullYear() - 18));
   const maxDate = eighteenYearsAgo.toISOString().split('T')[0]; // Format as YYYY-MM-DD
@@ -192,7 +214,18 @@ const validateAndUploadStaffs = async (staffs) => {
     } else {
         // No validation errors, proceed to bulk upload
         try {
+          Swal.fire({
+            title: 'Adding staffs...',
+            text: 'Please wait while we process your request.',
+            allowEscapeKey: false,
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+              Swal.showLoading(); // Show loading animation
+            },
+          });
             await axios.post('http://localhost:3001/uploadBulkStaffData', validatedStaffs);
+            Swal.close();
             Swal.fire("Success", "Bulk staff details uploaded successfully!", "success");
         } catch (error) {
             Swal.fire("Error", "Failed to upload bulk data. Please try again.", "error");
@@ -256,7 +289,7 @@ const downloadXLSXTemplate = () => {
   return (
     <Box m="20px">
       <Header title="ADD STAFF" subtitle="Add a New Staff" />
-
+      
       <Formik
         onSubmit={handleFormSubmit}
         initialValues={initialValues}
@@ -438,7 +471,7 @@ const downloadXLSXTemplate = () => {
             </Box>
 
             <Box display="flex" alignItems="center" justifyContent="end" mt="20px">
-              <Button type="submit" color="secondary" variant="contained">
+              <Button type="submit" color="secondary" variant="contained" >
                 Add New Staff
               </Button>
               

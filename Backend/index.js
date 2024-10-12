@@ -637,38 +637,81 @@ app.post('/handleCancellation', async (req, res) => {
 });
 
 
+const generatePassword = () => {
+  const characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*_';
+  let password = '';
+  
+  // Generate password until it meets the conditions
+  while (!/^(?=.*[a-zA-Z])(?=.*\d)(?=.*[^a-zA-Z\d])[a-zA-Z\d!@#$%^&*()_+[\]{}|;:,.<>?]{6,50}$/.test(password)) {
+      password = '';
+      for (let i = 0; i < 10; i++) { // Generate a password of 10 characters
+          const randomIndex = Math.floor(Math.random() * characters.length);
+          password += characters[randomIndex];
+      }
+  }
+  return password;
+};
+
+
+// Function to send a confirmation email
+const sendConfirmationEmail = async (email, displayName, password,role) => {
+  // Create a transporter object using your SMTP settings
+  const transporter = nodemailer.createTransport({
+      service: 'gmail', // For example, using Gmail
+      auth: {
+          user: process.env.email_id, // Your email address
+          pass: process.env.password, // Your email password or app password
+      },
+  });
+
+  const mailOptions = {
+      from: process.env.email_id,
+      to: email,
+      subject: 'Account Confirmation',
+      text: `Hello ${displayName},\n\nYour account has been created successfully!\n\nEmail: ${email}\nRole: ${role}\nPassword: ${password}\n\nPlease keep this information safe.\n\nBest regards,\nIntelliSttay`,
+  };
+
+  return transporter.sendMail(mailOptions);
+};
+
 app.post('/staffregister', async (req, res) => {
-    const { email, displayName, phone_no, role, address, dob, salary } = req.body;
-    try {
-        // const dobDate = new Date(dob);
-        // const dobString = `${dobDate.getFullYear()}-${String(dobDate.getMonth() + 1).padStart(2, '0')}-${String(dobDate.getDate()).padStart(2, '0')}`;
-        let staff = await StaffModel.findOne({ email: email });
-        if (!staff) {
-            // Generate a unique password
-            const password = crypto.randomBytes(8).toString('hex'); // 16-character password
+  
+  const { email, displayName, phone_no, role, address, dob, salary } = req.body;
+  try {
+      let staff = await StaffModel.findOne({ email: email });
+      
+      if (!staff) {
+        
+          // Generate a unique password that meets the regex requirements
+          const password = generatePassword();
+          
 
-            staff = new StaffModel({
-                displayName: displayName,
-                phone_no: phone_no,
-                role: role,
-                address: address,
-                dob: dob,
-                salary: salary,
-                email: email,
-                password: password, // Use the generated password
-            });
+          staff = new StaffModel({
+              displayName: displayName,
+              phone_no: phone_no,
+              role: role,
+              address: address,
+              dob: dob,
+              salary: salary,
+              email: email,
+              password: password, // Use the generated password
+          });
 
-            await staff.save();
-            return res.status(200).json({ message: "Staff registered successfully"});
-        } else {
-            
-            return res.json("exists");
-        }
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: error.message });
-    }
+          await staff.save();
+
+          // Send confirmation email
+          await sendConfirmationEmail(email, displayName, password,role);
+
+          return res.status(200).json({ message: "Staff registered successfully" });
+      } else {
+          return res.json("exists");
+      }
+  } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: error.message });
+  }
 });
+
 
 app.post('/staffdetails', async (req, res) => {
     try {
@@ -1185,7 +1228,7 @@ app.post('/uploadBulkStaffData', async (req, res) => {
 
             if (!staff) {
                 // Generate a unique password for the new staff
-                const password = crypto.randomBytes(8).toString('hex'); // 16-character password
+                const password = generatePassword(); // 16-character password
 
                 newStaffs.push({
                     displayName,
@@ -1197,6 +1240,7 @@ app.post('/uploadBulkStaffData', async (req, res) => {
                     email,
                     password, // Use the generated password
                 });
+                await sendConfirmationEmail(email, displayName, password,role);
             } else {
                 validationErrors.push({ email, message: 'Staff already exists' });
             }
