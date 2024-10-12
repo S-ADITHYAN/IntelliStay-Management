@@ -24,13 +24,24 @@ const StaffSideBar = () => {
   const { toggled, setToggled } = useContext(ToggledContext);
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
-
+  
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       try {
         const decodedToken = jwtDecode(token);
         setUserData(decodedToken); // Store the decoded data in the state
+        const fetchStaffData = async () => {
+          try {
+            const response = await axios.get(`http://localhost:3001/staffprof/${decodedToken._id}`);
+            setUserData((prev) => ({ ...prev, ...response.data }));
+            
+          } catch (error) {
+            console.error("Error fetching staff data:", error);
+          }
+        };
+
+        fetchStaffData();
       } catch (error) {
         console.error("Failed to decode token:", error);
       }

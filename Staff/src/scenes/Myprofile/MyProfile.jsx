@@ -183,6 +183,10 @@ const MyProfile = () => {
     const file = event.target.files[0];
     setSelectedImage(file);
 
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      Swal.fire("Error", "File size exceeds 2MB limit.", "error");
+      return;
+    }
     // Upload image to the server
     const formData = new FormData();
     formData.append("image", file);
@@ -192,8 +196,12 @@ const MyProfile = () => {
       Swal.fire("Success", "Profile image updated successfully", "success");
       setProfileData((prevData) => ({ ...prevData, image: URL.createObjectURL(file) }));
     } catch (error) {
-      console.error("Error uploading image:", error);
-      Swal.fire("Error", "Error uploading image", "error");
+      if (error.response && error.response.data && error.response.data.message) {
+        Swal.fire("Error", error.response.data.message, "error");
+      } else {
+        console.error("Error uploading image:", error);
+        Swal.fire("Error", `Error uploading image: ${error.message}`, "error");
+      }
     }
   };
 

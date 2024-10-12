@@ -1,9 +1,8 @@
-import { Box, useTheme,Button } from "@mui/material";
+import { Box, useTheme, Button } from "@mui/material";
 import { Header } from "../../components";
 import { DataGrid, GridToolbar } from "@mui/x-data-grid";
-import { mockDataContacts } from "../../data/mockData";
 import { tokens } from "../../theme";
-import { useEffect,useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from 'sweetalert2';
 import useAuth from "../../useAuth";
@@ -13,33 +12,47 @@ const Reservation = () => {
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
 
-  
-    const [rdetails, setRdetails] = useState([]);
-  
-    const resdetails = () => {
-      axios.post('http://localhost:3001/resdetails')
-        .then(res => {
-          console.log(res.data);
-          setRdetails(res.data);
-        })
-        .catch(err => console.log(err));
-    };
+  const [rdetails, setRdetails] = useState([]);
 
-    const handleCancellation = (id) => {
-        // Handle maintenance action
-        axios.post('http://localhost:3001/handleCancellation',{ id })
+  const resdetails = () => {
+    axios.post('http://localhost:3001/resdetails')
+      .then(res => {
+        console.log(res.data);
+        setRdetails(res.data);
+      })
+      .catch(err => console.log(err));
+  };
+
+  const handleCancellation = (id) => {
+    // Display confirmation dialog
+    Swal.fire({
+      title: 'Are you sure?',
+      text: 'Do you want to cancel the reservation?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, cancel it!',
+      cancelButtonText: 'No, keep it'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // Call the cancellation API only if user confirms
+        axios.post('http://localhost:3001/handleCancellation', { id })
           .then(res => {
-           
-            Swal.fire(res.data);
-            resdetails();
+            Swal.fire('Cancelled!', res.data, 'success');
+            resdetails(); // Refresh the reservation details after cancellation
           })
-          .catch(err => console.log(err));
-       
-      };
+          .catch(err => {
+            Swal.fire('Error!', 'Something went wrong. Please try again.', 'error');
+            console.log(err);
+          });
+      }
+    });
+  };
 
-    useEffect(() => {
-        resdetails();
-      }, []);
+  useEffect(() => {
+    resdetails();
+  }, []);
 
   const columns = [
     { field: "_id", headerName: "Reservation_ID", flex: 0.5 },
@@ -77,44 +90,35 @@ const Reservation = () => {
       flex: 1,
     },
     {
-        field: "actions",
+      field: "actions",
       headerName: "Actions",
       flex: 1,
       renderCell: (params) => (
         <Box display="flex" gap="10px">
-         {/* <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            onClick={() => handleEdit(params.row._id)}
-          > 
-            Edit
-          </Button> */}
           <Button
             variant="contained"
-            
             size="small"
             onClick={() =>
-                params.row.status === "reserved" ? handleCancellation(params.row._id) : null
-              }
-              style={{
-                backgroundColor: params.row.status === "reserved" ? "red" : "#ff6666",
-                cursor: params.row.status === "reserved" ? "pointer" : "not-allowed",
-              }}
-              disabled={params.row.status !== "reserved"}
-            >
-        {params.row.status === "cancelled" ? "Cancelled" : "Cancel"}
+              params.row.status === "reserved" ? handleCancellation(params.row._id) : null
+            }
+            style={{
+              backgroundColor: params.row.status === "reserved" ? "red" : "#ff6666",
+              cursor: params.row.status === "reserved" ? "pointer" : "not-allowed",
+            }}
+            disabled={params.row.status !== "reserved"}
+          >
+            {params.row.status === "cancelled" ? "Cancelled" : "Cancel"}
           </Button>
         </Box>
       ),
-      },
-
+    },
   ];
+
   return (
     <Box m="20px">
       <Header
         title="Reservation Details"
-        subtitle="List of Reserved Rooms and their Details "
+        subtitle="List of Reserved Rooms and their Details"
       />
       <Box
         mt="40px"

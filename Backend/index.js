@@ -1569,6 +1569,12 @@ const storagess = multer.diskStorage({
 
         res.json({ message: 'Profile image updated', image: imagePath });
     } catch (error) {
+      if (error instanceof multer.MulterError) {
+        // Handle Multer errors
+        if (error.code === 'LIMIT_FILE_SIZE') {
+          return res.status(400).json({ message: 'File size exceeds 2MB limit.' });
+        }
+      }
         res.status(500).json({ message: 'Error updating profile image', error: error.message });
     }
 });
@@ -2473,6 +2479,23 @@ app.get("/staff-reservations_details/:id", async (req, res) => {
     res.json(response);
   } catch (error) {
     console.error("Error fetching reservation details:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+
+//staffsidebar
+app.get("/staffprof/:id", async (req, res) => {
+  try {
+    const staff = await StaffModel.findById(req.params.id, "displayName image"); // Select only displayName and image
+    if (!staff) {
+      return res.status(404).json({ message: "Staff not found" });
+    }
+    console.log(staff)
+    res.json(staff);
+  } catch (error) {
+    console.error("Error fetching staff data:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

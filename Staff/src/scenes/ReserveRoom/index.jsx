@@ -110,10 +110,11 @@ const ReserveRoom = () => {
   };
 
   return (
+    <div style={{ padding: "20px" }}> 
     <Box>
-      <Typography variant="h4">Reserve a Room</Typography>
+      <Typography variant="h4" >Reserve a Room</Typography>
       <Grid container spacing={2}>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6} mt={3}>
           <DatePicker
             selected={checkInDate}
             onChange={(date) => setCheckInDate(date)}
@@ -123,7 +124,7 @@ const ReserveRoom = () => {
             required
           />
         </Grid>
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12} md={6} mt={3}>
           <DatePicker
             selected={checkOutDate}
             onChange={(date) => setCheckOutDate(date)}
@@ -199,6 +200,7 @@ const ReserveRoom = () => {
         </Grid>
       </Grid>
     </Box>
+    </div>
   );
 };
 
