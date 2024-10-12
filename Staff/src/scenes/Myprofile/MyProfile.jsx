@@ -8,7 +8,9 @@ import {
   Typography,
   TextField,
   useTheme,
-  IconButton
+  IconButton,
+  FormControlLabel,
+  Checkbox
 } from "@mui/material";
 import AddAPhotoIcon from '@mui/icons-material/AddAPhoto'; // Plus icon for photo upload
 import { jwtDecode } from "jwt-decode";
@@ -16,13 +18,20 @@ import axios from "axios"; // Import axios for API requests
 import Swal from 'sweetalert2';
 import useAuth from "../../useAuth";
 
+// Regular expressions for validation
+const phoneRegex = /^[0-9]{10}$/; // Adjust the regex as per your phone number format requirements
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Simple email regex
+const passwordRegex = /^(?=.*[a-zA-Z])(?=.*\d)(?=.*[^a-zA-Z\d])[a-zA-Z\d[^a-zA-Z\d]]{6,50}$/; // Password pattern: min 6 chars, at least one letter, one number, and one special character
+const displayNameRegx=/^[A-Za-z]+$/;
+
 const MyProfile = () => {
   useAuth();
-  const [editMode, setEditMode] = useState(false); // Track if in edit mode
-  const [changePasswordMode, setChangePasswordMode] = useState(false); // Track if in change password mode
-  const [selectedImage, setSelectedImage] = useState(null); // For storing selected image
-  const theme = useTheme(); // Access current theme
-  const [userData, setUserData] = useState(null); // Store decoded token data
+  const [editMode, setEditMode] = useState(false);
+  const [changePasswordMode, setChangePasswordMode] = useState(false);
+  const [passwordVisibility, setPasswordVisibility] = useState(false); // State for password visibility
+  const [selectedImage, setSelectedImage] = useState(null);
+  const theme = useTheme();
+  const [userData, setUserData] = useState(null);
   const [profileData, setProfileData] = useState({
     displayName: "",
     email: "",
@@ -40,107 +49,154 @@ const MyProfile = () => {
     confirmPassword: ""
   });
 
+  const [errors, setErrors] = useState({}); // To store validation errors
+
+  // Fetch user profile data based on user ID
+  const fetchProfileData = async (userId) => {
+    try {
+      const response = await axios.get(`http://localhost:3001/staff/profile/${userId}`);
+      const data = response.data;
+      setProfileData({
+        displayName: data.displayName,
+        email: data.email,
+        phone_no: data.phone_no,
+        role: data.role,
+        address: data.address,
+        dob: data.dob,
+        salary: data.salary,
+        image: data.image || "/path-to-default-pic.jpg"
+      });
+    } catch (error) {
+      console.error("Error fetching profile data:", error);
+    }
+  };
+
   // Fetch profile data from the server using user data
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (token) {
       try {
         const decodedToken = jwtDecode(token);
-        setUserData(decodedToken); // Store the decoded data in the state
-
-        // Fetch the profile data based on user ID or email
-        axios.get(`http://localhost:3001/staff/profile/${decodedToken._id}`)
-          .then(response => {
-            const data = response.data;
-            setProfileData({
-              displayName: data.displayName,
-              email: data.email,
-              phone_no: data.phone_no,
-              role: data.role,
-              address: data.address,
-              dob: data.dob,
-              salary: data.salary,
-              image: data.image || "/path-to-default-pic.jpg"
-            });
-          })
-          .catch(error => {
-            console.error("Error fetching profile data:", error);
-          });
-
+        setUserData(decodedToken);
+        fetchProfileData(decodedToken._id);
       } catch (error) {
         console.error("Failed to decode token:", error);
       }
     }
-  }, [profileData]);
+  }, []);
 
   const handleUpdateClick = () => {
-    setEditMode(true); // Enable edit mode
+    setEditMode(true);
   };
 
   const handleInputChange = (e) => {
-    setProfileData({ ...profileData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setProfileData({ ...profileData, [name]: value });
+
+    // Validate inputs
+    if (name === "displayName" && !displayNameRegx.test(value)) {
+      setErrors((prev) => ({ ...prev, displayName: "Invalid name. Only characters are allowed." }));
+    } else {
+      setErrors((prev) => ({ ...prev, displayName: undefined }));
+    }
+
+    if (name === "phone_no" && !phoneRegex.test(value)) {
+      setErrors((prev) => ({ ...prev, phone_no: "Invalid phone number. Must be 10 digits." }));
+    } else {
+      setErrors((prev) => ({ ...prev, phone_no: undefined }));
+    }
+
+    if (name === "email" && !emailRegex.test(value)) {
+      setErrors((prev) => ({ ...prev, email: "Invalid email format." }));
+    } else {
+      setErrors((prev) => ({ ...prev, email: undefined }));
+    }
   };
 
-  const handleSave = () => {
-    // Update profile data on the server
-    axios.put(`http://localhost:3001/staff/profile/${userData._id}`, profileData)
-      .then(response => {
-        Swal.fire("Success", "Profile updated successfully:", "success");
-        setEditMode(false); // Disable edit mode after saving
-      })
-      .catch(error => {
-        Swal.fire("Error", "Error updating profile data:", "error");
-      });
+  const handleSave = async () => {
+    if (errors.phone_no || errors.email) {
+      Swal.fire("Error", "Please fix the validation errors before saving!", "error");
+      return;
+    }
+
+    try {
+      await axios.put(`http://localhost:3001/staff/profile/${userData._id}`, profileData);
+      Swal.fire("Success", "Profile updated successfully", "success");
+      setEditMode(false);
+    } catch (error) {
+      console.error("Error updating profile data:", error);
+      Swal.fire("Error", "Error updating profile data", "error");
+    }
   };
 
   const handlePasswordChange = () => {
-    setChangePasswordMode(true); // Enable password change mode
+    setChangePasswordMode(true);
   };
 
   const handlePasswordInputChange = (e) => {
     setPasswordData({ ...passwordData, [e.target.name]: e.target.value });
+
+    // Validate new password against regex
+    if (e.target.name === "newPassword" && !passwordRegex.test(e.target.value)) {
+      setErrors((prev) => ({
+        ...prev,
+        newPassword: "Password must be at least 6 characters, include one letter, one number, and one special character."
+      }));
+    } else {
+      setErrors((prev) => ({ ...prev, newPassword: undefined }));
+    }
+
+    // Check if passwords match
+    if (e.target.name === "confirmPassword" && e.target.value !== passwordData.newPassword) {
+      setErrors((prev) => ({ ...prev, confirmPassword: "Passwords do not match." }));
+    } else {
+      setErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+    }
   };
 
-  const handlePasswordSave = () => {
+  const handlePasswordSave = async () => {
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       Swal.fire("Error", "New password and confirm password do not match!", "error");
       return;
     }
 
-    // Send current password and new password to the backend
-    axios.put(`http://localhost:3001/staff/change-password/${userData._id}`, {
-      currentPassword: passwordData.currentPassword,
-      newPassword: passwordData.newPassword
-    })
-    .then(response => {
+    if (errors.newPassword || errors.confirmPassword) {
+      Swal.fire("Error", "Please fix the validation errors before saving!", "error");
+      return;
+    }
+
+    try {
+      await axios.put(`http://localhost:3001/staff/change-password/${userData._id}`, {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
       Swal.fire("Success", "Password changed successfully", "success");
-      setChangePasswordMode(false); // Disable password change mode
-    })
-    .catch(error => {
+      setChangePasswordMode(false);
+    } catch (error) {
+      console.error("Error changing password:", error);
       Swal.fire("Error", "Current password is incorrect or error updating password", "error");
-    });
+    }
   };
 
   // Handle file input change
-  const handleImageUpload = (event) => {
+  const handleImageUpload = async (event) => {
     const file = event.target.files[0];
-    setSelectedImage(file); // Store the selected image
-  
+    setSelectedImage(file);
+
     // Upload image to the server
     const formData = new FormData();
     formData.append("image", file);
-  
-    axios.post(`http://localhost:3001/staff/upload-photo/${userData._id}`, formData) // Change to `/upload-photo/`
-      .then(response => {
-        Swal.fire("Success", "Profile image updated successfully", "success");
-        setProfileData({ ...profileData, image: URL.createObjectURL(file) }); // Update image preview
 
-      })
-      .catch(error => {
-        Swal.fire("Error", "Error uploading image", "error");
-      });
+    try {
+      await axios.post(`http://localhost:3001/staff/upload-photo/${userData._id}`, formData);
+      Swal.fire("Success", "Profile image updated successfully", "success");
+      setProfileData((prevData) => ({ ...prevData, image: URL.createObjectURL(file) }));
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      Swal.fire("Error", "Error uploading image", "error");
+    }
   };
-  
+
   return (
     <Paper
       elevation={3}
@@ -156,34 +212,34 @@ const MyProfile = () => {
     >
       {/* Profile Picture and User Info */}
       <Box display="flex" flexDirection="column" alignItems="center" mb={4} position="relative">
-  <Avatar
-    alt={profileData.displayName}
-    src={`http://localhost:3001/profilepicture/${profileData.image}`}
-    sx={{
-      width: 150,
-      height: 150,
-      mb: 1,
-      border: `4px solid ${theme.palette.primary.main}`,
-    }}
-  />
-  <IconButton
-    component="label"
-    sx={{
-      position: "absolute",
-      bottom: 18,  // Adjusted closer to the Avatar
-      right: "37%", // Adjusted to be closer to the right edge of the Avatar
-      backgroundColor: theme.palette.primary.main,
-      color: "#fff",
-      '&:hover': { backgroundColor: theme.palette.primary.dark },
-    }}
-  >
-    <input hidden accept=".jpg,.jpeg,.png" type="file" onChange={handleImageUpload} />
-    <AddAPhotoIcon />
-  </IconButton>
-  <Typography variant="h5" fontWeight="bold" mt={2}> {/* Added margin-top to move the text slightly lower */}
-    {profileData.displayName}
-  </Typography>
-</Box>
+        <Avatar
+          alt={profileData.displayName}
+          src={`http://localhost:3001/profilepicture/${profileData.image}`}
+          sx={{
+            width: 150,
+            height: 150,
+            mb: 1,
+            border: `4px solid ${theme.palette.primary.main}`,
+          }}
+        />
+        <IconButton
+          component="label"
+          sx={{
+            position: "absolute",
+            bottom: 18,
+            right: "37%",
+            backgroundColor: theme.palette.primary.main,
+            color: "#fff",
+            '&:hover': { backgroundColor: theme.palette.primary.dark },
+          }}
+        >
+          <input hidden accept=".jpg,.jpeg,.png" type="file" onChange={handleImageUpload} />
+          <AddAPhotoIcon />
+        </IconButton>
+        <Typography variant="h5" fontWeight="bold" mt={2}>
+          {profileData.displayName}
+        </Typography>
+      </Box>
 
       {/* Profile Details */}
       <Grid container spacing={2}>
@@ -198,10 +254,11 @@ const MyProfile = () => {
               name="displayName"
               value={profileData.displayName}
               onChange={handleInputChange}
-              sx={{ color: theme.palette.text.primary }}
+              error={!!errors.displayName}
+              helperText={errors.displayName}
             />
           ) : (
-            <Typography variant="h6">{profileData.displayName}</Typography>
+            <Typography variant="body1">{profileData.displayName}</Typography>
           )}
         </Grid>
 
@@ -217,14 +274,15 @@ const MyProfile = () => {
               value={profileData.email}
               onChange={handleInputChange}
               InputProps={{ readOnly: true }}
-              sx={{ color: theme.palette.text.primary }}
+              error={!!errors.email}
+              helperText={errors.email}
             />
           ) : (
-            <Typography variant="h6">{profileData.email}</Typography>
+            <Typography variant="body1">{profileData.email}</Typography>
           )}
         </Grid>
 
-        {/* Phone Number */}
+        {/* Phone Number Field */}
         <Grid item xs={12}>
           <Typography variant="body1" color="textSecondary">
             Phone Number:
@@ -235,14 +293,15 @@ const MyProfile = () => {
               name="phone_no"
               value={profileData.phone_no}
               onChange={handleInputChange}
-              sx={{ color: theme.palette.text.primary }}
+              error={!!errors.phone_no}
+              helperText={errors.phone_no}
             />
           ) : (
-            <Typography variant="h6">{profileData.phone_no}</Typography>
+            <Typography variant="body1">{profileData.phone_no}</Typography>
           )}
         </Grid>
 
-        {/* Role */}
+        {/* Role Field */}
         <Grid item xs={12}>
           <Typography variant="body1" color="textSecondary">
             Role:
@@ -252,33 +311,15 @@ const MyProfile = () => {
               fullWidth
               name="role"
               value={profileData.role}
+              InputProps={{ readOnly: true }}
               onChange={handleInputChange}
-              sx={{ color: theme.palette.text.primary }}
             />
           ) : (
-            <Typography variant="h6">{profileData.role}</Typography>
+            <Typography variant="body1">{profileData.role}</Typography>
           )}
         </Grid>
 
-        {/* Date of Birth */}
-        <Grid item xs={12}>
-          <Typography variant="body1" color="textSecondary">
-            Dob:
-          </Typography>
-          {editMode ? (
-            <TextField
-              fullWidth
-              name="dob"
-              value={profileData.dob}
-              onChange={handleInputChange}
-              sx={{ color: theme.palette.text.primary }}
-            />
-          ) : (
-            <Typography variant="h6">{profileData.dob}</Typography>
-          )}
-        </Grid>
-
-        {/* Address */}
+        {/* Address Field */}
         <Grid item xs={12}>
           <Typography variant="body1" color="textSecondary">
             Address:
@@ -289,111 +330,126 @@ const MyProfile = () => {
               name="address"
               value={profileData.address}
               onChange={handleInputChange}
-              sx={{ color: theme.palette.text.primary }}
             />
           ) : (
-            <Typography variant="h6">{profileData.address}</Typography>
+            <Typography variant="body1">{profileData.address}</Typography>
           )}
         </Grid>
 
-        {/* Salary */}
+        {/* DOB Field */}
         <Grid item xs={12}>
           <Typography variant="body1" color="textSecondary">
-            Salary:
+            Date of Birth:
           </Typography>
           {editMode ? (
             <TextField
               fullWidth
-              name="salary"
-              value={profileData.salary}
+              name="dob"
+              value={profileData.dob}
+              InputProps={{ readOnly: true }}
               onChange={handleInputChange}
-              sx={{ color: theme.palette.text.primary }}
             />
           ) : (
-            <Typography variant="h6">{profileData.salary}</Typography>
+            <Typography variant="body1">{profileData.dob}</Typography>
           )}
         </Grid>
 
-        {/* Buttons */}
-        <Grid item xs={12} textAlign="center">
-          {editMode ? (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleSave}
-              sx={{ mt: 2, mr: 2 }}
-            >
-              Save
-            </Button>
-          ) : (
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleUpdateClick}
-              sx={{ mt: 2, mr: 2 }}
-            >
-              Edit Profile
-            </Button>
-          )}
-
-          {/* Change Password */}
-          {!changePasswordMode ? (
-            <Button
-              variant="outlined"
-              color="secondary"
-              onClick={handlePasswordChange}
-              sx={{ mt: 2 }}
-            >
-              Change Password
-            </Button>
-          ) : (
-            <Box>
-              <Typography variant="body1" color="textSecondary" mt={2}>
+        {/* Change Password Section */}
+        {changePasswordMode && (
+          <>
+            <Grid item xs={12}>
+              <Typography variant="body1" color="textSecondary">
                 Current Password:
               </Typography>
               <TextField
                 fullWidth
-                type="password"
                 name="currentPassword"
+                type={passwordVisibility ? "text" : "password"}
                 value={passwordData.currentPassword}
                 onChange={handlePasswordInputChange}
-                sx={{ color: theme.palette.text.primary }}
               />
-              <Typography variant="body1" color="textSecondary" mt={2}>
+            </Grid>
+
+            <Grid item xs={12}>
+              <Typography variant="body1" color="textSecondary">
                 New Password:
               </Typography>
               <TextField
                 fullWidth
-                type="password"
                 name="newPassword"
+                type={passwordVisibility ? "text" : "password"}
                 value={passwordData.newPassword}
                 onChange={handlePasswordInputChange}
-                sx={{ color: theme.palette.text.primary }}
+                error={!!errors.newPassword}
+                helperText={errors.newPassword}
               />
-              <Typography variant="body1" color="textSecondary" mt={2}>
-                Confirm New Password:
+            </Grid>
+
+            <Grid item xs={12}>
+              <Typography variant="body1" color="textSecondary">
+                Confirm Password:
               </Typography>
               <TextField
                 fullWidth
-                type="password"
                 name="confirmPassword"
+                type={passwordVisibility ? "text" : "password"}
                 value={passwordData.confirmPassword}
                 onChange={handlePasswordInputChange}
-                sx={{ color: theme.palette.text.primary }}
+                error={!!errors.confirmPassword}
+                helperText={errors.confirmPassword}
               />
+            </Grid>
 
+            {/* Password Visibility Toggle */}
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={passwordVisibility}
+                    onChange={() => setPasswordVisibility(!passwordVisibility)}
+                  />
+                }
+                label="Show Passwords"
+              />
+            </Grid>
+
+            <Grid item xs={12}>
               <Button
+                fullWidth
                 variant="contained"
                 color="primary"
                 onClick={handlePasswordSave}
-                sx={{ mt: 2 }}
+                disabled={!!errors.newPassword || !!errors.confirmPassword}
               >
                 Save Password
               </Button>
-            </Box>
-          )}
-        </Grid>
+            </Grid>
+          </>
+        )}
       </Grid>
+
+      <Box mt={3} display="flex" justifyContent="space-between">
+        {!editMode && (
+          <Button variant="contained" color="error" onClick={handleUpdateClick}>
+            Edit Profile
+          </Button>
+        )}
+        {editMode && (
+          <Button variant="contained" color="success" onClick={handleSave}>
+            Save Changes
+          </Button>
+        )}
+        {editMode && (
+          <Button variant="contained" color="error" onClick={()=>{setEditMode(false)}}>
+            Cancel
+          </Button>
+        )}
+        {!changePasswordMode && (
+          <Button variant="outlined" color="secondary" onClick={handlePasswordChange}>
+            Change Password
+          </Button>
+        )}
+      </Box>
     </Paper>
   );
 };

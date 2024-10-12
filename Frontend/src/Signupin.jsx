@@ -285,7 +285,7 @@ const signInWithGoogle = () => {
             </div>
             <div className="input-field">
               <i className="fas fa-lock"></i>
-              <input type="password" name="passwordsign" placeholder="Password" value={formData.passwordsign} onChange={handleChange}  onBlur={()=>setFocus({...focus,errPasswordsign: true})} focus={focus.errPasswordsign.toString()} required />
+              <input type="password" name="passwordsign" pattern="^(?=.*[a-zA-Z])(?=.*\d)(?=.*[^a-zA-Z\d])([a-zA-Z\d[^a-zA-Z\d]]{6,50})$" placeholder="Password" value={formData.passwordsign} onChange={handleChange}  onBlur={()=>setFocus({...focus,errPasswordsign: true})} focus={focus.errPasswordsign.toString()} required />
               <span>Password must be at least 6 characters long and include a letter, number, and special character</span>
             </div><br></br>
             <p className="forgot-password" onClick={() => setShowForgotPassword(true)}>Forgot Password?</p>

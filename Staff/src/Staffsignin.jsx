@@ -3,7 +3,7 @@ import './css/Style.css';
 import axios from 'axios';
 import { useNavigate } from "react-router-dom";
 import LoginAuth from './LoginAuth';
-
+import Swal from 'sweetalert2';
 
 
 
@@ -35,11 +35,11 @@ function StaffSignin() {
     e.preventDefault();
     axios.post('http://localhost:3001/stafflogin', { ...formData })
       .then(res => {
-        if (res.status === 200) {
+        if (res.data.message === 'success') {
           localStorage.setItem('token', res.data.token);
           navigate('/dashboard');
         } else {
-          alert(res.data);
+          Swal.fire('Oops..',res.data.message,'error');
         }
       })
       .catch(err => console.log(err));
@@ -76,6 +76,7 @@ function StaffSignin() {
                 name="passwordsign"
                 placeholder="Password"
                 value={formData.passwordsign}
+                pattern="^(?=.*[a-zA-Z])(?=.*\d)(?=.*[^a-zA-Z\d])([a-zA-Z\d[^a-zA-Z\d]]{6,50})$"
                 onChange={handleChange}
                 onBlur={() => setFocus({ ...focus, errPasswordsign: true })}
                 focus={focus.errPasswordsign.toString()}

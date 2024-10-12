@@ -49,7 +49,7 @@ const Checkout = () => {
         <Typography variant="body1">No reservations for checkout today.</Typography> // Show message if no reservations
       ) : (
         <Table>
-          <TableHead>
+          <TableHead sx={{ backgroundColor: '#00A36C' }}>
             <TableRow>
               <TableCell>Guest Name</TableCell>
               <TableCell>Guest Email</TableCell>
@@ -68,9 +68,16 @@ const Checkout = () => {
                 <TableCell>{reservation.guestEmail}</TableCell>
                 <TableCell>{reservation.guestPhone}</TableCell>
                 <TableCell>{reservation.roomNumber}</TableCell>
-                <TableCell>{new Date(reservation.checkOutDate).toLocaleDateString()}</TableCell>
+                <TableCell>{new Date(reservation.checkOutDate).toLocaleDateString("en-GB")}</TableCell>
                 <TableCell>
-                  {reservation.checkoutTime ? new Date(reservation.checkoutTime).toLocaleString() : "N/A"}
+                  {reservation.checkoutTime ? new Date(reservation.checkoutTime).toLocaleString("en-GB",{
+  hour: 'numeric', 
+  minute: 'numeric', 
+  hour12: true, // Use 12-hour format
+  year: 'numeric', 
+  month: '2-digit', 
+  day: '2-digit'
+}) : "N/A"}
                 </TableCell>
                 <TableCell>
                   {reservation.status === "checked_out" ? (

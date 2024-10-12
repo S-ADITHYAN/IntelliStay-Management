@@ -171,13 +171,13 @@ const ViewLeaveStatus = () => {
           {selectedLeaveDetail && (
             <Box>
               <Typography><strong>Leave ID:</strong> {selectedLeaveDetail._id}</Typography>
-              <Typography><strong>Employee Name:</strong> {selectedLeaveDetail.employeeName}</Typography>
+              
               <Typography><strong>Leave Type:</strong> {selectedLeaveDetail.leaveType}</Typography>
-              <Typography><strong>Start Date:</strong> {selectedLeaveDetail.startDate}</Typography>
-              <Typography><strong>End Date:</strong> {selectedLeaveDetail.endDate}</Typography>
+              <Typography><strong>Start Date:</strong> {new Date(selectedLeaveDetail.startDate).toLocaleDateString("en-GB")}</Typography>
+              <Typography><strong>End Date:</strong> {new Date(selectedLeaveDetail.endDate).toLocaleDateString("en-GB")}</Typography>
               <Typography><strong>Status:</strong> {selectedLeaveDetail.status}</Typography>
-              <Typography><strong>Leave Applied on:</strong> {selectedLeaveDetail.appliedon}</Typography>
-              <Typography><strong>Leave Approved on:</strong> {selectedLeaveDetail.approvedon ? selectedLeaveDetail.approvedon :'not yet approved '}</Typography>
+              <Typography><strong>Leave Applied on:</strong> {new Date(selectedLeaveDetail.appliedon).toLocaleDateString("en-GB")}</Typography>
+              <Typography><strong>Leave Approved on:</strong> {selectedLeaveDetail.approvedon ? new Date(selectedLeaveDetail.approvedon).toLocaleDateString("en-GB")  :'not yet approved '}</Typography>
             </Box>
           )}
           <Box mt={2}>

@@ -183,10 +183,10 @@ app.post('/stafflogin', (req, res) => {
                     res.status(200).json({message:"success",token: token});
                     
                 } else {
-                    res.json("the password is incorrect");
+                    res.json({message:"the password is incorrect"});
                 }
             } else {
-                res.json("No user found :(");
+                res.json({message:"No user found :("});
             }
         })
         .catch(err => res.json(err));
@@ -2109,9 +2109,9 @@ app.get("/reservations/todays-reservations", async (req, res) => {
   
         enrichedReservations.push({
           _id: reservation._id,
-          guestName: guest ? guest.name : "Unknown",
+          guestName: guest ? guest.displayName : "Unknown",
           guestEmail: guest ? guest.email : "Unknown",
-          guestPhone: guest ? guest.phone : "Unknown",
+          guestPhone: guest ? guest.phone_no : "Unknown",
           roomNumber: room ? room.roomno : "Unknown",
           checkOutDate: reservation.check_out,
           status: reservation.status,
