@@ -13,6 +13,7 @@ const ReservationSchema = new mongoose.Schema({
     guestids:[String],
     totaldays:String,
     is_verified:String,
+    cancel_date:{ type: Date, default: null }
     
 },{timestamps:true});
 

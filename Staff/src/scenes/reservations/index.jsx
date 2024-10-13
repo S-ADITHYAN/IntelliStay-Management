@@ -55,23 +55,18 @@ const Reservation = () => {
   }, []);
 
   const columns = [
-    { field: "_id", headerName: "Reservation_ID", flex: 0.5 },
-    { field: "user_id", headerName: "User_ID" },
-    {
-      field: "room_id",
-      headerName: "Room_ID",
-      flex: 1,
-      cellClassName: "name-column--cell",
-    },
+    { field: "_id", headerName: "Reservation ID", flex: 0.5 },
+    { field: "user.email", headerName: "User Email", flex: 1 }, // Accessing user email
+    { field: "room.roomno", headerName: "Room Name", flex: 1 }, // Accessing room name
     {
       field: "check_in",
-      headerName: "Check_in Date",
+      headerName: "Check-in Date",
       headerAlign: "left",
       align: "left",
     },
     {
       field: "check_out",
-      headerName: "Check_out Date",
+      headerName: "Check-out Date",
       flex: 1,
     },
     {
@@ -93,24 +88,32 @@ const Reservation = () => {
       field: "actions",
       headerName: "Actions",
       flex: 1,
-      renderCell: (params) => (
-        <Box display="flex" gap="10px">
-          <Button
-            variant="contained"
-            size="small"
-            onClick={() =>
-              params.row.status === "reserved" ? handleCancellation(params.row._id) : null
-            }
-            style={{
-              backgroundColor: params.row.status === "reserved" ? "red" : "#ff6666",
-              cursor: params.row.status === "reserved" ? "pointer" : "not-allowed",
-            }}
-            disabled={params.row.status !== "reserved"}
-          >
-            {params.row.status === "cancelled" ? "Cancelled" : "Cancel"}
-          </Button>
-        </Box>
-      ),
+      renderCell: (params) => {
+        const checkInDate = new Date(params.row.check_in);
+        const currentDate = new Date();
+        
+        // Check if cancellation is allowed
+        const isCancellationAllowed = currentDate <= checkInDate;
+
+        return (
+          <Box display="flex" gap="10px">
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() => 
+                params.row.status === "reserved" && isCancellationAllowed ? handleCancellation(params.row._id) : null
+              }
+              style={{
+                backgroundColor: params.row.status === "reserved" ? "red" : "#ff6666",
+                cursor: params.row.status === "reserved" && isCancellationAllowed ? "pointer" : "not-allowed",
+              }}
+              disabled={params.row.status !== "reserved" || !isCancellationAllowed} // Disable if not reserved or cancellation is not allowed
+            >
+              {params.row.status === "Cancelled" ? "Cancelled" : "Cancel"}
+            </Button>
+          </Box>
+        );
+      },
     },
   ];
 

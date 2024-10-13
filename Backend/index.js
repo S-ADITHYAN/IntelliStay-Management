@@ -591,21 +591,55 @@ const booking=() => {
 // booking();
 
 
+
+
+// Route to get reservation details
 app.post('/resdetails', async (req, res) => {
     try {
-        let reservation = await ReservationModel.find();
-        
-        if (reservation && reservation.length > 0) {
-            
-            return res.status(200).json(reservation); // sending room details
-        } else {
-            return res.status(404).json({ message: "No rooms reserved" });
+        // Fetch all reservations sorted in reverse order based on _id
+        let reservations = await ReservationModel.find().sort({ _id: -1 });
+
+        if (!reservations || reservations.length === 0) {
+            return res.status(404).json({ message: "No reservations found" });
         }
+
+        // Extract user_ids and room_ids from reservations
+        const userIds = reservations.map(reservation => reservation.user_id);
+        const roomIds = reservations.map(reservation => reservation.room_id);
+
+        // Fetch user details for the extracted user_ids
+        const users = await GoogleRegisterModel.find({ _id: { $in: userIds } }).select('-password'); // Exclude password
+
+        // Fetch room details for the extracted room_ids
+        const rooms = await RoomModel.find({ _id: { $in: roomIds } });
+
+        // Create a mapping for users and rooms for easy lookup
+        const userMap = {};
+        users.forEach(user => {
+            userMap[user._id] = user;
+        });
+
+        const roomMap = {};
+        rooms.forEach(room => {
+            roomMap[room._id] = room;
+        });
+
+        // Combine reservation details with user and room details
+        const detailedReservations = reservations.map(reservation => ({
+            ...reservation.toObject(), // Convert mongoose document to plain object
+            user: userMap[reservation.user_id], // Add user details
+            room: roomMap[reservation.room_id], // Add room details
+        }));
+
+        return res.status(200).json(detailedReservations); // Sending combined details
     } catch (error) {
         console.error(error);
-        return res.status(500).json({ error: error.message }); // handle errors properly
+        return res.status(500).json({ error: error.message }); // Handle errors properly
     }
 });
+
+
+
 
 
 app.post('/handleCancellation', async (req, res) => {
@@ -1143,15 +1177,17 @@ app.post('/confirmbook', (req, res) => {
   
 
 app.get('/my-bookings/:userId', async (req, res) => {
-    try {
-      const userId = req.params.userId;
-     
-      const bookings = await ReservationModel.find({ user_id:userId }); // Adjust this query as needed
-      res.status(200).json(bookings);
-    } catch (error) {
-      res.status(500).json({ message: 'Error retrieving bookings', error });
-    }
-  });
+  try {
+    const userId = req.params.userId;
+
+    // Fetch bookings and sort by _id in descending order
+    const bookings = await ReservationModel.find({ user_id: userId }).sort({ _id: -1 }); // -1 for descending order
+
+    res.status(200).json(bookings);
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving bookings', error });
+  }
+});
 
 
 //   const upload = multer({ storage: multer.memoryStorage() });
@@ -2546,6 +2582,116 @@ app.get("/staffprof/:id", async (req, res) => {
 
 
 //frontdesk staff end
+
+//user section start
+app.get("/user-booking/:id", async (req, res) => {
+ 
+  try {
+    const reservationId = req.params.id;
+    
+
+    // Fetch the reservation based on ID
+    const reservation = await ReservationModel.findById(reservationId);
+
+    if (!reservation) {
+      return res.status(404).json({ message: "Reservation not found" });
+    }
+
+    // Fetch room details using room_id from the reservation
+    const room = await RoomModel.findById(reservation.room_id);
+
+    // Fetch guest details using the array of guest ids
+    const guests = await RoomGuestModel.find({ _id: { $in: reservation.guestids } });
+
+    // Combine all data into a single response object
+    const response = {
+      reservation,
+      room,
+      guests,
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error("Error fetching reservation details:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.post("/user-bookings/cancel/:id",async (req, res) => {
+  try {
+    const bookingId = req.params.id; // Get booking ID directly
+ // Get booking ID from request parameters
+    console.log(bookingId)
+    // Check if booking exists
+    const booking = await ReservationModel.findById(bookingId);
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Check the check-in date to see if cancellation is allowed
+    const checkInDate = new Date(booking.check_in);
+    const currentDate = new Date();
+    const daysDiff = (checkInDate - currentDate) / (1000 * 60 * 60 * 24); // Difference in days
+
+    if (daysDiff <= 2) {
+      return res.status(400).json({ message: 'No refund is available if cancelled within 2 days of the check-in date.' });
+    }
+
+    // Proceed with cancellation
+    booking.status = 'Cancelled'; // Update the booking status
+    booking.cancel_date = currentDate; // Set the cancel_date to the current date and time
+    await booking.save();
+
+    return res.status(200).json({ message: 'Booking has been cancelled successfully.' });
+  } catch (error) {
+    console.error('Error cancelling booking:', error);
+    return res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+});
+
+
+const stge = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/proofdocs');
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname)); // Save file with a timestamp to avoid conflicts
+  },
+});
+
+const load = multer({ storage: stge });
+
+// Update guest proof document
+app.post("/user-guests-proofupdate/:id",load.single('proofDocument'),async (req, res) => {
+    try {
+      console.log(req.file)
+      const guestId = req.params.id;
+      const guest = await RoomGuestModel.findById(guestId);
+
+      if (!guest) {
+        return res.status(404).json({ success: false, message: 'Guest not found' });
+      }
+
+      // Check if check-in time is already set
+      if (ReservationModel.check_in_time) {
+        return res.status(400).json({ success: false, message: 'Cannot update document after check-in' });
+      }
+   console.log(req.file.filename)
+      // Update proofDocument field with new file name
+      guest.proofDocument = req.file.filename;
+      await guest.save();
+
+      res.status(200).json({ success: true, message: 'Document updated successfully' });
+    } catch (error) {
+      console.error('Error updating document:', error);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  },
+);
+
+
+//user section end
+
 
 app.listen(3001, () => {
     console.log("Server connected");

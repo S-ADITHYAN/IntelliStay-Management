@@ -82,33 +82,32 @@ const Reservation = () => {
           headerName: "Actions",
           flex: 1,
           renderCell: (params) => {
-            const currentTime = new Date();
-            const bookingTime = new Date(params.row.booking_date);
-      
-            // Calculate the difference in minutes
-            const timeDifference = differenceInMinutes(currentTime, bookingTime);
-      
-            // Enable button if timeDifference is 10 minutes or less
-            const canCancel = timeDifference <= 10 && params.row.status === "reserved";
-      
+            const checkInDate = new Date(params.row.check_in);
+            const currentDate = new Date();
+            
+            // Check if cancellation is allowed
+            const isCancellationAllowed = currentDate <= checkInDate;
+    
             return (
               <Box display="flex" gap="10px">
                 <Button
                   variant="contained"
                   size="small"
-                  onClick={() => canCancel ? handleCancellation(params.row._id) : null}
+                  onClick={() => 
+                    params.row.status === "reserved" && isCancellationAllowed ? handleCancellation(params.row._id) : null
+                  }
                   style={{
-                    backgroundColor: canCancel ? "red" : "#ff6666",
-                    cursor: canCancel ? "pointer" : "not-allowed",
+                    backgroundColor: params.row.status === "reserved" ? "red" : "#ff6666",
+                    cursor: params.row.status === "reserved" && isCancellationAllowed ? "pointer" : "not-allowed",
                   }}
-                  disabled={!canCancel}
+                  disabled={params.row.status !== "reserved" || !isCancellationAllowed} // Disable if not reserved or cancellation is not allowed
                 >
-                  {params.row.status === "cancelled" ? "Cancelled" : "Cancel"}
+                  {params.row.status === "Cancelled" ? "Cancelled" : "Cancel"}
                 </Button>
               </Box>
             );
-          }
-        }
+          },
+        },
       ];
   return (
     <Box m="20px">
