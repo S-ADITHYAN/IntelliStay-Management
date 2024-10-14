@@ -28,9 +28,20 @@ const GuestDetailsForm = () => {
     const roomdatas = state.roomdata || {};
     const totlrates = state.totlrate || {};
     const totldays = state.totldays || {}; // Assuming your data has childrenCount
-    
+    const [preview, setPreview] = useState(null);
     const today = new Date();
-    const fiveYearsAgo = new Date(today.setFullYear(today.getFullYear() - 5)).toISOString().split('T')[0];
+    const fiveYearsAgo = new Date(today.setFullYear(today.getFullYear() - 18)).toISOString().split('T')[0];
+    const todays = new Date();
+    const yesterday = new Date(todays);
+    yesterday.setDate(todays.getDate() - 1);
+     // Set to yesterday
+    const Years = new Date(yesterday);
+    Years.setFullYear(yesterday.getFullYear() - 5); // Calculate five years ago from yesterday
+
+// Format for input type="date"
+const maxDate = yesterday.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
+
     // Initialize states with counts
     const [adults, setAdults] = useState(Array.from({ length: adultsCount }, () => ({
         name: '',
@@ -162,6 +173,12 @@ const GuestDetailsForm = () => {
     // Upload file handler
     const handleFileUpload = (e, index, type) => {
         const file = e.target.files[0];
+        if (file) {
+            // Create a preview URL for the selected file
+            const filePreviewUrl = URL.createObjectURL(file);
+            setPreview(filePreviewUrl);
+            // You can also handle the file upload logic here
+        }
         if (type === 'adult') {
             const newAdults = [...adults];
             newAdults[index].proofDocument = file;
@@ -173,6 +190,9 @@ const GuestDetailsForm = () => {
         }
     };
 
+    
+
+
     // Render form fields for adults and children
     const renderGuestFields = (guests, type, setGuestState) => (
         guests.map((guest, index) => (
@@ -181,137 +201,191 @@ const GuestDetailsForm = () => {
                     {type === 'adult' ? `Adult ${index + 1}` : `Child ${index + 1}`}
                 </Typography>
                 <Grid container spacing={2} alignItems="center">
-                    <Grid item xs={12} md={3}>
-                        <TextField
-                            fullWidth
-                            label="Name"
-                            variant="outlined"
-                            name="name"
-                            value={guest.name}
-                            onChange={(e) => handleChange(e, index, type)}
-                            required
-                            error={!!guest.errors.name}
-                            helperText={guest.errors.name}
-                        />
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                        <TextField
-                            fullWidth
-                            label="Email"
-                            variant="outlined"
-                            name="email"
-                            value={guest.email}
-                            onChange={(e) => handleChange(e, index, type)}
-                            required
-                            type="email"
-                            error={!!guest.errors.email}
-                            helperText={guest.errors.email}
-                        />
-                    </Grid>
-                    <Grid item xs={12} md={3}>
-                        <TextField
-                            fullWidth
-                            label="Phone"
-                            variant="outlined"
-                            name="phone"
-                            value={guest.phone}
-                            onChange={(e) => handleChange(e, index, type)}
-                            required
-                            type="tel"
-                            error={!!guest.errors.phone}
-                            helperText={guest.errors.phone}
-                        />
-                    </Grid>
-                    
-                    <Grid item xs={12} md={12}>
-                        <TextField
-                            fullWidth
-                            label="Address"
-                            variant="outlined"
-                            name="address"
-                            value={guest.address}
-                            onChange={(e) => handleChange(e, index, type)}
-                            required
-                            multiline
-                            rows={3}
-                        />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                        <TextField
-                            fullWidth
-                            label="Date of Birth"
-                            variant="outlined"
-                            name="dob"
-                            value={guest.dob}
-                            onChange={(e) => handleChange(e, index, type)}
-                            required
-                            type="date"
-                            InputLabelProps={{ shrink: true }}
-                            inputProps={{
-                                max: fiveYearsAgo, // Restrict the maximum selectable date
-                              }}
-                            error={!!guest.errors.dob}
-                            helperText={guest.errors.dob}
-                        />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                        <TextField
-                            select
-                            fullWidth
-                            label="Proof of Identity"
-                            variant="outlined"
-                            name="proofType"
-                            value={guest.proofType}
-                            onChange={(e) => handleChange(e, index, type)}
-                            required
-                        >
-                            {documentOptions.map((option) => (
-                                <MenuItem key={option.value} value={option.value}>
-                                    {option.label}
-                                </MenuItem>
-                            ))}
-                        </TextField>
-                    </Grid>
-                    {guest.proofType && (
+                    {type === 'child' ? (
+                        // Only render Name and Date of Birth for children
                         <>
                             <Grid item xs={12} md={6}>
                                 <TextField
                                     fullWidth
-                                    label={`${guest.proofType.charAt(0).toUpperCase() + guest.proofType.slice(1)} Number`}
+                                    label="Name"
                                     variant="outlined"
-                                    name="proofNumber"
-                                    value={guest.proofNumber}
+                                    name="name"
+                                    value={guest.name}
                                     onChange={(e) => handleChange(e, index, type)}
                                     required
-                                    error={!!guest.errors.proofNumber}
-                                    helperText={guest.errors.proofNumber}
+                                    error={!!guest.errors.name}
+                                    helperText={guest.errors.name}
                                 />
                             </Grid>
                             <Grid item xs={12} md={6}>
-                                <Button
-                                    variant="contained"
-                                    component="label"
+                                <TextField
                                     fullWidth
-                                >
-                                    Upload {guest.proofType} Document
-                                    <input
-                                        type="file"
-                                        hidden
-                                        onChange={(e) => handleFileUpload(e, index, type)}
-                                    />
-                                </Button>
+                                    label="Date of Birth"
+                                    variant="outlined"
+                                    name="dob"
+                                    value={guest.dob}
+                                    onChange={(e) => handleChange(e, index, type)}
+                                    required
+                                    type="date"
+                                    InputLabelProps={{ shrink: true }}
+                                    inputProps={{
+                                        min: minDate, // Set minimum date to five years ago
+                                        max: maxDate, // Set maximum date to yesterday
+                                    }}
+                                    error={!!guest.errors.dob}
+                                    helperText={guest.errors.dob}
+                                />
                             </Grid>
+                        </>
+                    ) : (
+                        // Render all fields for adults
+                        <>
+                            <Grid item xs={12} md={3}>
+                                <TextField
+                                    fullWidth
+                                    label="Name"
+                                    variant="outlined"
+                                    name="name"
+                                    value={guest.name}
+                                    onChange={(e) => handleChange(e, index, type)}
+                                    required
+                                    error={!!guest.errors.name}
+                                    helperText={guest.errors.name}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={3}>
+                                <TextField
+                                    fullWidth
+                                    label="Email"
+                                    variant="outlined"
+                                    name="email"
+                                    value={guest.email}
+                                    onChange={(e) => handleChange(e, index, type)}
+                                    required
+                                    type="email"
+                                    error={!!guest.errors.email}
+                                    helperText={guest.errors.email}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={3}>
+                                <TextField
+                                    fullWidth
+                                    label="Phone"
+                                    variant="outlined"
+                                    name="phone"
+                                    value={guest.phone}
+                                    onChange={(e) => handleChange(e, index, type)}
+                                    required
+                                    type="tel"
+                                    error={!!guest.errors.phone}
+                                    helperText={guest.errors.phone}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={12}>
+                                <TextField
+                                    fullWidth
+                                    label="Address"
+                                    variant="outlined"
+                                    name="address"
+                                    value={guest.address}
+                                    onChange={(e) => handleChange(e, index, type)}
+                                    required
+                                    multiline
+                                    rows={3}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Date of Birth"
+                                    variant="outlined"
+                                    name="dob"
+                                    value={guest.dob}
+                                    onChange={(e) => handleChange(e, index, type)}
+                                    required
+                                    type="date"
+                                    InputLabelProps={{ shrink: true }}
+                                    inputProps={{
+                                        max: fiveYearsAgo, // Restrict the maximum selectable date
+                                    }}
+                                    error={!!guest.errors.dob}
+                                    helperText={guest.errors.dob}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <TextField
+                                    select
+                                    fullWidth
+                                    label="Proof of Identity"
+                                    variant="outlined"
+                                    name="proofType"
+                                    value={guest.proofType}
+                                    onChange={(e) => handleChange(e, index, type)}
+                                    required
+                                >
+                                    {documentOptions.map((option) => (
+                                        <MenuItem key={option.value} value={option.value}>
+                                            {option.label}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
+                            </Grid>
+                            {guest.proofType && (
+                                <>
+                                    <Grid item xs={12} md={6}>
+                                        <TextField
+                                            fullWidth
+                                            label={`${guest.proofType.charAt(0).toUpperCase() + guest.proofType.slice(1)} Number`}
+                                            variant="outlined"
+                                            name="proofNumber"
+                                            value={guest.proofNumber}
+                                            onChange={(e) => handleChange(e, index, type)}
+                                            required
+                                            error={!!guest.errors.proofNumber}
+                                            helperText={guest.errors.proofNumber}
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} md={6}>
+                                        {preview && (
+                                            <div style={{ marginTop: '10px', marginBottom: '5px' }}>
+                                                <h4>Preview:</h4>
+                                                <img
+                                                    src={preview}
+                                                    alt="File Preview"
+                                                    style={{ maxWidth: '15%', height: 'auto' }} // Ensure the image fits well
+                                                />
+                                            </div>
+                                        )}
+                                        <Button
+                                            variant="contained"
+                                            component="label"
+                                            fullWidth
+                                        >
+                                            Upload {guest.proofType} Document
+                                            <input
+                                                type="file"
+                                                hidden
+                                                onChange={(e) => handleFileUpload(e, index, type)}
+                                            />
+                                        </Button>
+                                    </Grid>
+                                </>
+                            )}
                         </>
                     )}
                 </Grid>
-                <Box mt={2}>
-                    {/* <Button variant="contained" color="secondary" onClick={() => removeGuest(index, setGuestState)}>
-                        Remove {type === 'adult' ? 'Adult' : 'Child'}
-                    </Button> */}
-                </Box>
             </Paper>
         ))
     );
+    
+    //             <Box mt={2}>
+    //                 {/* <Button variant="contained" color="secondary" onClick={() => removeGuest(index, setGuestState)}>
+    //                     Remove {type === 'adult' ? 'Adult' : 'Child'}
+    //                 </Button> */}
+    //             </Box>
+    //         </Paper>
+    //     ))
+    // );
 
     return (
         <>
@@ -321,6 +395,17 @@ const GuestDetailsForm = () => {
             <Box className="guest-form-container">
                 <form onSubmit={handleFormSubmit}>
                     <Grid container spacing={2}>
+                    <Grid item xs={12} style={{ textAlign: 'center' }}>
+                        <Typography
+                            variant="h5"
+                            sx={{ 
+                                textDecoration: 'underline', 
+                                textDecorationColor: 'skyblue' 
+                            }}
+                        >
+                            Fill Guest Details
+                        </Typography>
+                    </Grid>
                         <Grid item xs={12}>
                             <Typography variant="h5">Adults Information</Typography>
                         </Grid>
