@@ -20,6 +20,8 @@ import StaffSideBar from "./layout/staffsidebar";
 import ManualJobAssignment from "./jobassignment/jobassignment";
 import AttendanceMark from "./AttendenceMark/AttendenceMark";
 import ViewLeaveApplications from "./leaveapllications/ViewLeaveApplications";
+import ReservationDetails from "./reservationdetails";
+
 
 export {
   Navbar,
@@ -36,6 +38,7 @@ export {
   Invoices,
   Viewstaff,
   Viewassignedjobs,
+  ReservationDetails,
   Form,
   Calendar,
   Bar,

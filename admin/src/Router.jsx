@@ -11,6 +11,7 @@ import {
   Invoices,
   Viewstaff,
   Viewassignedjobs,
+  ReservationDetails,
   ManualJobAssignment,
   ViewLeaveApplications,
   AttendanceMark,
@@ -43,6 +44,7 @@ const AppRouter = () => {
           <Route path="/admindashboard/jobassignment" element={<ManualJobAssignment />} />
           <Route path="/admindashboard/attendencemark" element={<AttendanceMark />} />
           <Route path="/admindashboard/viewleaveapplications" element={<ViewLeaveApplications />} />
+          <Route path="/admindashboard/reservation-details/:id" element={<ReservationDetails />} />
           <Route path="/admindashboard/invoices" element={<Invoices />} />
           <Route path="/admindashboard/form" element={<Form />} />
           <Route path="/admindashboard/calendar" element={<Calendar />} />
