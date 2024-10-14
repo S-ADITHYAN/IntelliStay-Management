@@ -25,6 +25,7 @@ const AttendanceModel=require("./models/AttendenceModel");
 const MaintenanceJobModel = require("./models/MaintenanceJobmodel");
 const nodemailer = require('nodemailer');
 const RoomGuestModel=require('./models/Guestroom')
+const BillModel=require('./models/PaymentModel')
 
 
 
@@ -2692,6 +2693,33 @@ app.post("/user-guests-proofupdate/:id",load.single('proofDocument'),async (req,
 
 //user section end
 
+app.post('/orders/create', async (req, res) => {
+  const { userid, paymentId, totalRate, totldays ,reservation_id} = req.body;
+
+  try {
+    // Validate the room availability before confirming the order
+
+    // Create new order object
+    const newBill = new BillModel({
+      userid,
+      paymentId,
+       // Assuming roomDetails contains info about each room
+      totalRate,
+      totldays,
+      orderDate: new Date(),
+      status: 'Confirmed',
+      reservationid: reservation_id
+    });
+
+    // Save the order to the database
+    await newBill.save();
+
+    res.status(201).json({ message: 'Payment successfully', reservation: newBill });
+  } catch (error) {
+    console.error("Error creating order:", error);
+    res.status(500).json({ message: 'Server error. Please try again later.' });
+  }
+});
 
 app.listen(3001, () => {
     console.log("Server connected");

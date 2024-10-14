@@ -1,12 +1,14 @@
-import React from 'react';
+import React,{ useState} from 'react';
 import { Box, Typography, Paper, Button, Grid, Divider } from '@mui/material';
 import { useLocation,useNavigate } from 'react-router-dom';
 import './Reserveroom.css'; // Custom CSS for styling
 import Header from '../components/Header'; 
 import Swal from 'sweetalert2'; // Assuming you're using SweetAlert for notifications
 import axios from 'axios';
+import jsPDF from 'jspdf';
 
 const ReserveRoom = () => {
+  const [reservation, setReservationDetails] = useState(null);
   const navigate=useNavigate();
   const location = useLocation();
   const state = location.state || {};
@@ -18,8 +20,10 @@ const ReserveRoom = () => {
   const childrenDetails = state.children || [];
   const totalRate = state.totlrate || 0;
   const totldays = state.totldays || 0;
-
+  
   const userid= localStorage.getItem('userId');
+
+  
 
 
   const handleBookNow = async () => {
@@ -59,6 +63,134 @@ const ReserveRoom = () => {
       if (res.status === 201) {
         Swal.fire("Booking successful");
         console.log(res.data.reservation);
+        
+         // Trigger PDF generation and download after successful booking
+         const generatePDF = () => {
+          const doc = new jsPDF();
+          let currentY = 20;
+          
+          // IntelliStay Header
+          doc.setFontSize(28);
+          doc.text('IntelliStay', 105, currentY, { align: 'center' });
+          doc.line(10, currentY + 5, 200, currentY + 5);
+          currentY += 15; // Adjust Y for next section
+          
+          // Reservation Confirmation Title
+          doc.setFontSize(18);
+          doc.text('Reservation Confirmation', 105, currentY, { align: 'center' });
+          doc.line(10, currentY + 5, 200, currentY + 5);
+          currentY += 15;
+          
+          // Reservation Details Section
+          doc.setFontSize(14);
+          doc.text('Reservation Details', 10, currentY);
+          currentY += 10;
+          
+          doc.setFontSize(12);
+          doc.text(`Room ID: ${res.data.reservation.room_id}`, 10, currentY);
+          doc.text(`Booking Date: ${new Date(res.data.reservation.booking_date).toLocaleDateString("en-GB")}`, 200, currentY, { align: 'right' });
+          currentY += 10;
+          
+          doc.text(`Room Type: ${roomDetails.roomtype}`, 10, currentY);
+          doc.text(`Check-In Date: ${new Date(res.data.reservation.check_in).toLocaleDateString("en-GB")}`, 10, currentY + 10);
+          doc.text(`Check-Out Date: ${new Date(res.data.reservation.check_out).toLocaleDateString("en-GB")}`, 200, currentY + 10, { align: 'right' });
+          currentY += 20;
+          
+          doc.text(`Price per Night: Rs.${roomDetails.rate}`, 10, currentY);
+          doc.text(`Total Nights: ${totldays}`, 200, currentY, { align: 'right' });
+          currentY += 10;
+          
+          doc.text(`Total Amount: Rs.${res.data.reservation.total_amount}`, 10, currentY);
+          doc.text(`Reservation Status: ${res.data.reservation.status}`, 200, currentY, { align: 'right' });
+          currentY += 15;
+          
+          doc.line(10, currentY, 200, currentY);
+          currentY += 10; // Adjust Y for next section
+          
+          // Check if we need a new page
+          const checkPageOverflow = () => {
+            if (currentY > 280) { // Assuming 280 is the safe limit before page overflow
+              doc.addPage();
+              currentY = 20; // Reset Y for new page
+            }
+          };
+          
+          // Room Details Section
+          doc.setFontSize(14);
+          doc.text('Room Details', 10, currentY);
+          currentY += 10;
+          
+          doc.setFontSize(12);
+          doc.text(`Room Name: ${roomDetails.roomtype}`, 10, currentY);
+          let descriptionLines = doc.splitTextToSize(roomDetails.description, 180);  // 180 is the max width of the text
+          doc.text(`Description: ${descriptionLines}`, 10, currentY + 10);  // Print the split description lines
+          currentY += 10 + descriptionLines.length * 7; 
+          doc.text(`Price per Night: Rs.${roomDetails.rate}`, 10, currentY + 20);
+          currentY += 30;
+          
+          checkPageOverflow(); // Check for page overflow after room details
+          
+          // Line separator between Room Details and Guest Details
+          doc.line(10, currentY, 200, currentY);
+          currentY += 10;
+          
+          // Guest Details Section
+          doc.setFontSize(14);
+          doc.text('Guest Details', 10, currentY);
+          currentY += 10;
+          
+          doc.setFontSize(12);
+          adultDetails.forEach((guest, index) => {
+            let yOffset = currentY + index * 30; 
+            let addressLines = doc.splitTextToSize(guest.address, 80); // Adjust y position for each guest
+            checkPageOverflow(); // Check for page overflow for each guest entry
+            doc.text(`Adult ${index + 1} Name: ${guest.name}`, 10, yOffset);
+            doc.text(`Email: ${guest.email}`, 200, yOffset, { align: 'right' });
+            doc.text(`Phone: ${guest.phone}`, 10, yOffset + 10);
+            doc.text(`Address: ${addressLines}`, 10, yOffset + 10, ); // Multiple line address
+  
+            doc.text(`Proof of Identity: ${guest.proofType}`, 10, yOffset + 20 + (addressLines.length - 1) * 7); // Adjust based on address length
+            doc.text(`Proof Number: ${guest.proofNumber}`, 200, yOffset + 20 + (addressLines.length - 1) * 7, { align: 'right' });
+  
+            // Update currentY based on the number of address lines and other guest info
+            currentY = yOffset + 30 + (addressLines.length - 1) * 7;
+          });
+          
+          checkPageOverflow(); // Check for page overflow after guest details
+          
+          // Line separator between Guest Details and Children Details
+          doc.line(10, currentY, 200, currentY);
+          currentY += 10;
+          
+          // Children Details Section
+          doc.setFontSize(14);
+          doc.text('Children Details', 10, currentY);
+          currentY += 10;
+          
+          doc.setFontSize(12);
+          childrenDetails.forEach((child, index) => {
+            let yOffset = currentY + index * 20; // Adjust y position for each child
+            checkPageOverflow(); // Check for page overflow for each child entry
+            doc.text(`Child ${index + 1} Name: ${child.name}`, 10, yOffset);
+            doc.text(`DOB: ${child.dob}`, 200, yOffset, { align: 'right' });
+            currentY = yOffset + 20;
+          });
+          
+          checkPageOverflow(); // Check for page overflow after children details
+          
+          // Line separator between Children Details and Total Room Rate
+          doc.line(10, currentY, 200, currentY);
+          currentY += 10;
+          
+          // Total Room Rate Section
+          doc.setFontSize(14);
+          doc.text(`Total Room Rate: Rs: ${totalRate}`, 10, currentY);
+          
+          // Automatically download the PDF
+          doc.save(`Reservation_${roomDetails.roomtype}_${Date.now()}.pdf`);
+          
+        };
+        generatePDF();
         navigate('/');
       } else {
         Swal.fire(res.data.message);
@@ -70,6 +202,7 @@ const ReserveRoom = () => {
       console.error("Error:", err);
     }
   };
+  
   
   return (
     <>
@@ -155,7 +288,7 @@ const ReserveRoom = () => {
             Total Room Rate
           </Typography>
           <Typography variant="h6">
-            {totalRate} USD
+            Rs.{totalRate}
           </Typography>
         </Paper>
 
