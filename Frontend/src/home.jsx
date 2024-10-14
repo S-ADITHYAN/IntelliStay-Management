@@ -111,7 +111,7 @@ function Home() {
         
       </header>
       <Checkin />
-
+      
       <section className="section__container about__container" id="about">
         <div className="about__image">
           <img src={about} alt="about" />

@@ -144,6 +144,9 @@ function Checkin({ searchdata }) {  // Accept the searchdata prop
           </div>
         </div>
       )}
+      <div style={{ color: 'red', fontSize: '14px', marginTop: '10px' }}>
+        <p>**Check-in time is 2 PM and Check-out time is 11 AM.</p>
+      </div>
     </section>
   );
 }

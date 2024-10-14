@@ -13,4 +13,4 @@ const BillSchema = new mongoose.Schema({
 
 const BillModel = mongoose.model('Bill', BillSchema); // Corrected model name to 'Bill'
 
-module.exports = { BillModel };
+module.exports = BillModel;

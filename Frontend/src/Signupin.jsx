@@ -280,16 +280,16 @@ const signInWithGoogle = () => {
             <h2 className="title">Sign in</h2>
             <div className="input-field">
               <i className="fas fa-envelope"></i>
-              <input type="email" name="emailsign" placeholder="Email" value={formData.emailsign} onChange={handleChange} onBlur={()=>setFocus({...focus,errEmailsign: true})} focus={focus.errEmailsign.toString()} required />
+              <input id="email" type="email" name="emailsign" placeholder="Email" value={formData.emailsign} onChange={handleChange} onBlur={()=>setFocus({...focus,errEmailsign: true})} focus={focus.errEmailsign.toString()} required />
               <span>Enter a valid email id</span>
             </div>
             <div className="input-field">
               <i className="fas fa-lock"></i>
-              <input type="password" name="passwordsign" pattern="^(?=.*[a-zA-Z])(?=.*\d)(?=.*[^a-zA-Z\d])([a-zA-Z\d[^a-zA-Z\d]]{6,50})$" placeholder="Password" value={formData.passwordsign} onChange={handleChange}  onBlur={()=>setFocus({...focus,errPasswordsign: true})} focus={focus.errPasswordsign.toString()} required />
+              <input id="password" type="password" name="passwordsign" pattern="^(?=.*[a-zA-Z])(?=.*\d)(?=.*[^a-zA-Z\d])([a-zA-Z\d[^a-zA-Z\d]]{6,50})$" placeholder="Password" value={formData.passwordsign} onChange={handleChange}  onBlur={()=>setFocus({...focus,errPasswordsign: true})} focus={focus.errPasswordsign.toString()} required />
               <span>Password must be at least 6 characters long and include a letter, number, and special character</span>
             </div><br></br>
             <p className="forgot-password" onClick={() => setShowForgotPassword(true)}>Forgot Password?</p>
-            <input type="submit" value="Login" className="btn solid" />
+            <input type="submit" id="login" value="Login" className="btn solid" />
             
             <div className="social-media">
               <a href="#" className="social-icon" onClick={signInWithGoogle}>

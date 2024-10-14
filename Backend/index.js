@@ -25,7 +25,7 @@ const AttendanceModel=require("./models/AttendenceModel");
 const MaintenanceJobModel = require("./models/MaintenanceJobmodel");
 const nodemailer = require('nodemailer');
 const RoomGuestModel=require('./models/Guestroom')
-const BillModel=require('./models/PaymentModel')
+const BillModel=require('./models/BillModel')
 
 
 
@@ -2713,8 +2713,13 @@ app.post('/orders/create', async (req, res) => {
 
     // Save the order to the database
     await newBill.save();
+    const userDetails = await GoogleRegisterModel.findById(userid).select('displayName email'); // Adjust fields as needed
 
-    res.status(201).json({ message: 'Payment successfully', reservation: newBill });
+    // Fetch reservation details from Reservation model using reservation_id
+    const reservationDetails = await ReservationModel.findById(reservation_id);
+
+    res.status(201).json({ message: 'Payment successfully', bill: newBill , user: userDetails,  // Include user details in the response
+      reservation: reservationDetails});
   } catch (error) {
     console.error("Error creating order:", error);
     res.status(500).json({ message: 'Server error. Please try again later.' });
