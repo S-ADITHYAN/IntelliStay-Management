@@ -2644,7 +2644,49 @@ app.post("/user-bookings/cancel/:id",async (req, res) => {
     booking.cancel_date = currentDate; // Set the cancel_date to the current date and time
     await booking.save();
 
-    return res.status(200).json({ message: 'Booking has been cancelled successfully.' });
+    const user = await GoogleRegisterModel.findById(booking.user_id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found for the booking.' });
+    }
+
+    // Set up the transporter for nodemailer
+    const transporter = nodemailer.createTransport({
+      service: 'gmail', // You can use any email service
+      auth: {
+        user: process.env.email_id, // Replace with your email
+        pass: process.env.password, // Replace with your email password or an app-specific password
+      },
+    });
+
+    // Create the email options
+    const mailOptions = {
+      from: process.env.email_id, // Sender address
+      to: user.email, // The email of the user to notify
+      subject: 'Booking Cancellation Confirmation',
+      text: `Dear ${user.displayName},
+
+Your booking with ID ${bookingId} has been successfully cancelled.
+
+Cancellation Date: ${currentDate.toLocaleDateString()}
+Check-in Date: ${checkInDate.toLocaleDateString()}
+
+If you have any questions, feel free to contact our support team.
+
+Thank you,
+Your IntelliStay Hotel Team`,
+    };
+
+    // Send the email
+    transporter.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        console.error('Error sending cancellation email:', error);
+        return res.status(500).json({ message: 'Booking cancelled, but error in sending email.' });
+      } else {
+        console.log('Cancellation email sent: ' + info.response);
+        return res.status(200).json({ message: 'Booking has been cancelled successfully, and a notification email has been sent to the user.' });
+      }
+    });
+    // return res.status(200).json({ message: 'Booking has been cancelled successfully.' });
   } catch (error) {
     console.error('Error cancelling booking:', error);
     return res.status(500).json({ message: 'Server error. Please try again later.' });

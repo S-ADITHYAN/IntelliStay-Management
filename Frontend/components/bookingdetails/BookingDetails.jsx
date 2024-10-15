@@ -371,7 +371,7 @@ const BookingDetails = () => {
                 <Typography variant="body1"><strong>Room Type:</strong> {room.roomtype}</Typography>
                 <Typography variant="body1"><strong>Check-In Date:</strong> {new Date(reservation.check_in).toLocaleDateString("en-GB")}</Typography>
                 <Typography variant="body1"><strong>Check-Out Date:</strong> {new Date(reservation.check_out).toLocaleDateString("en-GB")}</Typography>
-                <Typography variant="body1"><strong>Total Amount:</strong> ${reservation.total_amount}</Typography>
+                <Typography variant="body1"><strong>Total Amount:</strong> Rs.{reservation.total_amount}</Typography>
               </Paper>
             </animated.div>
           </Grid>

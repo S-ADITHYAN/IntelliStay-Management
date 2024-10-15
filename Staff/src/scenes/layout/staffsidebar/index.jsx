@@ -208,6 +208,18 @@ const StaffSideBar = () => {
               />
             </>
           )}
+          {userData?.role === "housekeeping" && (
+            <>
+              <Item
+                title="view assigned jobs"
+                path="/dashboard/viewjobs"
+                colors={colors}
+                icon={<PersonOutlined />}
+              />
+            
+              
+            </>
+          )}
 
           {/* Add more role-based conditions as needed */}
         </Menu>
