@@ -13,8 +13,10 @@ import {
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import useAuth from "../../useAuth";
 
 const CheckIn = () => {
+  useAuth();
   const [reservations, setReservations] = useState([]);
   const [verifyStatus, setVerifyStatus] = useState({});
   const [loading, setLoading] = useState(true);
@@ -95,9 +97,9 @@ const CheckIn = () => {
               <TableCell>
                 <strong>Guest Email </strong>
               </TableCell>
-              <TableCell>
+              {/* <TableCell>
                 <strong>Guest Phno</strong>
-              </TableCell>
+              </TableCell> */}
               <TableCell>
                 <strong>Room Number</strong>
               </TableCell>
@@ -123,7 +125,7 @@ const CheckIn = () => {
               <TableRow key={reservation._id}>
                 <TableCell>{reservation.guestName}</TableCell>
                 <TableCell>{reservation.guestemail}</TableCell>
-                <TableCell>{reservation.guestphno}</TableCell>
+                {/* <TableCell>{reservation.guestphno}</TableCell> */}
                 <TableCell>{reservation.roomNumber}</TableCell>
                 <TableCell>
                   {new Date(reservation.checkInDate).toLocaleDateString(

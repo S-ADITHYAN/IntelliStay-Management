@@ -156,10 +156,10 @@ const photos = roomdatas.images.map(photo => ({
           <h1 className="hotelTitle">{roomdatas.roomtype}</h1>
           <div className="hotelAddress">
             <FontAwesomeIcon icon={faLocationDot} />
-            <span>Elton St 125 New york</span>
+            <span>Kochi</span>
           </div>
           <span className="hotelDistance">
-            Excellent location – 500m from center
+            Excellent location – 500m from MG road,Kochi
           </span>
           <span className="hotelPriceHighlight">
             Book a stay over ₹{roomdatas.rate} at this property and get a free airport taxi
@@ -180,23 +180,32 @@ const photos = roomdatas.images.map(photo => ({
             <div className="hotelDetailsTexts">
               <h1 className="hotelTitle">Stay in the heart of City</h1>
               <p className="hotelDesc">
-                Located a 5-minute walk from St. Florian's Gate in Krakow, Tower
-                Street Apartments has accommodations with air conditioning and
-                free WiFi. The units come with hardwood floors and feature a
-                fully equipped kitchenette with a microwave, a flat-screen TV,
-                and a private bathroom with shower and a hairdryer. A fridge is
-                also offered, as well as an electric tea pot and a coffee
-                machine. Popular points of interest near the apartment include
-                Cloth Hall, Main Market Square and Town Hall Tower. The nearest
-                airport is John Paul II International Kraków–Balice, 16.1 km
-                from Tower Street Apartments, and the property offers a paid
-                airport shuttle service.
+                {roomdatas.description}
               </p>
+              <div style={{ color: 'red', fontSize: '14px', marginTop: '10px' }}>
+        <p>**Check-in time is 2 PM and Check-out time is 11 AM.</p>
+      </div>
+      <div style={{ fontSize: '14px', marginTop: '10px' }}>
+  <h4>In-Room Amenities:</h4>
+  <ul style={{ listStyleType: 'disc', marginLeft: '20px' }}>
+    
+    <li>55” smart IPTV</li>
+    <li>Luxury bathroom with walk-in shower and bathtub</li>
+    <li>Deluxe French Note bathroom amenities</li>
+    <li>Hair dryer</li>
+    <li>Stocked refreshments</li>
+    <li>Iron and ironing board</li>
+    <li>In-room safe</li>
+    <li>Crib and rollaway bed on request</li>
+    <li>Complimentary Wi-Fi</li>
+    <li>Complimentary bottled mineral water</li>
+  </ul>
+</div>
             </div>
             <div className="hotelDetailsPrice">
               <h1>Perfect for a {differenceInDaysString}-night stay!</h1>
               <span>
-                Located in the real heart of Krakow, this property has an
+                Located in the real heart of Kochi, this property has an
                 excellent location score of 9.8!
               </span>
               <h2>

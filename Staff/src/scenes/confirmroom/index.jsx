@@ -3,8 +3,10 @@ import { Box, Typography, Paper, Button, Grid, Divider } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import axios from 'axios';
+import useAuth from "../../useAuth";
 
 const ConfirmRoom = () => {
+  useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const state = location.state || {};

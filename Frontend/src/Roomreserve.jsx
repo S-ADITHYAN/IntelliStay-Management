@@ -6,8 +6,10 @@ import Header from '../components/Header';
 import Swal from 'sweetalert2'; // Assuming you're using SweetAlert for notifications
 import axios from 'axios';
 import jsPDF from 'jspdf';
+import useAuth from './useAuth';
 
 const ReserveRoom = () => {
+  useAuth();
   const razerkeyid=import.meta.env.VITE_RAZORPAY_KEY_ID;
   const razersecret=import.meta.env.VITE_RAZORPAY_KEY_SECRET;
   const [reservation, setReservationDetails] = useState(null);
@@ -380,7 +382,7 @@ adultDetails.forEach((guest, index) => {
     doc.text(`Adult ${index + 1} Name: ${guest.name}`, 10, yOffset);
     doc.text(`Email: ${guest.email}`, 200, yOffset, { align: 'right' });
     doc.text(`Phone: ${guest.phone}`, 10, yOffset + 10);
-    doc.text(`Address: ${addressLines}`, 10, yOffset + 10, ); // Multiple line address
+    doc.text(`Address: ${addressLines}`, 200, yOffset + 10, { align: 'right' }); // Multiple line address
 
     doc.text(`Proof of Identity: ${guest.proofType}`, 10, yOffset + 20 + (addressLines.length - 1) * 7); // Adjust based on address length
     doc.text(`Proof Number: ${guest.proofNumber}`, 200, yOffset + 20 + (addressLines.length - 1) * 7, { align: 'right' });

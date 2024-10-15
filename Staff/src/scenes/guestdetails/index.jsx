@@ -9,6 +9,7 @@ import {
     MenuItem 
 } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
+import useAuth from "../../useAuth";
  // Import the CSS for the form
 
 const documentOptions = [
@@ -18,6 +19,7 @@ const documentOptions = [
 ];
 
 const GuestDetails = () => {
+    useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const state = location.state || {};

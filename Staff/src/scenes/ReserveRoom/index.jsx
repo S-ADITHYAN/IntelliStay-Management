@@ -5,8 +5,10 @@ import Swal from "sweetalert2";
 import axios from "axios";
 import { Box, Button, MenuItem, TextField, Typography, Grid } from "@mui/material";
 import { useNavigate } from 'react-router-dom';
+import useAuth from "../../useAuth";
 
 const ReserveRoom = () => {
+  useAuth();
   const navigate = useNavigate();
   const [checkInDate, setCheckInDate] = useState(null);
   const [checkOutDate, setCheckOutDate] = useState(null);

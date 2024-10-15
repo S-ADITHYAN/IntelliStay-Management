@@ -25,6 +25,7 @@
 .booking-card:hover {
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2); /* Increased shadow for a standout effect */
   transform: translateY(-4px);
+  cursor: pointer;
 }
 
 .see-more-button,

@@ -2603,12 +2603,13 @@ app.get("/user-booking/:id", async (req, res) => {
 
     // Fetch guest details using the array of guest ids
     const guests = await RoomGuestModel.find({ _id: { $in: reservation.guestids } });
-
+    const bill = await BillModel.findOne({ reservationid: reservationId });
     // Combine all data into a single response object
     const response = {
       reservation,
       room,
       guests,
+      bill,
     };
 
     res.json(response);

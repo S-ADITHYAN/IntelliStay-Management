@@ -21,13 +21,13 @@ const initialValues = {
 };
 
 const roomnoRegExp = /^[0-9]+$/;
-const rateRegExp = /^[0-9]+$/;
+const rateRegExp = /^[0-9]{1,5}$/;
 
 const checkoutSchema = yup.object().shape({
     roomno: yup.string().matches(roomnoRegExp, "Room number is not valid. Only numbers are allowed").required("required"),
     roomtype: yup.string().required("required"),
     status: yup.string().required("required"),
-    rate: yup.string().matches(rateRegExp, "Rate is not valid. Only numbers are allowed").required("required"),
+    rate: yup.string().matches(rateRegExp, "Rate is not valid. Only numbers are allowed.max-4 digits are allowed").required("required"),
     description: yup.string().required("required"),
     images: yup.mixed().test('fileType', 'Only JPG, JPEG, and PNG files are allowed', (value) => {
         return value.every(file => ['image/jpeg', 'image/jpg', 'image/png'].includes(file.type));
@@ -37,7 +37,7 @@ const checkoutSchema = yup.object().shape({
 const RoomAdd = () => {
     useAuth();
     const isNonMobile = useMediaQuery("(min-width:600px)");
-    const [roomTypes, setRoomTypes] = useState(["Sweet Room", "King's Room"]);
+    const [roomTypes, setRoomTypes] = useState(["Suite Room", "King's Room","Grand Suite King","Twin Bed Room","Honeymoon Nest","Grand Terrace Suite"]);
     const [roomstatus, setRoomstatus] = useState(["available", "Maintenance"]);
     const [newRoomType, setNewRoomType] = useState("");
     const [addingNewRoomType, setAddingNewRoomType] = useState(false);
@@ -74,7 +74,7 @@ const RoomAdd = () => {
 
     const handleAddRoomType = (e) => {
         if (e.key === "Enter" && newRoomType.trim()) {
-            setRoomTypes([...roomTypes, newRoomType.trim()]);
+            setRoomTypes((prevRoomTypes) => [...prevRoomTypes, newRoomType.trim()]); // Ensure new array reference
             setNewRoomType("");
             setAddingNewRoomType(false);
         }
@@ -272,61 +272,62 @@ const RoomAdd = () => {
                                 helperText={touched.roomno && errors.roomno}
                                 sx={{ gridColumn: "span 2" }}
                             />
-                            <Select
-                                fullWidth
-                                variant="filled"
-                                value={values.roomtype}
-                                onBlur={handleBlur}
-                                onChange={(e) => setFieldValue('roomtype', e.target.value)}
-                                displayEmpty
-                                name="roomtype"
-                                sx={{ gridColumn: "span 2" }}
-                                renderValue={(selected) => {
-                                    if (!selected) {
-                                        return <em>Select Room Type</em>;
-                                    }
-                                    return selected;
-                                }}
-                            >
-                                {roomTypes.map((type, index) => (
-                                    <MenuItem key={index} value={type}>
-                                        {type}
-                                        <IconButton
-                                            onClick={() => handleDeleteRoomType(type)}
-                                            sx={{ ml: 2 }}
-                                            size="small"
-                                        >
-                                            <CloseIcon fontSize="small" />
-                                        </IconButton>
-                                    </MenuItem>
-                                ))}
-                                {addingNewRoomType ? (
-                                    <TextField
-                                        value={newRoomType}
-                                        onChange={(e) => setNewRoomType(e.target.value)}
-                                        onKeyDown={handleAddRoomType}
-                                        placeholder="Type and press enter..."
-                                        variant="standard"
-                                        fullWidth
-                                        sx={{ margin: "8px 16px" }}
-                                    />
-                                ) : (
-                                    <MenuItem
-                                        onClick={(e) => {
-                                            e.stopPropagation(); // Prevents the menu from closing
-                                            setAddingNewRoomType(true);
-                                        }}
-                                    >
-                                        <Button
-                                            variant="contained"
-                                            color="primary"
-                                            sx={{ backgroundColor: "#5995fd" }}
-                                        >
-                                            Add New Room Type
-                                        </Button>
-                                    </MenuItem>
-                                )}
-                            </Select>
+                         <Select
+    fullWidth
+    variant="filled"
+    value={values.roomtype}
+    onBlur={handleBlur}
+    onChange={(e) => setFieldValue('roomtype', e.target.value)}
+    displayEmpty
+    name="roomtype"
+    sx={{ gridColumn: "span 2" }}
+    renderValue={(selected) => {
+        if (!selected) {
+            return <em>Select Room Type</em>;
+        }
+        return selected;
+    }}
+>
+    {roomTypes.map((type, index) => (
+        <MenuItem key={index} value={type}>
+            {type}
+            <IconButton
+                onClick={() => handleDeleteRoomType(type)}
+                sx={{ ml: 2 }}
+                size="small"
+            >
+                <CloseIcon fontSize="small" />
+            </IconButton>
+        </MenuItem>
+    ))}
+    {addingNewRoomType ? (
+        <TextField
+            value={newRoomType}
+            onChange={(e) => setNewRoomType(e.target.value)}
+            onKeyDown={handleAddRoomType}
+            placeholder="Type and press enter..."
+            variant="standard"
+            fullWidth
+            sx={{ margin: "8px 16px" }}
+        />
+    ) : (
+        <MenuItem
+            onClick={(e) => {
+                e.stopPropagation(); // Prevents the menu from closing
+                setAddingNewRoomType(true);
+            }}
+        >
+            <Button
+                variant="contained"
+                color="primary"
+                sx={{ backgroundColor: "#5995fd" }}
+            >
+                Add New Room Type
+            </Button>
+        </MenuItem>
+    )}
+</Select>
+
                             <Select
                                 fullWidth
                                 variant="filled"

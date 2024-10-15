@@ -9,7 +9,7 @@ const useAuth = () => {
     const id = localStorage.getItem('userId');
 
     if (!id) {
-      history('/signup');
+      history('/');
       // Optionally show a session expired message
       Swal.fire('Session expired. Please log in again.');
     }

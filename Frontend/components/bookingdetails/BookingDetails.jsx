@@ -105,7 +105,7 @@ const BookingDetails = () => {
     return <Typography>No booking details available.</Typography>;
   }
 
-  const { reservation, room, guests } = bookingDetails;
+  const { reservation, room, guests ,bill} = bookingDetails;
   const checkInDate = new Date(reservation.check_in);
   const currentDate = new Date();
   const isCancellationAllowed = checkInDate >= currentDate;// More than 2 days
@@ -241,6 +241,8 @@ const BookingDetails = () => {
     <Typography variant="body1"><strong>Booking Date:</strong> {new Date(reservation.booking_date).toLocaleDateString("en-GB")}</Typography>
     <Typography variant="body1"><strong>Check_In Date:</strong> {new Date(reservation.check_in).toLocaleDateString("en-GB")}</Typography>
     <Typography variant="body1"><strong>Check_Out Date:</strong> {new Date(reservation.check_out).toLocaleDateString("en-GB")}</Typography>
+    <Typography variant="body1"><strong>Check_In Time:</strong> 02:00 PM</Typography>
+    <Typography variant="body1"><strong>Check_Out Time:</strong> 11:00 AM</Typography>
     <Typography variant="body1"><strong>Total nights:</strong> {reservation.totaldays}</Typography>
     <Typography variant="body1"><strong>Total Amount:</strong> {reservation.total_amount}</Typography>
     <Typography variant="body1"><strong>No of Guests:</strong> {reservation.guestids.length}</Typography>
@@ -248,14 +250,14 @@ const BookingDetails = () => {
     {/* Conditionally show Check_In Time if it's not null */}
     {reservation.check_in_time && (
       <Typography variant="body1">
-        <strong>Check_In Time:</strong> {new Date(reservation.check_in_time).toLocaleTimeString("en-GB")}
+        <strong>Check_In Time by user:</strong> {new Date(reservation.check_in_time).toLocaleTimeString("en-GB")}
       </Typography>
     )}
 
     {/* Conditionally show Check_Out Time if it's not null */}
     {reservation.check_out_time && (
       <Typography variant="body1">
-        <strong>Check_Out Time:</strong> {new Date(reservation.check_out_time).toLocaleTimeString("en-GB")}
+        <strong>Check_Out Time by user:</strong> {new Date(reservation.check_out_time).toLocaleTimeString("en-GB")}
       </Typography>
     )}
 
@@ -415,6 +417,41 @@ const BookingDetails = () => {
       ))}
     </Paper>
   </animated.div>
+</Grid>
+
+
+<Grid item xs={12}>
+  <Paper elevation={3} style={{ padding: "20px", backgroundColor: "#93C572", color: "#111" }}>
+    <Typography variant="h5" style={{ fontWeight: "bold", textAlign: "center", paddingBottom: "5px" }}>
+      Payment Details
+    </Typography>
+    
+    <Typography variant="body1"><strong>Reservation id:</strong> {bill.reservationid}</Typography>
+    <Typography variant="body1"><strong>Transaction id:</strong> {bill.paymentId}</Typography>
+    
+    <Typography variant="body1"><strong>Amount Paid:</strong> {bill.totalRate}</Typography>
+    
+
+    {/* Conditionally show Check_In Time if it's not null */}
+   
+<Typography variant="body1" style={{ display: 'flex', alignItems: 'center' }}> {/* Align items center */}
+        <strong>Payment Status:</strong> 
+        <span style={{ color: bill.status === 'pending' ? 'red' : 'green', marginLeft: '4px' }}>
+          {reservation.status}
+        </span>
+        
+        {bill.status === 'pending' ? (
+          <>
+            <CancelIcon style={{ color: 'red', marginLeft: '8px', padding: "4px" }} />
+            
+          </>
+        ) : (
+          <>
+            <CheckCircleIcon style={{ color: 'green', marginLeft: '8px' }} />
+          </>
+        )}
+      </Typography>
+  </Paper>
 </Grid>
 
 

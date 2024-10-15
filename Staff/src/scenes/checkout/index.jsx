@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Button, Table, TableBody, TableCell, TableHead, TableRow, Box, Typography } from "@mui/material";
 import axios from "axios";
+import useAuth from "../../useAuth";
 
 const Checkout = () => {
+  useAuth();
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true); // Loading state to show until data is fetched
 
@@ -53,7 +55,7 @@ const Checkout = () => {
             <TableRow>
               <TableCell>Guest Name</TableCell>
               <TableCell>Guest Email</TableCell>
-              <TableCell>Guest Phone</TableCell>
+              
               <TableCell>Room Number</TableCell>
               <TableCell>Check-Out Date</TableCell>
               <TableCell>Check-Out Time</TableCell>
@@ -66,7 +68,7 @@ const Checkout = () => {
               <TableRow key={reservation._id}>
                 <TableCell>{reservation.guestName}</TableCell>
                 <TableCell>{reservation.guestEmail}</TableCell>
-                <TableCell>{reservation.guestPhone}</TableCell>
+                
                 <TableCell>{reservation.roomNumber}</TableCell>
                 <TableCell>{new Date(reservation.checkOutDate).toLocaleDateString("en-GB")}</TableCell>
                 <TableCell>
