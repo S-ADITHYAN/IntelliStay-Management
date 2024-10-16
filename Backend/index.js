@@ -1955,11 +1955,59 @@ const transporterr = nodemailer.createTransport({
     });
   });
   
+  app.post('/staff-send-otp', async (req, res) => {
+    const { email } = req.body;
+    const user = await StaffModel.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+  
+    // Generate a random OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  
+    // Save OTP in the user model or in a temporary database with expiration
+    user.otp = otp;
+    user.otpExpires = Date.now() + 3600000; // 1 hour expiry
+    await user.save();
+  
+    // Send OTP via email
+    const mailOptions = {
+      from: process.env.email_id,
+      to: email,
+      subject: 'Password Reset OTP',
+      text: `Your OTP is: ${otp}`,
+    };
+  
+    transporterr.sendMail(mailOptions, (error, info) => {
+      if (error) {
+        return res.status(500).json({ message: 'Error sending email' });
+      }
+      res.status(200).json({ message: 'OTP sent to email' });
+    });
+  });
+  
   // 2. Verify OTP
   app.post('/verify', async (req, res) => {
     const { email, otp } = req.body;
     console.log(req.body)
     const user = await GoogleRegisterModel.findOne({ email });
+    console.log(user)
+    console.log(user.otp)
+    console.log(user.otpExpires)
+    if (!user || user.otp !== otp || Date.now() > user.otpExpires) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+  
+    // Generate token to allow password reset
+    const token = jwt.sign({ email }, process.env.JWT_SECRET_KEY, { expiresIn: '15m' });
+    res.status(200).json({ message: 'OTP verified', token });
+  });
+  
+
+  app.post('/staff-verify', async (req, res) => {
+    const { email, otp } = req.body;
+    console.log(req.body)
+    const user = await StaffModel.findOne({ email });
     console.log(user)
     console.log(user.otp)
     console.log(user.otpExpires)
@@ -1980,6 +2028,29 @@ const transporterr = nodemailer.createTransport({
       const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
       console.log(decoded.email)
       const user = await GoogleRegisterModel.findOne({ email: decoded.email });
+      if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      else{
+      // Hash the new password and save
+    //   const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = password;
+      await user.save();
+  
+      res.status(200).json({ message: 'Password reset successful' });
+      }
+    } catch (error) {
+      res.status(400).json({ message: 'Invalid token or expired token' });
+    }
+  });
+
+  app.post('/staff-reset-password', async (req, res) => {
+    const { token, password } = req.body;
+    console.log(password)
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+      console.log(decoded.email)
+      const user = await StaffModel.findOne({ email: decoded.email });
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }

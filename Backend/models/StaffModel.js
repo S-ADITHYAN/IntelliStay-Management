@@ -12,6 +12,8 @@ const StaffSchema = new mongoose.Schema({
     salary:Number,
     feedback:String,
     availability:Boolean,
+    otp:String,
+    otpExpires:String,
     
 },{timestamps:true});
 

@@ -10,6 +10,79 @@ import Swal from 'sweetalert2';
 function StaffSignin() {
   LoginAuth();
   axios.defaults.withCredentials = true;
+  const navigate = useNavigate();
+  const [verifytoken, settoken] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpVerified, setOtpVerified] = useState(false);
+  const [resetPasswordData, setResetPasswordData] = useState({ emailReset: '', otp: '', newPassword: '', confirmPassword: '' });
+  
+  
+  
+  
+  const handleForgotPassword = (e) => {
+    e.preventDefault();
+    axios.post('http://localhost:3001/staff-send-otp', { email: resetPasswordData.emailReset })
+      .then(res => {
+        if (res.status === 200) {
+          setOtpSent(true);
+          Swal.fire('OTP sent to your email.');
+        }
+        else{
+          Swal.fire(res.data.message);
+        }
+      })
+      .catch(err => console.log(err));
+  };
+  
+  
+  const handleVerifyOtp = (e) => {
+    e.preventDefault();
+    console.log(resetPasswordData);
+    axios.post('http://localhost:3001/staff-verify', { email: resetPasswordData.emailReset, otp: resetPasswordData.otp })
+      .then(res => {
+        if (res.status === 200) {
+          setOtpVerified(true);
+          Swal.fire('OTP verified successfully.');
+          settoken(res.data.token)
+          consolelog(verifytoken)
+  
+        }
+        else{
+          Swal.fire(res.data.message);
+        }
+      })
+      .catch(err => console.log(err));
+  };
+  
+  const handleResetPassword = (e) => {
+    e.preventDefault();
+    if (resetPasswordData.newPassword !== resetPasswordData.confirmPassword) {
+      Swal.fire('Passwords do not match!');
+      return;
+    }
+    axios.post('http://localhost:3001/staff-reset-password', { email: resetPasswordData.emailReset, password: resetPasswordData.newPassword,token:verifytoken })
+      .then(res => {
+        if (res.status === 200) {
+          Swal.fire('Password reset successfully.');
+          setShowForgotPassword(false);
+          setOtpSent(false);
+          setOtpVerified(false);
+          navigate("/stafflogin");
+        }
+        else{
+          Swal.fire(res.data.message);
+        }
+      })
+      .catch(err => console.log(err));
+  };
+  
+  
+  
+  const handleResetPasswordChange = (e) => {
+    setResetPasswordData({ ...resetPasswordData, [e.target.name]: e.target.value });
+  };
+  
 
   const [formData, setFormData] = useState({
     emailsign: '',
@@ -29,7 +102,7 @@ function StaffSignin() {
     });
   };
 
-  const navigate = useNavigate();
+ 
 
   const handleLogin = (e) => {
     e.preventDefault();
@@ -53,6 +126,7 @@ function StaffSignin() {
     <div className="custom-container">
       <div className="custom-forms-container">
         <div className="custom-signin">
+        {!showForgotPassword ? (
           <form className="custom-sign-in-form" onSubmit={handleLogin}>
             <h2 className="custom-title">Sign In</h2>
             <div className="custom-input-field">
@@ -84,6 +158,8 @@ function StaffSignin() {
               />
               <span>Password should be at least 6 characters and include at least 1 letter, 1 number, and 1 special character</span>
             </div>
+
+            <p className="forgot-password" onClick={() => setShowForgotPassword(true)}>Forgot Password?</p>
             <input type="submit" value="Login" className="custom-btn solid" />
             {/* <p className="custom-social-text">Or Sign in with social platforms</p>
             <div className="custom-social-media">
@@ -92,6 +168,45 @@ function StaffSignin() {
               </a>
             </div> */}
           </form>
+           ) : (
+            <form className="custom-sign-in-form">
+              {!otpSent ? (
+                <>
+                
+                  <h2 className="custom-title">Forgot Password</h2>
+                  <div className="custom-input-field">
+                    <i className="fas fa-envelope"></i>
+                    <input type="email" name="emailReset" placeholder="Enter your email" value={resetPasswordData.emailReset} onChange={handleResetPasswordChange} required />
+                  </div>
+                  <input type="submit" value="Send OTP" className="custom-btn solid" onClick={handleForgotPassword} />
+                </>
+              ) : !otpVerified ? (
+                <>
+                  <h2 className="custom-title">Verify OTP</h2>
+                  <div className="custom-input-field">
+                    <i className="fas fa-key"></i>
+                    <input type="text" name="otp" placeholder="Enter OTP" value={resetPasswordData.otp} onChange={handleResetPasswordChange} required />
+                  </div>
+                  <input type="submit" value="Verify OTP" className="custom-btn solid" onClick={handleVerifyOtp} />
+                </>
+              ) : (
+                <>
+                  <h2 className="custom-title">Reset Password</h2>
+                  <div className="custom-input-field">
+                    <i className="fas fa-lock"></i>
+                    <input type="password" name="newPassword" pattern="^(?=.*[a-zA-Z])(?=.*\d)(?=.*[^a-zA-Z\d])([a-zA-Z\d[^a-zA-Z\d]]{6,50})$" placeholder="New Password" value={resetPasswordData.newPassword} onChange={handleResetPasswordChange}  onBlur={()=>setFocus({...focus,errnewPassword: true})} focus={focus.errnewPassword.toString()} required />
+                    <span>Password must be at least 6 characters long and include a letter, number, and special character</span>
+                  </div><br></br>
+                  <div className="custom-input-field">
+                    <i className="fas fa-lock"></i>
+                    <input type="password" name="confirmPassword" pattern={resetPasswordData.newPassword} placeholder="Confirm Password" value={resetPasswordData.confirmPassword} onChange={handleResetPasswordChange}  onBlur={()=>setFocus({...focus,errconfirmPassword: true})} focus={focus.errconfirmPassword.toString()} required />
+                    <span>password not matching</span>
+                  </div>
+                  <input type="submit" value="Reset Password" className="custom-btn solid" onClick={handleResetPassword} />
+                </>
+              )}
+            </form>
+          )}
         </div>
       </div>
       <div className="custom-panels-container">
