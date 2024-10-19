@@ -254,6 +254,12 @@ body {
   overflow: hidden;
   border-radius: 10px;
   box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.room__card:hover {
+  transform: translateY(-7px); /* Slightly lift the card */
+  box-shadow: 0 4px 20px rgba(3, 114, 242, 0.625); /* Add a shadow effect */
 }
 
 .room__card__image {
@@ -414,7 +420,7 @@ body {
   color: var(--text-light);
 }
 
-.explore :is(.section__subheader, .section__header) {
+/* .explore :is(.section__subheader, .section__header) {
   text-align: center;
   margin-inline: auto;
 }
@@ -463,7 +469,7 @@ body {
 .explore__content .btn:hover {
   color: var(--white);
   background-color: var(--primary-color);
-}
+} */
 
 .footer {
   background-color: var(--text-dark);

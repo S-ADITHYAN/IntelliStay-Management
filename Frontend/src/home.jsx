@@ -2,7 +2,7 @@ import React, { useEffect,useState } from 'react';
 import './home.css';
 import Checkin from '../components/checkin';
 import Header from '../components/Header';
-import logo from './assets/logo.png';
+import logo from '../public/logo1.png';
 import about from './assets/about.jpg';
 import room1 from './assets/room-1.jpg';
 import room2 from './assets/room-2.jpg';
@@ -14,11 +14,13 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ScrollReveal from 'scrollreveal'; 
 import useAuth from './useAuth';
+import Gallery from '../components/gallery/Gallery';
 
 function Home() {
 
   useAuth();
   const navigate = useNavigate();
+  const [rooms, setRooms] = useState([]);
 
   useEffect(() => {
     const menuBtn = document.getElementById("menu-btn");
@@ -89,6 +91,25 @@ function Home() {
     });
 
     // Cleanup listeners on component unmount
+    axios.post("http://localhost:3001/rooms-details")
+  .then(res => {
+    if (res.status === 200) {
+      const { availableRooms, message } = res.data; // Destructure the response
+
+      console.log(res.data); // Log the response for debugging
+
+      if (availableRooms.length === 0) {
+        console.log("No rooms available.");
+      } else {
+        console.log(message);
+        setRooms(availableRooms); // Set the available rooms to state
+      }
+    }
+  })
+  .catch(err => {
+    console.error("Error", err);
+  });
+
 
     return () => {
       menuBtn.removeEventListener("click", toggleMenu);
@@ -132,68 +153,41 @@ function Home() {
       </section>
 
       <section className="section__container room__container">
-        <p className="section__subheader">OUR LIVING ROOM</p>
-        <h2 className="section__header">The Most Memorable Rest Time Starts Here.</h2>
-        <div className="room__grid">
-          <div className="room__card">
-            <div className="room__card__image">
-              <img src={room1} alt="room" />
-              <div className="room__card__icons">
-                <span><i className="ri-heart-fill"></i></span>
-                <span><i className="ri-paint-fill"></i></span>
-                <span><i className="ri-shield-star-line"></i></span>
-              </div>
-            </div>
-            <div className="room__card__details">
-              <h4>Deluxe Ocean View</h4>
-              <p>
-                Bask in luxury with breathtaking ocean views from your private
-                suite.
-              </p>
-              <h5>Starting from <span>$299/night</span></h5>
-              <button className="btn">Book Now</button>
-            </div>
-          </div>
-          <div className="room__card">
-            <div className="room__card__image">
-              <img src={room2} alt="room" />
-              <div className="room__card__icons">
-                <span><i className="ri-heart-fill"></i></span>
-                <span><i className="ri-paint-fill"></i></span>
-                <span><i className="ri-shield-star-line"></i></span>
-              </div>
-            </div>
-            <div className="room__card__details">
-              <h4>Executive Cityscape Room</h4>
-              <p>
-                Experience urban elegance and modern comfort in the heart of the
-                city.
-              </p>
-              <h5>Starting from <span>$199/night</span></h5>
-              <button className="btn">Book Now</button>
+  <p className="section__subheader">OUR LIVING ROOM</p>
+  <h2 className="section__header">The Most Memorable Rest Time Starts Here.</h2>
+  
+  <div className="room__grid">
+    {/* Map through the rooms array and generate a card for each room */}
+    {rooms.length > 0 ? (
+      rooms.map((room) => (
+        <div className="room__card" key={room._id}>
+          <div className="room__card__image">
+            {/* Check if room.images is an array and has at least one element */}
+            <img src={(room.images && room.images.length > 0) 
+              ? `http://localhost:3001/uploads/${room.images[0]}` 
+              : room1} 
+              alt={room.roomtype} 
+            />
+            <div className="room__card__icons">
+              <span><i className="ri-heart-fill"></i></span>
+              <span><i className="ri-paint-fill"></i></span>
+              <span><i className="ri-shield-star-line"></i></span>
             </div>
           </div>
-          <div className="room__card">
-            <div className="room__card__image">
-              <img src={room3} alt="room" />
-              <div className="room__card__icons">
-                <span><i className="ri-heart-fill"></i></span>
-                <span><i className="ri-paint-fill"></i></span>
-                <span><i className="ri-shield-star-line"></i></span>
-              </div>
-            </div>
-            <div className="room__card__details">
-              <h4>Family Garden Retreat</h4>
-              <p>
-                Spacious and inviting, perfect for creating cherished memories
-                with loved ones.
-              </p>
-              <h5>Starting from <span>$249/night</span></h5>
-              <button className="btn">Book Now</button>
-            </div>
+          <div className="room__card__details">
+            <h4>{room.roomtype}</h4>
+            <p>{room.description}</p>
+            <h5>Starting from <span>${room.rate}/night</span></h5>
+            <button className="btn">See Details</button>
           </div>
         </div>
-      </section>
+      ))
+    ) : (
+      <p>No rooms available</p> // Show message when no rooms are available
+    )}
+  </div>
+</section>
+
 
       <section className="service" id="service">
         <div className="section__container service__container">
@@ -239,7 +233,7 @@ function Home() {
         </div>
       </section>
 
-      <section className="explore" id="explore">
+      {/* <section className="explore" id="explore">
         <p className="section__subheader">EXPLORE</p>
         <h2 className="section__header">What's New Today.</h2>
         <div className="explore__bg">
@@ -249,7 +243,9 @@ function Home() {
             <button className="btn">Continue</button>
           </div>
         </div>
-      </section>
+      </section> */}
+
+      <Gallery />
 
       <footer className="footer" id="contact">
         <div className="section__container footer__container">

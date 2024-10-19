@@ -1730,50 +1730,63 @@ app.post('/attendance/mark', async (req, res) => {
 });
 
 app.post('/assign', async (req, res) => {
-    const assignments = req.body; // Expecting an array of { staffId, task, role }
+  const assignments = req.body; // Expecting an array of { staffId, task, role }
 
-    try {
-        // Fetch total number of rooms
-        const totalRooms = await RoomModel.countDocuments({});
-        if (totalRooms === 0) {
-            return res.status(400).json({ message: 'No rooms available for assignment' });
-        }
+  try {
+      // Fetch all rooms from the database
+      const allRooms = await RoomModel.find({});
+      const totalRooms = allRooms.length;
+      
+      if (totalRooms === 0) {
+          return res.status(400).json({ message: 'No rooms available for assignment' });
+      }
 
-        const roomsPerStaff = Math.ceil(totalRooms / assignments.length); // Calculate how many rooms each staff will handle
+      const totalStaff = assignments.length;
+      const roomsPerStaff = Math.floor(totalRooms / totalStaff); // Calculate how many rooms each staff will handle
+      const remainingRooms = totalRooms % totalStaff; // Rooms that don't divide evenly among staff
 
-        for (const { staffId, task, role } of assignments) {
-            let JobModel;
+      let roomIndex = 0; // This will track the current room being assigned
 
-            // Determine the model to use based on the role
-            if (role.toLowerCase() === 'housekeeping') {
-                JobModel = HousekeepingJobModel;
-            } else if (role.toLowerCase() === 'maintenance') {
-                JobModel = MaintenanceJobModel;
-            } else {
-                return res.status(400).json({ message: 'Unknown role type' });
-            }
+      for (let i = 0; i < totalStaff; i++) {
+          const { staffId, task, role } = assignments[i];
+          let JobModel;
 
-            // Assign jobs to the staff
-            const assignedRooms = await RoomModel.find().limit(roomsPerStaff); // Get rooms for the staff
-            if (assignedRooms.length === 0) {
-                return res.status(400).json({ message: 'No rooms available for assignment' });
-            }
+          // Determine the model to use based on the role
+          if (role.toLowerCase() === 'housekeeping') {
+              JobModel = HousekeepingJobModel;
+          } else if (role.toLowerCase() === 'maintenance') {
+              JobModel = MaintenanceJobModel;
+          } else {
+              return res.status(400).json({ message: 'Unknown role type' });
+          }
 
-            for (const room of assignedRooms) {
-                await JobModel.create({
-                    staff_id: staffId,
-                    room_id: room._id,
-                    task_description: task,
-                    task_date: new Date(),
-                    status: 'assigned', // Set initial status
-                });
-            }
-        }
+          // Calculate the number of rooms for this staff (roomsPerStaff + 1 for the first `remainingRooms` staff)
+          const numRoomsToAssign = roomsPerStaff + (i < remainingRooms ? 1 : 0);
 
-        res.status(200).json({ message: 'Jobs assigned successfully!' });
-    } catch (error) {
-        res.status(500).json({ message: 'Error assigning jobs', error: error.message });
-    }
+          // Assign the calculated number of rooms to the current staff
+          const assignedRooms = allRooms.slice(roomIndex, roomIndex + numRoomsToAssign);
+          if (assignedRooms.length === 0) {
+              return res.status(400).json({ message: 'No rooms available for assignment' });
+          }
+
+          for (const room of assignedRooms) {
+              await JobModel.create({
+                  staff_id: staffId,
+                  room_id: room._id,
+                  task_description: task,
+                  task_date: new Date(),
+                  status: 'assigned', // Set initial status
+              });
+          }
+
+          // Move the roomIndex forward by the number of rooms just assigned
+          roomIndex += numRoomsToAssign;
+      }
+
+      res.status(200).json({ message: 'Jobs assigned successfully!' });
+  } catch (error) {
+      res.status(500).json({ message: 'Error assigning jobs', error: error.message });
+  }
 });
 
 
@@ -2805,7 +2818,7 @@ app.post("/user-guests-proofupdate/:id",load.single('proofDocument'),async (req,
 );
 
 
-//user section end
+
 
 app.post('/orders/create', async (req, res) => {
   const { userid, paymentId, totalRate, totldays ,reservation_id} = req.body;
@@ -2840,6 +2853,38 @@ app.post('/orders/create', async (req, res) => {
   }
 });
 
+
+app.post('/rooms-details', async (req, res) => {
+  try {
+    // Fetch distinct available rooms grouped by room type
+    const availableRooms = await RoomModel.aggregate([
+      {
+        $group: {
+          _id: "$roomtype", // Group by room_type
+          roomDetails: { $first: "$$ROOT" } // Get the first room document for each room_type
+        }
+      },
+      {
+        $replaceRoot: { newRoot: "$roomDetails" } // Replace the root document with the room details
+      }
+    ]);
+
+    console.log("available", availableRooms);
+
+    // Return the distinct available rooms
+    res.status(200).json({
+      message: 'Distinct rooms available by room type',
+      availableRooms
+    });
+  } catch (error) {
+    console.error('Error fetching rooms:', error);
+    res.status(500).send('Server Error');
+  }
+});
+
+
+
+//user section end
 app.listen(3001, () => {
     console.log("Server connected");
 });

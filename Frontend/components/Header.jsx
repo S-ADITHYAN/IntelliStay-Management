@@ -129,7 +129,7 @@ import { jwtDecode } from "jwt-decode";
         <nav>
           <div className="nav__bar">
             <div className="logo">
-              <a href="#"><img src={logo} alt="logo" /></a> 
+              <a href="#home"><img src={logo} alt="logo" onClick={()=>{navigate('/')}}/></a> 
               {/* <h2 style={{ color: '#fff' }}>IntelliStay</h2> */}
 
             </div>
@@ -139,10 +139,10 @@ import { jwtDecode } from "jwt-decode";
           </div>
           <ul className="nav__links" id="nav-links">
             <li><a href="#home" onClick={()=>{navigate('/')}}>Home</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#service">Services</a></li>
-            <li><a href="#explore">Explore</a></li>
-            <li><a href="#contact">Contact</a></li>
+            <li><a href="#about" onClick={()=>{navigate('/')}}>About</a></li>
+            <li><a href="#service" onClick={()=>{navigate('/')}}>Services</a></li>
+            <li><a href="#gallery" onClick={()=>{navigate('/')}}>Gallery</a></li>
+            <li><a href="#contact" onClick={()=>{navigate('/')}}>Contact</a></li>
             {user ? (
                 <>
                  

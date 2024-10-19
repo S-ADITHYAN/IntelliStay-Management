@@ -1,0 +1,86 @@
+.explore :is(.section__subheader, .section__header) {
+    text-align: center;
+    margin-inline: auto;
+  }
+  
+  .explore__bg {
+    margin-top: 4rem;
+    padding-block: 3rem;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); /* Adjusted for a 3-column layout */
+    gap: 1rem; /* Space between images */
+    background-color: var(--light-gray); /* Optional: add a background color */
+  }
+  
+  .explore__content {
+    /* Removed this to focus on the grid gallery */
+  }
+  
+  .explore__content p {
+    margin-bottom: 0.5rem;
+  }
+  
+  .explore__content h4 {
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+    font-weight: 600;
+    line-height: 1.5rem;
+    color: var(--text-dark);
+  }
+  
+  .explore__content .btn {
+    color: var(--primary-color);
+    background-color: var(--white);
+    border: 1px solid var(--primary-color);
+  }
+  
+  .explore__content .btn:hover {
+    color: var(--white);
+    background-color: var(--primary-color);
+  }
+  
+  .gallery {
+    display: grid; /* Enable grid layout for gallery */
+    grid-template-columns: repeat(3, 1fr); /* 3 columns */
+    gap: 1rem; /* Space between items */
+  }
+  
+  .gallery__item {
+    position: relative;
+    overflow: hidden; /* Hide overflow for zoom effect */
+    transition: transform 0.3s ease; /* Smooth transition for item hover */
+  }
+  
+  .gallery__item img {
+    width: 100%;
+    height: auto; /* Maintain aspect ratio */
+    transition: transform 0.5s ease; /* Smooth zoom transition */
+  }
+  
+  .gallery__item:hover img {
+    transform: scale(1.1); /* Zoom in on hover */
+  }
+  
+  .gallery__item:hover {
+    transform: scale(1.05); /* Slightly scale the item */
+  }
+  
+  .see-more-container {
+    display: flex;
+    justify-content: center; /* Center the button horizontally */
+    margin-top: 1rem; /* Optional margin for spacing */
+  }
+  
+  .btn {
+    padding: 10px 20px; /* Add padding for button */
+    background-color: #ff5722; /* Your button color */
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px; /* Optional rounded corners */
+    transition: background-color 0.3s ease; /* Smooth transition for hover effect */
+  }
+  
+  .btn:hover {
+    background-color: #e64a19; /* Darker shade on hover */
+  }

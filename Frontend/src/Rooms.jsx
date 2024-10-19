@@ -7,10 +7,10 @@ import room2 from '../src/assets/room-2.jpg';
 import room3 from '../src/assets/room-3.jpg';
 import Checkin from '../components/checkin';
 import { useLocation, useNavigate } from 'react-router-dom';
-import useAuth from './useAuth';
+
 
 function Rooms() {
-  useAuth();
+  
   const navigate = useNavigate();
   const [rooms, setRooms] = useState([]);
   const location = useLocation();

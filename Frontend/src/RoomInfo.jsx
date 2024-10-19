@@ -7,7 +7,7 @@ import axios from 'axios';
 import Header from '../components/Header';
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { useLocation,useNavigate } from 'react-router-dom';
-import useAuth from './useAuth';
+
 import CloseIcon from '@mui/icons-material/Close';
 
 import {
@@ -20,7 +20,7 @@ import { useState } from "react";
 import Swal from 'sweetalert2';
 
 const RoomInfo = () => {
-  useAuth();
+  
     const [ddifferenceInDays,setdifferenceInDays]=useState();
     const [ttrate,setttrate]=useState();
     const navigate=useNavigate();
