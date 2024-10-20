@@ -1,8 +1,8 @@
 const mongoose = require('mongoose')
 
 const ReservationSchema = new mongoose.Schema({
-    user_id: String,
-    room_id: String,
+    user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'GoogleRegisters', required: true },
+    room_id: { type: mongoose.Schema.Types.ObjectId, ref: 'room', required: true },
     check_in:Date,
     check_out:Date, 
     booking_date:Date,

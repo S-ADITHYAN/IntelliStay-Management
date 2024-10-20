@@ -887,58 +887,94 @@ app.post('/asjobdetails', async (req, res) => {
     }
 });
 
+// Assuming you have the Room model setup
+
+// Setup multer for file storage
+// const stora = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, 'uploads/rooms'); // Set your upload directory
+//   },
+//   filename: (req, file, cb) => {
+//     cb(null, file.originalname); // Save the file with its original name
+//   },
+// });
+
+// const uploadss = multer({ stora });
 
 const stora = multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, 'uploads/rooms'); // Set your upload directory
-    },
-    filename: (req, file, cb) => {
-      cb(null, file.originalname); // Use original file name or generate a unique one
-    },
-  });
-  
-  const uploadss = multer({ stora });
-  
-  app.post('/updateroom/:id', uploadss.array('images', 10), async (req, res) => {
-    try {
-      console.log('Request Body:', req.body); // Log the request body
-      console.log('Uploaded Files:', req.files); // Log the uploaded files
-  
-      const { roomno, roomtype, status, rate, description } = req.body;
-  
-      // Check if req.files is undefined
-      if (!req.files) {
-        return res.status(400).send('No files were uploaded.');
-      }
-  
-      // Extract image file names from uploaded files
-      const images = req.files.map(file => file.originalname); // Save file names for the database
-    console.log(images)
-      // Update the room in the database
-      const updatedRoom = await RoomModel.findByIdAndUpdate(
-        req.params.id,
-        {
-          roomno,
-          roomtype,
-          status,
-          rate,
-          description,
-          images // Save only file names
-        },
-        { new: true }
-      );
-  
-      if (!updatedRoom) {
-        return res.status(404).send('Room not found');
-      }
-  
-      res.status(200).json(updatedRoom);
-    } catch (error) {
-      console.error('Error updating room:', error); // Log the error for debugging
-      res.status(500).send('Server error');
+  destination: (req, file, cb) => {
+    cb(null, './uploads/rooms'); // Define the folder where images will be stored
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9); // Generate unique file name
+    cb(null, uniqueSuffix + path.extname(file.originalname)); // Save file with unique name
+  }
+});
+
+// File filter to accept only images (PNG, JPG, JPEG)
+const filler = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true); // Accept the file
+  } else {
+    cb(new Error('Invalid file type. Only JPG, PNG, and JPEG are allowed.'), false); // Reject file if not allowed type
+  }
+};
+
+// Initialize Multer for multiple file uploads
+const uploadss = multer({
+  storage: stora,
+  fileFilter: filler
+}).array('newImages', 10); // Limit to 10 images
+
+// Update room route with image handling
+app.post('/updateroom/:id', (req, res) => {
+  uploadss(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ error: err.message }); // Handle Multer errors
     }
-  });
-  
+
+    const { roomno, roomtype, status, rate, description, existingImages } = req.body;
+
+    // Ensure `existingImages` is an array, or initialize it as an empty array
+    let updatedImages = existingImages ? (Array.isArray(existingImages) ? existingImages : [existingImages]) : [];
+
+    // If new images were uploaded, append their unique filenames to `updatedImages`
+    if (req.files && req.files.length > 0) {
+      const newImageNames = req.files.map(file => file.filename); // Save only filenames
+      updatedImages = [...updatedImages, ...newImageNames]; // Merge existing and new images
+    }
+// Merge existing and new images
+    
+
+    console.log("Final Images Array:", updatedImages); // Log final image array
+try{
+    // Update room details and images in the database
+    const updatedRoom = await RoomModel.findByIdAndUpdate(
+      req.params.id,
+      {
+        roomno,
+        roomtype,
+        status,
+        rate,
+        description,
+        images: updatedImages, // Save the final image array
+      },
+      { new: true }
+    );
+
+    if (!updatedRoom) {
+      return res.status(404).send('Room not found');
+    }
+
+    res.status(200).json(updatedRoom);
+  } catch (error) {
+    console.error('Error updating room:', error); // Log the error for debugging
+    res.status(500).send('Server error');
+  }
+});
+});
+
 
 // app.post('/updateroom/:id', async (req, res) => {
 //     try {
@@ -1182,13 +1218,19 @@ app.get('/my-bookings/:userId', async (req, res) => {
     const userId = req.params.userId;
 
     // Fetch bookings and sort by _id in descending order
-    const bookings = await ReservationModel.find({ user_id: userId }).sort({ _id: -1 }); // -1 for descending order
+    const bookings = await ReservationModel.find({ user_id: userId })
+      .populate({
+        path: 'room_id', // Populate the room details
+        select: 'images roomtype', // Select only the fields you want
+      })
+      .sort({ _id: -1 }); // -1 for descending order
 
     res.status(200).json(bookings);
   } catch (error) {
     res.status(500).json({ message: 'Error retrieving bookings', error });
   }
 });
+
 
 
 //   const upload = multer({ storage: multer.memoryStorage() });

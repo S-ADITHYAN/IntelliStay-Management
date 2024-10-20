@@ -12,12 +12,16 @@ const EditRoom = ({ roomData, onClose, onUpdateComplete }) => {
   const theme = useTheme();
   const isNonMobile = useMediaQuery("(min-width:600px)");
 
+  // Base URL for images
   const imageBaseUrl = 'http://localhost:3001/uploads/';
-  const initialImages = roomData.images.map(image => image.replace(/^.*\/([^\/]+)$/, '$1'));
-  const [updatedImages, setUpdatedImages] = useState(initialImages.length ? initialImages.map(image => `${imageBaseUrl}${image}`) : []);
+  const initialImages = roomData.images.map(image => image.replace(/^.*\/([^\/]+)$/, '$1')); // Extract image name from URL
+
+  const [updatedImages, setUpdatedImages] = useState(initialImages.length ? initialImages : []);
+  const [newImages, setNewImages] = useState([]); // For newly uploaded images
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isUpdatingImages, setIsUpdatingImages] = useState(false);
 
+  // Image carousel controls
   const handleImageChange = (direction) => {
     if (direction === 'next') {
       setCurrentImageIndex((prevIndex) =>
@@ -30,20 +34,26 @@ const EditRoom = ({ roomData, onClose, onUpdateComplete }) => {
     }
   };
 
+  // Handle new image upload
   const handleImageUpload = (event) => {
-    const newImages = Array.from(event.target.files).map(file => URL.createObjectURL(file));
-    setUpdatedImages(prevImages => [...prevImages, ...newImages]);
+    const newFiles = Array.from(event.target.files);
+    const newImageNames = newFiles.map(file => file.name); // Store file names for backend
+    setNewImages(newFiles); // Store actual file objects for FormData
+    // setUpdatedImages(prevImages => [...prevImages, ...newImageNames]); // Store image names for display
   };
 
+  // Remove image from the list
   const handleRemoveImage = (index) => {
     const newImageList = updatedImages.filter((_, i) => i !== index);
     setUpdatedImages(newImageList);
   };
 
+  // Open image update section
   const handleUpdateImages = () => {
     setIsUpdatingImages(true);
   };
 
+  // Form initial values
   const initialValues = {
     roomno: roomData.roomno || "",
     roomtype: roomData.roomtype || "",
@@ -52,16 +62,19 @@ const EditRoom = ({ roomData, onClose, onUpdateComplete }) => {
     description: roomData.description || "",
   };
 
-  const rateRegExp = /^[0-9]+$/;
+  const roomnoRegExp = /^[0-9]+$/;
+const rateRegExp = /^[0-9]{1,5}$/;
 
+  // Validation schema for form
   const checkoutSchema = yup.object().shape({
-    roomno: yup.string().required("required"),
+    roomno: yup.string().matches(roomnoRegExp, "Room number is not valid. Only numbers are allowed").required("required"),
     roomtype: yup.string().required("required"),
     status: yup.string().required("required"),
-    rate: yup.string().matches(rateRegExp, "Rate is not valid. Only numbers are allowed").required("required"),
+    rate: yup.string().matches(rateRegExp, "Rate is not valid. Only numbers are allowed.max-4 digits are allowed").required("required"),
     description: yup.string().required("required"),
   });
 
+  // Form submission handler
   const handleFormSubmit = (values) => {
     const formData = new FormData();
     formData.append('roomno', values.roomno);
@@ -69,12 +82,17 @@ const EditRoom = ({ roomData, onClose, onUpdateComplete }) => {
     formData.append('status', values.status);
     formData.append('rate', values.rate);
     formData.append('description', values.description);
-  
-    updatedImages.forEach((image) => {
-      formData.append('images', image); // Append each image
+
+    // Append only the names of existing images
+    updatedImages.forEach((imageName) => {
+      formData.append('existingImages', imageName); // Append existing image names
     });
-    console.log(formData)
-  
+
+    // Append new images (files) for upload
+    newImages.forEach((imageFile) => {
+      formData.append('newImages', imageFile); // Append new image files
+    });
+
     axios.post(`http://localhost:3001/updateroom/${roomData._id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
@@ -118,7 +136,7 @@ const EditRoom = ({ roomData, onClose, onUpdateComplete }) => {
                 <ArrowBackIosIcon />
               </IconButton>
               <img
-                src={updatedImages[currentImageIndex]}
+                src={newImages[currentImageIndex] ? URL.createObjectURL(newImages[currentImageIndex]) : `${imageBaseUrl}${updatedImages[currentImageIndex]}`}
                 alt="Room"
                 style={{ width: "100px", height: "100px", objectFit: "cover" }}
               />
@@ -244,18 +262,23 @@ const EditRoom = ({ roomData, onClose, onUpdateComplete }) => {
 
         {/* Update Images Section */}
         {isUpdatingImages && (
-          <Box mt="20px">
-            <input
-              type="file"
-              multiple
-              accept=".jpg,.jpeg,.png"
-              onChange={handleImageUpload}
-            />
-            <Box mt="10px">
+          <Box mt={3} style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #ccc', padding: '10px', borderRadius: '8px' }}>
+            <input type="file" multiple onChange={handleImageUpload} />
+            <Box mt={2}>
               {updatedImages.map((image, index) => (
-                <Box key={index} display="flex" alignItems="center" mb="10px">
-                  <img src={image} alt="Preview" style={{ width: "50px", height: "50px", objectFit: "cover" }} />
-                  <Button onClick={() => handleRemoveImage(index)} color="error" variant="contained" sx={{ ml: 2 }}>
+                <Box
+                  key={index}
+                  display="flex"
+                  justifyContent="space-between"
+                  alignItems="center"
+                  mb={1}
+                >
+                  <span>{image}</span>
+                  <Button
+                    variant="contained"
+                    color="secondary"
+                    onClick={() => handleRemoveImage(index)}
+                  >
                     Remove
                   </Button>
                 </Box>
