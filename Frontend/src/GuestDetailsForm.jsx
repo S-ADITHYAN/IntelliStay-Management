@@ -6,11 +6,14 @@ import {
     Grid, 
     Paper, 
     Box, 
-    MenuItem 
+    MenuItem,
+    Avatar // Add this import
 } from '@mui/material';
 import Header from '../components/Header'; 
 import './guestform.css'; // Import the CSS for the form
 import { useLocation, useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'; // Import this at the top of your file
 
 const documentOptions = [
     { label: 'Aadhar', value: 'aadhar' },
@@ -44,6 +47,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
 
     // Initialize states with counts
     const [adults, setAdults] = useState(Array.from({ length: adultsCount }, () => ({
+        _id:'',
         name: '',
         email: '',
         phone: '',
@@ -56,6 +60,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
     })));
 
     const [children, setChildren] = useState(Array.from({ length: childrenCount }, () => ({
+        _id:'',
         name: '',
         email: '',
         phone: '',
@@ -73,35 +78,26 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
     const dobRegex = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD format for date of birth
     const proofNumberRegex = /^[A-Za-z0-9]+$/; // Assuming alphanumeric proof number
 
-    // Handle input change for adults/children with validation
-    const handleChange = (e, index, type) => {
-        const { name, value } = e.target;
-        const updateState = (prevState, setState) => {
-            const updatedList = [...prevState];
-            const errors = validateField(name, value);
-            updatedList[index] = {
-                ...updatedList[index],
-                [name]: value,
-                errors: { ...updatedList[index].errors, [name]: errors },
-            };
-            setState(updatedList);
+    const [selectedGuest, setSelectedGuest] = useState(null);
+    const [selectedGuestIds, setSelectedGuestIds] = useState([]);
+    const [newGuestDetails, setNewGuestDetails] = useState({ adults: [], children: [] });
+    const userid= localStorage.getItem('userId');
+    const [previousGuest, setPreviousGuest] = useState([]);
+    useEffect(() => {
+        // Fetch previous guest details when the component mounts
+        const fetchPreviousGuest = async () => {
+            try {
+                const response = await axios.get(`http://localhost:3001/previousGuestDetails/${userid}`);
+                console.log(response.data);
+                setPreviousGuest(response.data || []); // Ensure it's an array, even if empty
+            } catch (error) {
+                console.error('Failed to fetch previous guest:', error);
+                setPreviousGuest([]); // Set to empty array in case of error
+            }
         };
 
-        type === 'adult' ? updateState(adults, setAdults) : updateState(children, setChildren);
-    };
-
-    // Add new guest form for adults/children
-    const addGuest = (setGuestState) => {
-        setGuestState((prevGuests) => [
-            ...prevGuests, 
-            { name: '', email: '', phone: '', address: '', dob: '', proofType: '', proofNumber: '', proofDocument: null, errors: {} }
-        ]);
-    };
-
-    // Remove guest form for adults/children
-    const removeGuest = (index, setGuestState) => {
-        setGuestState((prevGuests) => prevGuests.filter((_, i) => i !== index));
-    };
+        fetchPreviousGuest();
+    }, []);
 
     // Validate individual form field
     const validateField = (name, value) => {
@@ -155,19 +151,78 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
         return isValid(adults) && isValid(children);
     };
 
+
+    const handleChange = (e, index, type) => {
+        const { name, value } = e.target;
+        const error = validateField(name, value);
+        
+        if (type === 'adult') {
+            const newAdults = [...adults];
+            newAdults[index] = {
+                ...newAdults[index],
+                [name]: value,
+                errors: {
+                    ...newAdults[index].errors,
+                    [name]: error
+                }
+            };
+            setAdults(newAdults);
+
+            // Update newGuestDetails for adults
+            setNewGuestDetails(prev => ({
+                ...prev,
+                adults: newAdults.map(adult => ({
+                    ...adult,
+                    errors: undefined // Remove errors from the data to be sent
+                }))
+            }));
+        } else {
+            const newChildren = [...children];
+            newChildren[index] = {
+                ...newChildren[index],
+                [name]: value,
+                errors: {
+                    ...newChildren[index].errors,
+                    [name]: error
+                }
+            };
+            setChildren(newChildren);
+
+            // Update newGuestDetails for children
+            setNewGuestDetails(prev => ({
+                ...prev,
+                children: newChildren.map(child => ({
+                    ...child,
+                    errors: undefined // Remove errors from the data to be sent
+                }))
+            }));
+        }
+    };
+
     // Handle form submission
     const handleFormSubmit = (e) => {
         e.preventDefault();
         if (validateForm()) {
-            onSubmitguests();
+            const guestData = {
+                selectedGuestIds,
+                newGuestDetails: {
+                    adults: adults.filter(adult => !selectedGuestIds.includes(adult._id)),
+                    children: children.filter(child => !selectedGuestIds.includes(child._id))
+                }
+            };
+            navigate('/reserveroom', { 
+                state: { 
+                    ...state, 
+                    guestData,
+                    adults, 
+                    children, 
+                    totldays,
+                    selectedGuestIds 
+                } 
+            });
         } else {
             alert('Please fix validation errors before submitting.');
         }
-    };
-
-    // Navigate to reservation room with guest data
-    const onSubmitguests = () => {
-        navigate('/reserveroom', { state: { data: datas, roomdata: roomdatas, totlrate: totlrates, adults, children, totldays } });
     };
 
     // Upload file handler
@@ -189,56 +244,126 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
             setChildren(newChildren);
         }
     };
+    const handlePreviousGuestClick = (guest) => {
+        setSelectedGuestIds(prevIds => {
+            if (prevIds.includes(guest._id)) {
+                return prevIds.filter(id => id !== guest._id);
+            } else {
+                return [...prevIds, guest._id];
+            }
+        });
 
+        if (guest.role === 'adult') {
+            setAdults(prevAdults => {
+                const existingIndex = prevAdults.findIndex(a => a._id === guest._id);
+                if (existingIndex !== -1) {
+                    return prevAdults.filter((_, i) => i !== existingIndex);
+                } else {
+                    return [...prevAdults, { ...guest, errors: {} }];
+                }
+            });
+        } else if (guest.role === 'child') {
+            setChildren(prevChildren => {
+                const existingIndex = prevChildren.findIndex(c => c._id === guest._id);
+                if (existingIndex !== -1) {
+                    return prevChildren.filter((_, i) => i !== existingIndex);
+                } else {
+                    return [...prevChildren, { ...guest, errors: {} }];
+                }
+            });
+        }
+    };
     
-
-
+    const renderPreviousGuest = () => {
+        console.log("Rendering previous guests:", previousGuest);
+        if (!previousGuest || !Array.isArray(previousGuest) || previousGuest.length === 0) return null;
+        return (
+            <div>
+                <Typography variant="h6" gutterBottom>Previous Guests</Typography>
+                {previousGuest.map((guest, index) => (
+                    <Box
+                        key={index}
+                        onClick={() => handlePreviousGuestClick(guest)}
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            mb: 2,
+                            p: 2,
+                            border: '1px solid lightgray',
+                            borderRadius: '10px',
+                            cursor: 'pointer',
+                            position: 'relative', // Added for positioning the tick
+                        }}
+                    >
+                        <Avatar sx={{ bgcolor: 'blue', marginRight: '10px' }}>
+                            {guest.name[0].toUpperCase()}
+                        </Avatar>
+                        <Box>
+                            <Typography variant="subtitle1">{guest.name}</Typography>
+                            <Typography variant="body2">
+                                DOB: {new Date(guest.dob).toLocaleDateString("en-GB")}
+                            </Typography>
+                            <Typography variant="body2">Email: {guest.email}</Typography>
+                        </Box>
+                        {selectedGuestIds.includes(guest._id) && (
+                            <CheckCircleIcon 
+                                sx={{ 
+                                    position: 'absolute', 
+                                    top: 10, 
+                                    right: 10, 
+                                    color: 'blue' 
+                                }} 
+                            />
+                        )}
+                    </Box>
+                ))}
+            </div>
+        );
+    };
     // Render form fields for adults and children
     const renderGuestFields = (guests, type, setGuestState) => (
         guests.map((guest, index) => (
-            <Paper elevation={3} sx={{ padding: 3, marginBottom: 3 }} key={index}>
+            <Paper elevation={3} sx={{ padding: 3, marginBottom: 3 }} key={guest._id || index}>
                 <Typography variant="h6" gutterBottom>
                     {type === 'adult' ? `Adult ${index + 1}` : `Child ${index + 1}`}
                 </Typography>
                 <Grid container spacing={2} alignItems="center">
+                    {/* Render fields based on guest type */}
                     {type === 'child' ? (
-                        // Only render Name and Date of Birth for children
+                        // Child fields
                         <>
                             <Grid item xs={12} md={6}>
                                 <TextField
                                     fullWidth
                                     label="Name"
-                                    variant="outlined"
                                     name="name"
                                     value={guest.name}
                                     onChange={(e) => handleChange(e, index, type)}
                                     required
                                     error={!!guest.errors.name}
                                     helperText={guest.errors.name}
+                                    InputProps={{ readOnly: !!guest._id }}
                                 />
                             </Grid>
                             <Grid item xs={12} md={6}>
                                 <TextField
                                     fullWidth
                                     label="Date of Birth"
-                                    variant="outlined"
+                                    type="date"
                                     name="dob"
-                                    value={guest.dob}
+                                    value={guest.dob ? guest.dob.split('T')[0] : ''}
                                     onChange={(e) => handleChange(e, index, type)}
                                     required
-                                    type="date"
                                     InputLabelProps={{ shrink: true }}
-                                    inputProps={{
-                                        min: minDate, // Set minimum date to five years ago
-                                        max: maxDate, // Set maximum date to yesterday
-                                    }}
+                                    inputProps={{ max: maxDate, min: minDate }}
                                     error={!!guest.errors.dob}
                                     helperText={guest.errors.dob}
+                                    InputProps={{ readOnly: !!guest._id }}
                                 />
                             </Grid>
                         </>
                     ) : (
-                        // Render all fields for adults
+                        // Adult fields
                         <>
                             <Grid item xs={12} md={3}>
                                 <TextField
@@ -251,6 +376,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                                     required
                                     error={!!guest.errors.name}
                                     helperText={guest.errors.name}
+                                    InputProps={{ readOnly: !!selectedGuest }}
                                 />
                             </Grid>
                             <Grid item xs={12} md={3}>
@@ -265,6 +391,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                                     type="email"
                                     error={!!guest.errors.email}
                                     helperText={guest.errors.email}
+                                    InputProps={{ readOnly: !!selectedGuest }}
                                 />
                             </Grid>
                             <Grid item xs={12} md={3}>
@@ -279,6 +406,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                                     type="tel"
                                     error={!!guest.errors.phone}
                                     helperText={guest.errors.phone}
+                                    InputProps={{ readOnly: !!selectedGuest }}
                                 />
                             </Grid>
                             <Grid item xs={12} md={12}>
@@ -292,6 +420,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                                     required
                                     multiline
                                     rows={3}
+                                    InputProps={{ readOnly: !!selectedGuest }}
                                 />
                             </Grid>
                             <Grid item xs={12} md={6}>
@@ -310,6 +439,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                                     }}
                                     error={!!guest.errors.dob}
                                     helperText={guest.errors.dob}
+                                    InputProps={{ readOnly: !!selectedGuest }}
                                 />
                             </Grid>
                             <Grid item xs={12} md={6}>
@@ -374,18 +504,57 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                         </>
                     )}
                 </Grid>
+                
+                {/* Only show remove button for newly added guests */}
+                {!guest._id && (
+                    <Box mt={2}>
+                        <Button 
+                            variant="contained" 
+                            color="secondary" 
+                            onClick={() => removeGuest(index, setGuestState)}
+                        >
+                            Remove {type === 'adult' ? 'Adult' : 'Child'}
+                        </Button>
+                    </Box>
+                )}
             </Paper>
         ))
     );
     
-    //             <Box mt={2}>
-    //                 {/* <Button variant="contained" color="secondary" onClick={() => removeGuest(index, setGuestState)}>
-    //                     Remove {type === 'adult' ? 'Adult' : 'Child'}
-    //                 </Button> */}
-    //             </Box>
-    //         </Paper>
-    //     ))
-    // );
+    // Add this function to handle guest removal
+    const removeGuest = (index, setGuestState) => {
+        setGuestState(prevGuests => prevGuests.filter((_, i) => i !== index));
+    };
+
+    const addGuest = (type) => {
+        if (type === 'adult') {
+            setAdults(prevAdults => [
+                ...prevAdults,
+                {
+                    name: '',
+                    email: '',
+                    phone: '',
+                    address: '',
+                    dob: '',
+                    proofType: '',
+                    proofNumber: '',
+                    proofDocument: null,
+                    errors: {},
+                    // No _id for new guests
+                }
+            ]);
+        } else if (type === 'child') {
+            setChildren(prevChildren => [
+                ...prevChildren,
+                {
+                    name: '',
+                    dob: '',
+                    errors: {},
+                    // No _id for new guests
+                }
+            ]);
+        }
+    };
 
     return (
         <>
@@ -406,27 +575,30 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                             Fill Guest Details
                         </Typography>
                     </Grid>
-                        <Grid item xs={12}>
-                            <Typography variant="h5">Adults Information</Typography>
-                        </Grid>
-                        <Grid item xs={12}>
-                            {renderGuestFields(adults, 'adult', setAdults)}
-                            {/* <Button variant="contained" onClick={() => addGuest(setAdults)}>
-                                Add Adult
-                            </Button> */}
-                        </Grid>
+                    <Grid item xs={12}>
+                        {renderPreviousGuest()}
+                    </Grid>
+                    <Grid item xs={12}>
+                        <Typography variant="h5">Adults Information</Typography>
+                    </Grid>
+                    <Grid item xs={12}>
+                        {renderGuestFields(adults, 'adult', setAdults)}
+                        <Button variant="contained" onClick={() => addGuest('adult')}>
+                            Add Adult
+                        </Button>
+                    </Grid>
 
-                        <Grid item xs={12}>
-                            <Typography variant="h5">Children Information</Typography>
-                        </Grid>
-                        <Grid item xs={12}>
-                            {renderGuestFields(children, 'child', setChildren)}
-                            {/* <Button variant="contained" onClick={() => addGuest(setChildren)}>
-                                Add Child
-                            </Button> */}
-                        </Grid>
+                    <Grid item xs={12}>
+                        <Typography variant="h5">Children Information</Typography>
+                    </Grid>
+                    <Grid item xs={12}>
+                        {renderGuestFields(children, 'child', setChildren)}
+                        <Button variant="contained" onClick={() => addGuest('child')}>
+                            Add Child
+                        </Button>
+                    </Grid>
 
-                        <Grid item xs={12} mt={3} style={{ display: 'flex', justifyContent: 'center' }}>
+                    <Grid item xs={12} mt={3} style={{ display: 'flex', justifyContent: 'center' }}>
     <Button variant="contained" color="primary" type="submit">
         Proceed to Reserve Room
     </Button>

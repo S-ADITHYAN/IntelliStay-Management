@@ -1,6 +1,7 @@
 const mongoose = require('mongoose');
 
 const guestSchema = new mongoose.Schema({
+  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'GoogleRegisters', required: true },
   name: { type: String, required: true },
   email: { type: String},
   phone: { type: String},

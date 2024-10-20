@@ -24,6 +24,10 @@ const ReserveRoom = () => {
   const childrenDetails = state.children || [];
   const totalRate = state.totlrate || 0;
   const totldays = state.totldays || 0;
+  const guestData = state.guestData || {};
+  const selectedGuestIds = guestData.selectedGuestIds || [];
+  const newGuestDetails = guestData.newGuestDetails || { adults: [], children: [] };
+  console.log("selected guestids",selectedGuestIds);
   
   const userid= localStorage.getItem('userId');
 
@@ -232,64 +236,62 @@ const ReserveRoom = () => {
     formData.append('userid', userid);
     formData.append('totalRate', totalRate);
     formData.append('totldays', totldays);
-  
-    // Include adult details and their proof documents
-    adultDetails.forEach((adult, index) => {
-      formData.append(`adultDetails[${index}]`, JSON.stringify(adult));
-  
-      // Include proof document if available
-      if (adult.proofDocument) {
-        formData.append('proofDocuments', adult.proofDocument); // Changed this line
-      }
+    formData.append('selectedGuestIds', JSON.stringify(selectedGuestIds));
+    formData.append('newGuestDetails', JSON.stringify(newGuestDetails));
+
+    // Include new adult details and their proof documents
+    newGuestDetails.adults.forEach((adult, index) => {
+        formData.append(`newAdultDetails[${index}]`, JSON.stringify(adult));
+        if (adult.proofDocument) {
+            formData.append('proofDocuments', adult.proofDocument);
+        }
     });
-  
-    // Include children details
-    childrenDetails.forEach((child, index) => {
-      formData.append(`childrenDetails[${index}]`, JSON.stringify(child));
+
+    // Include new children details
+    newGuestDetails.children.forEach((child, index) => {
+        formData.append(`newChildrenDetails[${index}]`, JSON.stringify(child));
     });
-  
-    // Send the form data to the backend
+
     try {
-      // First, send booking details to the backend
-      const res = await axios.post('http://localhost:3001/confirmbook', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-  
-      if (res.status === 201) {
-        // Booking successful, now proceed to Razorpay payment
-        const  totalAmount  = res.data.reservation.total_amount; // Fetch total amount from the response if needed
-        
-        const options = {
-          key: razerkeyid,
-          key_secret: razersecret,
-          amount: parseInt(totalAmount * 100), // Amount in paise (hence * 100)
-          currency: "INR",
-          order_receipt: 'order_rcptid_' + formData.get('userid'),
-          name: "INTELLISTAY PAYMENT GATEWAY", // Modify this name to match your use case
-          description: "Booking Payment",
-          handler: function (response) {
-            console.log("Payment successful", response);
+        const res = await axios.post('http://localhost:3001/confirmbook', formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+
+        if (res.status === 201) {
+            // Booking successful, now proceed to Razorpay payment
+            const  totalAmount  = res.data.reservation.total_amount; // Fetch total amount from the response if needed
             
-            const paymentId = response.razorpay_payment_id;
+            const options = {
+                key: razerkeyid,
+                key_secret: razersecret,
+                amount: parseInt(totalAmount * 100), // Amount in paise (hence * 100)
+                currency: "INR",
+                order_receipt: 'order_rcptid_' + formData.get('userid'),
+                name: "INTELLISTAY PAYMENT GATEWAY", // Modify this name to match your use case
+                description: "Booking Payment",
+                handler: function (response) {
+                    console.log("Payment successful", response);
+                    
+                    const paymentId = response.razorpay_payment_id;
           
   
-            // Prepare payload for order confirmation after payment
-            const payLoad = {
-              userid: userid,
-              paymentId,
-              totalRate,
-              totldays,
-              reservation_id: res.data.reservation._id // Assuming response contains reserved rooms
-            };
+                    // Prepare payload for order confirmation after payment
+                    const payLoad = {
+                        userid: userid,
+                        paymentId,
+                        totalRate,
+                        totldays,
+                        reservation_id: res.data.reservation._id // Assuming response contains reserved rooms
+                    };
   
-            // Send booking confirmation after payment success
-            axios.post('http://localhost:3001/orders/create', payLoad)
-              .then((res) => {
-                Swal.fire("Booking and payment successful");
-                console.log(res.data.reservation);
-                console.log("user details",res.data.user)
+                    // Send booking confirmation after payment success
+                    axios.post('http://localhost:3001/orders/create', payLoad)
+                        .then((res) => {
+                            Swal.fire("Booking and payment successful");
+                            console.log(res.data.reservation);
+                            console.log("user details",res.data.user)
         
          // Trigger PDF generation and download after successful booking
          const generatePDF = () => {

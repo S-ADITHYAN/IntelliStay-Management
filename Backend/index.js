@@ -1067,6 +1067,23 @@ console.log("avaiable",availableRooms)
 //     }
 // });
 
+app.get('/previousGuestDetails/:id', async (req, res) => {
+  try {
+    const userid = req.params.id;
+    // Fetch all previous guest details from database for the given user_id
+    const previousGuests = await RoomGuestModel.find({ user_id: userid });
+
+    if (previousGuests && previousGuests.length > 0) {
+      return res.json(previousGuests);
+    } else {
+      return res.status(404).json({ message: 'No previous guests found' });
+    }
+  } catch (error) {
+    console.error('Error fetching previous guests:', error);
+    return res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 
 
 // Define storage for the uploaded files
@@ -1100,30 +1117,36 @@ const uploadssss = multer({
 // Middleware to handle file uploads (you can adjust the number of files as needed)
 const uploadHandler = uploadssss.array('proofDocuments', 10); // Maximum 10 files at a time
 
+
+// Create a transporter using SMTP
+const mailtrans = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587,
+  auth: {
+    user:  process.env.email_id, // Replace with your email
+    pass:  process.env.password // Replace with your app password
+  }
+});
+
 app.post('/confirmbook', (req, res) => {
     uploadHandler(req, res, async (err) => {
         if (err) {
-          console.log('Upload Error:', err);
-          return res.status(500).json({
-            success: false,
-            message: 'File upload failed',
-            error: err.message,
-          });
+            console.log('Upload Error:', err);
+            return res.status(500).json({
+                success: false,
+                message: 'File upload failed',
+                error: err.message,
+            });
         }
     
         console.log('Uploaded Files:', req.files);
 
         try {
-            // Parse request body data (they come as strings in multipart/form-data)
+            // Parse request body data
             const roomDetails = JSON.parse(req.body.roomDetails);
-            console.log("roomdetails", roomDetails);
             const datas = JSON.parse(req.body.datas);
-            const adultDetails = Array.isArray(req.body.adultDetails) 
-                ? req.body.adultDetails.map(detail => JSON.parse(detail)) 
-                : [];
-            const childrenDetails = Array.isArray(req.body.childrenDetails) 
-                ? req.body.childrenDetails.map(detail => JSON.parse(detail)) 
-                : []; 
+            const selectedGuestIds = JSON.parse(req.body.selectedGuestIds);
+            const newGuestDetails = JSON.parse(req.body.newGuestDetails);
             const userid = req.body.userid;
             const totalRate = req.body.totalRate;
             const totldays = req.body.totldays;
@@ -1135,48 +1158,49 @@ app.post('/confirmbook', (req, res) => {
             const totalAmount = totalRate;
             const userId = userid;
 
-            // Save Guest Details (Adults and Children)
-            const guestIds = [];
-            console.log(adultDetails);
-            console.log(childrenDetails);
-            console.log(typeof(adultDetails))
-            // Process Adults
-            if (Array.isArray(adultDetails) && adultDetails.length > 0) {
-                for (let i = 0; i < adultDetails.length; i++) {
-                    const adult = adultDetails[i];
-                    console.log(adult)
-                    // Link proof document (if any) to the adult based on file order
-                    const proofDocument = req.files && req.files[i] ? req.files[i].filename : null;
+            // Save New Guest Details (Adults and Children)
+            const newGuestIds = [];
+            let fileIndex = 0;
+
+            // Process New Adults
+            if (Array.isArray(newGuestDetails.adults) && newGuestDetails.adults.length > 0) {
+                for (const adult of newGuestDetails.adults) {
+                    const proofDocument = req.files && req.files[fileIndex] ? req.files[fileIndex].filename : null;
+                    fileIndex++;
 
                     const newGuest = new RoomGuestModel({
+                      user_id:userId,
                         name: adult.name,
                         email: adult.email,
                         phone: adult.phone,
                         address: adult.address,
-                        dob: adult.dob, // Date of Birth
+                        dob: adult.dob,
                         role: 'adult',
                         proofType: adult.proofType,
                         proofNumber: adult.proofNumber,
-                        proofDocument, // Store file path if document uploaded
+                        proofDocument,
                     });
 
                     const savedGuest = await newGuest.save();
-                    guestIds.push(savedGuest._id);
+                    newGuestIds.push(savedGuest._id);
                 }
             }
 
-            // Process Children
-            if (Array.isArray(childrenDetails) && childrenDetails.length > 0) {
-                for (const child of childrenDetails) {
+            // Process New Children
+            if (Array.isArray(newGuestDetails.children) && newGuestDetails.children.length > 0) {
+                for (const child of newGuestDetails.children) {
                     const newChildGuest = new RoomGuestModel({
                         name: child.name,
-                        dob: child.dob, // Date of Birth
+                        dob: child.dob,
                         role: 'child',
                     });
                     const savedChild = await newChildGuest.save();
-                    guestIds.push(savedChild._id);
+                    newGuestIds.push(savedChild._id);
                 }
             }
+
+            // Combine selected previous guest IDs with new guest IDs
+            const allGuestIds = [...selectedGuestIds, ...newGuestIds];
 
             // Create Reservation
             const newReservation = new ReservationModel({
@@ -1184,27 +1208,60 @@ app.post('/confirmbook', (req, res) => {
                 room_id: roomId,
                 check_in: new Date(checkInDate),
                 check_out: new Date(checkOutDate),
-                booking_date: new Date(), // Current date for booking
-                status: 'booked', // Default status
+                booking_date: new Date(),
+                status: 'booked',
                 total_amount: totalAmount,
                 totaldays: totldays,
                 check_in_time: datas.check_in_time ? new Date() : null,
                 check_out_time: datas.check_out_time ? new Date() : null,
-                guestids: guestIds, // Link guests to this reservation
+                guestids: allGuestIds,
             });
 
             // Save reservation to the database
             const savedReservation = await newReservation.save();
 
+            // Fetch user email from the database
+            const user = await GoogleRegisterModel.findById(userId);
+            if (!user || !user.email) {
+                throw new Error('User email not found');
+            }
+
+            // Prepare email content
+            const emailContent = `
+                Dear ${user.displayName},
+
+                Your booking has been confirmed!
+
+                Booking Details:
+                - Check-in: ${new Date(checkInDate).toLocaleDateString()}
+                - Check-out: ${new Date(checkOutDate).toLocaleDateString()}
+                - Total Amount: $${totalAmount}
+                - Number of Days: ${totldays}
+
+                Thank you for choosing our service!
+
+                Best regards,
+                Your IntelliStay Hotel Team
+            `;
+
+            // Send email
+            await mailtrans.sendMail({
+                from:  process.env.password,
+                to: user.email,
+                subject: 'Booking Confirmation',
+                text: emailContent
+            });
+
             res.status(201).json({
                 success: true,
-                message: 'Room booking confirmed!',
+                message: 'Room booking confirmed and confirmation email sent!',
                 reservation: savedReservation,
             });
         } catch (error) {
+            console.error('Error in booking process:', error);
             res.status(500).json({
                 success: false,
-                message: 'Error booking room',
+                message: 'Error booking room or sending confirmation email',
                 error: error.message,
             });
         }
@@ -1755,7 +1812,7 @@ app.post('/attendance/mark', async (req, res) => {
             await AttendanceModel.findOneAndUpdate(
                 { 
                     staffId, 
-                    date: { $gte: startOfDay, $lte: endOfDay } // Ensure the query checks for today’s date
+                    date: { $gte: startOfDay, $lte: endOfDay } // Ensure the query checks for today's date
                 },
                 { 
                     staffId, 
