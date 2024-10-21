@@ -13,14 +13,23 @@ import youtube from './assets/youtube.png';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ScrollReveal from 'scrollreveal'; 
-import useAuth from './useAuth';
 import Gallery from '../components/gallery/Gallery';
 
 function Home() {
 
-  useAuth();
+  
   const navigate = useNavigate();
   const [rooms, setRooms] = useState([]);
+
+  const handleSeeDetails = (room) => {
+    // Navigate to RoomInfo page with room data
+    navigate('/roomdetails', { 
+        state: { 
+            roomdata: room,
+        } 
+    });
+};
+
 
   useEffect(() => {
     const menuBtn = document.getElementById("menu-btn");
@@ -178,7 +187,7 @@ function Home() {
             <h4>{room.roomtype}</h4>
             <p>{room.description}</p>
             <h5>Starting from <span>${room.rate}/night</span></h5>
-            <button className="btn">See Details</button>
+            <button className="btn" onClick={() => handleSeeDetails(room)}>See Details</button>
           </div>
         </div>
       ))

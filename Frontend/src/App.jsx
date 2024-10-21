@@ -12,6 +12,7 @@ import GuestDetailsForm from "./GuestDetailsForm.jsx"
 import ReserveRoom from "./Roomreserve.jsx"
 import MyProfile from "../components/profile/MyProfile.jsx"
 import BookingDetails from '../components/bookingdetails/BookingDetails.jsx'
+import SeeRoomDetails from "./SeeRoomDetails.jsx"
 
 function App(){
 
@@ -30,6 +31,7 @@ function App(){
             <Route path="/my-bookings" element={<MyBookings />} />
             <Route path="/myprofile" element={<MyProfile />} />
             <Route path="/booking-details/:bookingId" element={<BookingDetails />} />
+            <Route path="/roomdetails" element={<SeeRoomDetails />} />
             </Routes>
          </BrowserRouter> 
       )

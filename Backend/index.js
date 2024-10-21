@@ -2196,23 +2196,37 @@ app.get('/profile/:id', async (req, res) => {
     }
   });
 
-  app.put('/profile/update/:id', async (req, res) => {
+  app.post('/profile/update/:id', async (req, res) => {
     try {
-        console.log(req.params.id)
-      const { displayName, email, address,image,phone_no,dob } = req.body;
-      const staff = await GoogleRegisterModel.findByIdAndUpdate(
-        req.params.id,
-        { displayName, email, address,image,phone_no,dob },
-        { new: true, runValidators: true }
-      );
-  
+      console.log('Updating profile for ID:', req.params.id);
+      const { displayName, email, address, image, phone_no, dob } = req.body;
+      console.log('Update data:', { displayName, email, address, image, phone_no, dob });
+
+      const staff = await GoogleRegisterModel.findById(req.params.id);
+
       if (!staff) {
+        console.log('Staff not found');
         return res.status(404).json({ message: "Staff not found" });
       }
-  
-      res.json({ message: "Profile updated successfully", staff });
+
+      // Update fields only if they are provided in the request
+      if (displayName) staff.displayName = displayName;
+     
+      if (address) staff.address = address;
+      if (image) staff.image = image;
+      if (phone_no) staff.phone_no = phone_no;
+      if (dob) staff.dob = dob;
+
+      console.log('Staff before save:', staff);
+
+      const updatedStaff = await staff.save();
+
+      console.log('Updated staff:', updatedStaff);
+
+      res.json({ message: "Profile updated successfully", staff: updatedStaff });
     } catch (error) {
-      res.status(500).json({ message: "Error updating profile", error });
+      console.error('Error updating profile:', error);
+      res.status(500).json({ message: "Error updating profile", error: error.message });
     }
   });
 

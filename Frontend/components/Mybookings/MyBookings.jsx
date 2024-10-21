@@ -65,7 +65,8 @@ function MyBookings() {
             checkInDate.includes(searchLower) ||
             checkOutDate.includes(searchLower) ||
             booking.status.toLowerCase().includes(searchLower) ||
-            booking._id.toLowerCase().includes(searchLower)
+            booking._id.toLowerCase().includes(searchLower) ||
+            booking.room_id.roomtype.toLowerCase().includes(searchLower)
           );
         });
       }
