@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import DatePicker from 'react-datepicker';
+import "react-datepicker/dist/react-datepicker.css";
 import './checkin.css';
+
+// Date formatting function
+const formatDate = (date) => {
+  if (!date) return '';
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  return `${day}-${month}-${year}`;
+};
 
 function Checkin({ searchdata }) {  // Accept the searchdata prop
   const navigate = useNavigate();
   const [guestPopupVisible, setGuestPopupVisible] = useState(false);
   const [bookingDetails, setBookingDetails] = useState({
-    checkInDate: '',
-    checkOutDate: '',
+    checkInDate: null,
+    checkOutDate: null,
     adults: 1,
     children: 0,
   });
@@ -15,38 +26,41 @@ function Checkin({ searchdata }) {  // Accept the searchdata prop
 
   useEffect(() => {
     if (searchdata && Object.keys(searchdata).length > 0) {
-      setBookingDetails(searchdata);
-      const nextDay = new Date(searchdata.checkInDate);
-      nextDay.setDate(nextDay.getDate() + 1);
-      const formattedNextDay = nextDay.toISOString().split('T')[0];
-      setMinCheckOutDate(formattedNextDay);
+      console.log("Received searchdata:", searchdata);
+      setBookingDetails({
+        ...searchdata,
+        checkInDate: searchdata.checkInDate ? new Date(searchdata.checkInDate) : null,
+        checkOutDate: searchdata.checkOutDate ? new Date(searchdata.checkOutDate) : null
+      });
     }
   }, [searchdata]);
 
   const today = new Date().toISOString().split('T')[0];
 
-  const handleCheckInChange = (e) => {
-    const selectedCheckInDate = e.target.value;
-    setBookingDetails((prevDetails) => ({
+  const handleCheckInChange = (date) => {
+    setBookingDetails(prevDetails => ({
       ...prevDetails,
-      checkInDate: selectedCheckInDate,
+      checkInDate: date,
+      checkOutDate: prevDetails.checkOutDate && prevDetails.checkOutDate <= date ? null : prevDetails.checkOutDate
     }));
 
-    const nextDay = new Date(selectedCheckInDate);
+    const nextDay = new Date(date);
     nextDay.setDate(nextDay.getDate() + 1);
     const formattedNextDay = nextDay.toISOString().split('T')[0];
     setMinCheckOutDate(formattedNextDay);
-    setBookingDetails((prevDetails) => ({
+
+    // Automatically set the check-out date to the next day
+    setBookingDetails(prevDetails => ({
       ...prevDetails,
-      checkOutDate: formattedNextDay,
+      checkInDate: date,
+      checkOutDate: nextDay
     }));
   };
 
-  const handleCheckOutChange = (e) => {
-    const selectedCheckOutDate = e.target.value;
-    setBookingDetails((prevDetails) => ({
+  const handleCheckOutChange = (date) => {
+    setBookingDetails(prevDetails => ({
       ...prevDetails,
-      checkOutDate: selectedCheckOutDate,
+      checkOutDate: date
     }));
   };
 
@@ -80,14 +94,22 @@ function Checkin({ searchdata }) {  // Accept the searchdata prop
           <span><i className="ri-calendar-2-fill"></i></span>
           <div>
             <label htmlFor="check-in">CHECK-IN</label>
-            <input
-              type="date"
-              name="check-in"
-              id="check-in"
-              min={today}
-              className="date-picker"
-              value={bookingDetails.checkInDate}
+            <DatePicker
+              selected={bookingDetails.checkInDate}
               onChange={handleCheckInChange}
+              minDate={new Date()}
+              dateFormat="dd-MM-yyyy"
+              placeholderText="DD-MM-YYYY"
+              className="custom-datepicker check-in-picker"
+              id="check-in"
+              customInput={
+                <input
+                  type="text"
+                  id="check-in"
+                  value={bookingDetails.checkInDate ? formatDate(bookingDetails.checkInDate) : ''}
+                  readOnly
+                />
+              }
             />
           </div>
         </div>
@@ -95,14 +117,21 @@ function Checkin({ searchdata }) {  // Accept the searchdata prop
           <span><i className="ri-calendar-2-fill"></i></span>
           <div>
             <label htmlFor="check-out">CHECK-OUT</label>
-            <input
-              type="date"
-              name="check-out"
-              id="check-out"
-              min={minCheckOutDate}
-              className="date-picker"
-              value={bookingDetails.checkOutDate || minCheckOutDate}
+            <DatePicker
+              selected={bookingDetails.checkOutDate}
               onChange={handleCheckOutChange}
+              minDate={bookingDetails.checkInDate ? new Date(bookingDetails.checkInDate.getTime() + 86400000) : new Date()}
+              dateFormat="dd-MM-yyyy"
+              placeholderText="DD-MM-YYYY"
+               className="custom-datepicker check-out-picker"
+              customInput={
+                <input
+                  type="text"
+                  id="check-out"
+                  value={bookingDetails.checkOutDate ? formatDate(bookingDetails.checkOutDate) : ''}
+                  readOnly
+                />
+              }
             />
           </div>
         </div>
@@ -121,7 +150,7 @@ function Checkin({ searchdata }) {  // Accept the searchdata prop
           </div>
         </div>
         <div className="input__group input__btn">
-          <button className="btn" onClick={handleSearch}>Search</button>
+          <button className="btn" onClick={handleSearch} id='search-btn'>Search</button>
         </div>
       </form>
 

@@ -10,7 +10,8 @@ const guestSchema = new mongoose.Schema({
   role: { type: String, required: true },
   proofType: { type: String},
   proofNumber: { type: String},
-  proofDocument: { type: String }, // store the file URL or path
+  proofDocument: { type: String },
+  saveDetails: { type: Boolean, default: false } // store the file URL or path
 });
 
 const RoomGuestModel = mongoose.model('RoomGuest', guestSchema);

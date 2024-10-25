@@ -6,6 +6,10 @@ import Header from '../components/Header';
 import Swal from 'sweetalert2'; // Assuming you're using SweetAlert for notifications
 import axios from 'axios';
 import jsPDF from 'jspdf';
+import logo from '../public/logo1.png';
+import facebook from './assets/facebook.png';
+import instagram from './assets/instagram.png';
+import youtube from './assets/youtube.png';
 import useAuth from './useAuth';
 
 const ReserveRoom = () => {
@@ -28,7 +32,7 @@ const ReserveRoom = () => {
   const selectedGuestIds = guestData.selectedGuestIds || [];
   const newGuestDetails = guestData.newGuestDetails || { adults: [], children: [] };
   console.log("selected guestids",selectedGuestIds);
-  
+  console.log("new guest details",newGuestDetails);
   const userid= localStorage.getItem('userId');
 
   useEffect(() => {
@@ -581,12 +585,61 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
             variant="contained"
             color="primary"
             size="large"
+            id='booknow'
             onClick={handleBookNow}
           >
             Book Now
           </Button>
         </Box>
       </Box>
+      <footer className="footer" id="contact">
+        <div className="section__container footer__container">
+          <div className="footer__col">
+            <div className="logo">
+              <a href="#home"><img src={logo} alt="logo" /></a>
+            </div>
+            <p className="section__description">
+              Discover a world of comfort, luxury, and adventure as you explore
+              our curated selection of hotels, making every moment of your getaway
+              truly extraordinary.
+            </p>
+            <button className="btn">Book Now</button>
+          </div>
+          <div className="footer__col">
+            <h4>QUICK LINKS</h4>
+            <ul className="footer__links">
+              <li><a href="#">Browse Destinations</a></li>
+              <li><a href="#">Special Offers & Packages</a></li>
+              <li><a href="#">Room Types & Amenities</a></li>
+              <li><a href="#">Customer Reviews & Ratings</a></li>
+              <li><a href="#">Travel Tips & Guides</a></li>
+            </ul>
+          </div>
+          <div className="footer__col">
+            <h4>OUR SERVICES</h4>
+            <ul className="footer__links">
+              <li><a href="#">Concierge Assistance</a></li>
+              <li><a href="#">Flexible Booking Options</a></li>
+              <li><a href="#">Airport Transfers</a></li>
+              <li><a href="#">Wellness & Recreation</a></li>
+            </ul>
+          </div>
+          <div className="footer__col">
+            <h4>CONTACT US</h4>
+            <ul className="footer__links">
+              <li><a href="#">intellistay@info.com</a></li>
+            </ul>
+            <div className="footer__socials">
+              <a href="#"><img src={facebook} alt="facebook" /></a>
+              <a href="#"><img src={instagram} alt="instagram" /></a>
+              <a href="#"><img src={youtube} alt="youtube" /></a>
+            </div>
+          </div>
+        </div>
+        <div className="footer__bar">
+          Copyright © 2024 INTELLISTAY Pvt.LTD. All rights reserved.
+        </div>
+      </footer>
     </>
   );
 };

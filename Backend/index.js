@@ -1071,7 +1071,7 @@ app.get('/previousGuestDetails/:id', async (req, res) => {
   try {
     const userid = req.params.id;
     // Fetch all previous guest details from database for the given user_id
-    const previousGuests = await RoomGuestModel.find({ user_id: userid });
+    const previousGuests = await RoomGuestModel.find({ user_id: userid , saveDetails: true });
 
     if (previousGuests && previousGuests.length > 0) {
       return res.json(previousGuests);
@@ -1179,6 +1179,7 @@ app.post('/confirmbook', (req, res) => {
                         proofType: adult.proofType,
                         proofNumber: adult.proofNumber,
                         proofDocument,
+                        saveDetails: adult.saveDetails,
                     });
 
                     const savedGuest = await newGuest.save();
@@ -1193,6 +1194,7 @@ app.post('/confirmbook', (req, res) => {
                         name: child.name,
                         dob: child.dob,
                         role: 'child',
+                        saveDetails: child.saveDetails,
                     });
                     const savedChild = await newChildGuest.save();
                     newGuestIds.push(savedChild._id);

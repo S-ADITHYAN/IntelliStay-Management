@@ -6,6 +6,10 @@ import room1 from '../src/assets/room-1.jpg';
 import room2 from '../src/assets/room-2.jpg';
 import room3 from '../src/assets/room-3.jpg';
 import Checkin from '../components/checkin';
+import logo from '../public/logo1.png';
+import facebook from './assets/facebook.png';
+import instagram from './assets/instagram.png';
+import youtube from './assets/youtube.png';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 
@@ -97,13 +101,61 @@ function Rooms() {
                   <h4>{room.roomtype}</h4>
                   <p>{room.description}</p>
                   <h5>Starting from <span>₹{room.rate}/night</span></h5>
-                  <button className="btn" onClick={() => handleRoomBooking(room.roomtype)}>See Details</button>
+                  <button className="btn" id='details' onClick={() => handleRoomBooking(room.roomtype)}>See Details</button>
                 </div>
               </div>
             );
           })}
         </div>
       </section>
+      <footer className="footer" id="contact">
+        <div className="section__container footer__container">
+          <div className="footer__col">
+            <div className="logo">
+              <a href="#home"><img src={logo} alt="logo" /></a>
+            </div>
+            <p className="section__description">
+              Discover a world of comfort, luxury, and adventure as you explore
+              our curated selection of hotels, making every moment of your getaway
+              truly extraordinary.
+            </p>
+            <button className="btn">Book Now</button>
+          </div>
+          <div className="footer__col">
+            <h4>QUICK LINKS</h4>
+            <ul className="footer__links">
+              <li><a href="#">Browse Destinations</a></li>
+              <li><a href="#">Special Offers & Packages</a></li>
+              <li><a href="#">Room Types & Amenities</a></li>
+              <li><a href="#">Customer Reviews & Ratings</a></li>
+              <li><a href="#">Travel Tips & Guides</a></li>
+            </ul>
+          </div>
+          <div className="footer__col">
+            <h4>OUR SERVICES</h4>
+            <ul className="footer__links">
+              <li><a href="#">Concierge Assistance</a></li>
+              <li><a href="#">Flexible Booking Options</a></li>
+              <li><a href="#">Airport Transfers</a></li>
+              <li><a href="#">Wellness & Recreation</a></li>
+            </ul>
+          </div>
+          <div className="footer__col">
+            <h4>CONTACT US</h4>
+            <ul className="footer__links">
+              <li><a href="#">intellistay@info.com</a></li>
+            </ul>
+            <div className="footer__socials">
+              <a href="#"><img src={facebook} alt="facebook" /></a>
+              <a href="#"><img src={instagram} alt="instagram" /></a>
+              <a href="#"><img src={youtube} alt="youtube" /></a>
+            </div>
+          </div>
+        </div>
+        <div className="footer__bar">
+          Copyright © 2024 INTELLISTAY Pvt.LTD. All rights reserved.
+        </div>
+      </footer>
     </div>
   );
 }

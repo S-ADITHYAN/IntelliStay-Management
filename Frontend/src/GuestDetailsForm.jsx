@@ -7,8 +7,16 @@ import {
     Paper, 
     Box, 
     MenuItem,
-    Avatar // Add this import
+    Avatar,
+    Checkbox,
+    FormControlLabel // Add this import
 } from '@mui/material';
+import logo from '../public/logo1.png';
+import facebook from './assets/facebook.png';
+import instagram from './assets/instagram.png';
+import youtube from './assets/youtube.png';
+import CheckBoxOutlineBlankIcon from '@mui/icons-material/CheckBoxOutlineBlank';
+import CheckBoxIcon from '@mui/icons-material/CheckBox';
 import Header from '../components/Header'; 
 import './guestform.css'; // Import the CSS for the form
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -57,6 +65,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
         proofNumber: '',
         proofDocument: null,
         errors: {},
+        saveDetails: false,
     })));
 
     const [children, setChildren] = useState(Array.from({ length: childrenCount }, () => ({
@@ -69,6 +78,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
         proofType: '',
         proofNumber: '',
         proofDocument: null,
+        saveDetails: false,
         errors: {},
     })));
 
@@ -125,7 +135,8 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                     return validatePhone(value); // Call validatePhone with the value entered by the user
                 
             case 'dob':
-                return dobRegex.test(value) ? '' : 'Invalid date of birth (YYYY-MM-DD)';
+                const datePart = value.split('T')[0];
+                return dobRegex.test(datePart) ? '' : 'Invalid date of birth (YYYY-MM-DD)';
             case 'proofNumber':
                 return proofNumberRegex.test(value) ? '' : 'Invalid proof number format';
             default:
@@ -151,6 +162,21 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
         return isValid(adults) && isValid(children);
     };
 
+    const handleSaveDetailsChange = (index, isChecked, type) => {
+        if (type === 'adult') {
+            setAdults(prevAdults => {
+                const updatedAdults = [...prevAdults];
+                updatedAdults[index] = { ...updatedAdults[index], saveDetails: isChecked };
+                return updatedAdults;
+            });
+        } else if (type === 'child') {
+            setChildren(prevChildren => {
+                const updatedChildren = [...prevChildren];
+                updatedChildren[index] = { ...updatedChildren[index], saveDetails: isChecked };
+                return updatedChildren;
+            });
+        }
+    };
 
     const handleChange = (e, index, type) => {
         const { name, value } = e.target;
@@ -195,6 +221,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                     ...child,
                     errors: undefined // Remove errors from the data to be sent
                 }))
+                
             }));
         }
     };
@@ -279,9 +306,11 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
         if (!previousGuest || !Array.isArray(previousGuest) || previousGuest.length === 0) return null;
         return (
             <div>
-                <Typography variant="h6" gutterBottom>Previous Guests</Typography>
+                <Typography variant="h6" gutterBottom>Saved Guests</Typography>
                 {previousGuest.map((guest, index) => (
                     <Box
+                        id="previous-guest-item"
+                        className="previous-guest-item"
                         key={index}
                         onClick={() => handlePreviousGuestClick(guest)}
                         sx={{
@@ -361,6 +390,21 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                                     InputProps={{ readOnly: !!guest._id }}
                                 />
                             </Grid>
+                            {!guest._id && (
+                    <Grid item xs={12}>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={guest.saveDetails || false}
+                                    onChange={(e) => handleSaveDetailsChange(index, e.target.checked, type)}
+                                    icon={<CheckBoxOutlineBlankIcon />}
+                                    checkedIcon={<CheckBoxIcon />}
+                                />
+                            }
+                            label="Save guest details for future bookings"
+                        />
+                    </Grid>
+                )}
                         </>
                     ) : (
                         // Adult fields
@@ -424,23 +468,20 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                                 />
                             </Grid>
                             <Grid item xs={12} md={6}>
-                                <TextField
+                            <TextField
                                     fullWidth
                                     label="Date of Birth"
-                                    variant="outlined"
+                                    type="date"
                                     name="dob"
-                                    value={guest.dob}
+                                    value={guest.dob ? guest.dob.split('T')[0] : ''}
                                     onChange={(e) => handleChange(e, index, type)}
                                     required
-                                    type="date"
                                     InputLabelProps={{ shrink: true }}
-                                    inputProps={{
-                                        max: fiveYearsAgo, // Restrict the maximum selectable date
-                                    }}
+                                    inputProps={{ max: fiveYearsAgo }} // Restrict the maximum selectable date
                                     error={!!guest.errors.dob}
                                     helperText={guest.errors.dob}
                                     InputProps={{ readOnly: !!selectedGuest }}
-                                />
+                                />  
                             </Grid>
                             <Grid item xs={12} md={6}>
                                 <TextField
@@ -501,16 +542,32 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                                     </Grid>
                                 </>
                             )}
+
                         </>
                     )}
                 </Grid>
-                
+                 {!guest._id && (
+                    <Grid item xs={12}>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={guest.saveDetails || false}
+                                    onChange={(e) => handleSaveDetailsChange(index, e.target.checked, type)}
+                                    icon={<CheckBoxOutlineBlankIcon />}
+                                    checkedIcon={<CheckBoxIcon />}
+                                />
+                            }
+                            label="Save guest details for future bookings"
+                        />
+                    </Grid>
+                )}
                 {/* Only show remove button for newly added guests */}
                 {!guest._id && (
                     <Box mt={2}>
                         <Button 
                             variant="contained" 
                             color="secondary" 
+                            id='remove-guest-button'
                             onClick={() => removeGuest(index, setGuestState)}
                         >
                             Remove {type === 'adult' ? 'Adult' : 'Child'}
@@ -599,13 +656,61 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                     </Grid>
 
                     <Grid item xs={12} mt={3} style={{ display: 'flex', justifyContent: 'center' }}>
-    <Button variant="contained" color="primary" type="submit">
+    <Button variant="contained" color="primary" type="submit" id='proceed-to-reserve-room-button'>
         Proceed to Reserve Room
     </Button>
 </Grid>
                     </Grid>
                 </form>
             </Box>
+            <footer className="footer" id="contact">
+        <div className="section__container footer__container">
+          <div className="footer__col">
+            <div className="logo">
+              <a href="#home"><img src={logo} alt="logo" /></a>
+            </div>
+            <p className="section__description">
+              Discover a world of comfort, luxury, and adventure as you explore
+              our curated selection of hotels, making every moment of your getaway
+              truly extraordinary.
+            </p>
+            <button className="btn">Book Now</button>
+          </div>
+          <div className="footer__col">
+            <h4>QUICK LINKS</h4>
+            <ul className="footer__links">
+              <li><a href="#">Browse Destinations</a></li>
+              <li><a href="#">Special Offers & Packages</a></li>
+              <li><a href="#">Room Types & Amenities</a></li>
+              <li><a href="#">Customer Reviews & Ratings</a></li>
+              <li><a href="#">Travel Tips & Guides</a></li>
+            </ul>
+          </div>
+          <div className="footer__col">
+            <h4>OUR SERVICES</h4>
+            <ul className="footer__links">
+              <li><a href="#">Concierge Assistance</a></li>
+              <li><a href="#">Flexible Booking Options</a></li>
+              <li><a href="#">Airport Transfers</a></li>
+              <li><a href="#">Wellness & Recreation</a></li>
+            </ul>
+          </div>
+          <div className="footer__col">
+            <h4>CONTACT US</h4>
+            <ul className="footer__links">
+              <li><a href="#">intellistay@info.com</a></li>
+            </ul>
+            <div className="footer__socials">
+              <a href="#"><img src={facebook} alt="facebook" /></a>
+              <a href="#"><img src={instagram} alt="instagram" /></a>
+              <a href="#"><img src={youtube} alt="youtube" /></a>
+            </div>
+          </div>
+        </div>
+        <div className="footer__bar">
+          Copyright © 2024 INTELLISTAY Pvt.LTD. All rights reserved.
+        </div>
+      </footer>
         </>
     );
 };
