@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState,useRef } from 'react';
 import axios from 'axios'; // Ensure axios is imported
 import Header from '../components/Header';
 import './Rooms.css';
@@ -21,6 +21,7 @@ function Rooms() {
   const state = location.state || {};
   const searchdata = state.data || {};
   const [roomNeed, setRoomNeed] = useState();
+  const footerRef = useRef(null);
 
   const checkrooms = () => {
     axios.post("http://localhost:3001/checkrooms", { searchdata })
@@ -47,6 +48,44 @@ function Rooms() {
   useEffect(() => {
     checkrooms();
   }, [searchdata]);
+
+  useEffect(() => {
+    const footer = footerRef.current;
+    let lastScrollY = window.pageYOffset;
+    let footerHeight = footer.offsetHeight;
+    let viewportHeight = window.innerHeight;
+    let documentHeight = document.documentElement.scrollHeight;
+  
+    const handleScroll = () => {
+      const currentScrollY = window.pageYOffset;
+      const maxScroll = documentHeight - viewportHeight;
+      const scrollPercentage = currentScrollY / maxScroll;
+      const footerVisibleHeight = Math.min(footerHeight, Math.max(50, scrollPercentage * footerHeight));
+  
+      if (currentScrollY < lastScrollY) {
+        // Scrolling up
+        footer.style.transform = `translateY(calc(100% - ${footerVisibleHeight}px))`;
+      } else {
+        // Scrolling down
+        footer.style.transform = 'translateY(calc(100% - 50px))';
+      }
+      lastScrollY = currentScrollY;
+    };
+  
+    const handleResize = () => {
+      footerHeight = footer.offsetHeight;
+      viewportHeight = window.innerHeight;
+      documentHeight = document.documentElement.scrollHeight;
+    };
+  
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleResize);
+  
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Function to group rooms by roomtype
   const groupByRoomType = (rooms) => {
@@ -108,7 +147,7 @@ function Rooms() {
           })}
         </div>
       </section>
-      <footer className="footer" id="contact">
+      <footer className="footer" ref={footerRef} id="contact">
         <div className="section__container footer__container">
           <div className="footer__col">
             <div className="logo">

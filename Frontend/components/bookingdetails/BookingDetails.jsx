@@ -12,6 +12,10 @@ import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import Swal from "sweetalert2";
 import CancelIcon from '@mui/icons-material/Cancel'; // Import Cancel icon
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import PendingIcon from '@mui/icons-material/Pending'; // Import Pending icon
+import Rating from '@mui/material/Rating';
+import StarIcon from '@mui/icons-material/Star';
+import { TextField } from '@mui/material';
 
 
 const BookingDetails = () => {
@@ -26,6 +30,10 @@ const BookingDetails = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1); // State for zoom level
   const [refresh, setRefresh] = useState(false);
+  const [hotelRating, setHotelRating] = useState(0);
+  const [roomRating, setRoomRating] = useState(0);
+  const [feedback, setFeedback] = useState('');
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
   
   // Added for counting adults and children
   let adultCount = 0;
@@ -204,6 +212,25 @@ const BookingDetails = () => {
     fileInput.click();  // Trigger the file selection dialog
   };
   
+
+  const handleFeedbackSubmit = async () => {
+    try {
+      const response = await axios.post('http://localhost:3001/feedback', {
+        reservationId: reservation._id,
+        hotelRating,
+        roomRating,
+        feedback,
+        userId: localStorage.getItem('userId')
+      });
+
+      if (response.status === 201) {
+        setFeedbackSubmitted(true);
+        Swal.fire('Success', 'Thank you for your feedback!', 'success');
+      }
+    } catch (error) {
+      Swal.fire('Error', 'Failed to submit feedback. Please try again.', 'error');
+    }
+  };
 
   return (
     <>
@@ -426,31 +453,31 @@ const BookingDetails = () => {
       Payment Details
     </Typography>
     
-    <Typography variant="body1"><strong>Reservation id:</strong> {bill.reservationid}</Typography>
-    <Typography variant="body1"><strong>Transaction id:</strong> {bill.paymentId}</Typography>
-    
-    <Typography variant="body1"><strong>Amount Paid:</strong> {bill.totalRate}</Typography>
-    
+    {bill && Object.keys(bill).length > 0 ? (
+      <>
+        <Typography variant="body1"><strong>Reservation id:</strong> {bill.reservationid}</Typography>
+        <Typography variant="body1"><strong>Transaction id:</strong> {bill.paymentId}</Typography>
+        <Typography variant="body1"><strong>Amount Paid:</strong> {bill.totalRate}</Typography>
 
-    {/* Conditionally show Check_In Time if it's not null */}
-   
-<Typography variant="body1" style={{ display: 'flex', alignItems: 'center' }}> {/* Align items center */}
-        <strong>Payment Status:</strong> 
-        <span style={{ color: bill.status === 'pending' ? 'red' : 'green', marginLeft: '4px' }}>
-          {reservation.status}
-        </span>
-        
-        {bill.status === 'pending' ? (
-          <>
+        <Typography variant="body1" style={{ display: 'flex', alignItems: 'center' }}>
+          <strong>Payment Status:</strong> 
+          <span style={{ color: bill.status === 'pending' ? 'red' : 'green', marginLeft: '4px' }}>
+            {bill.status}
+          </span>
+          
+          {bill.status === 'pending' ? (
             <CancelIcon style={{ color: 'red', marginLeft: '8px', padding: "4px" }} />
-            
-          </>
-        ) : (
-          <>
+          ) : (
             <CheckCircleIcon style={{ color: 'green', marginLeft: '8px' }} />
-          </>
-        )}
+          )}
+        </Typography>
+      </>
+    ) : (
+      <Typography variant="body1" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <strong style={{ color: 'orange' }}>Payment is pending</strong>
+        <PendingIcon style={{ color: 'orange', marginLeft: '8px' }} />
       </Typography>
+    )}
   </Paper>
 </Grid>
 
@@ -494,7 +521,78 @@ const BookingDetails = () => {
 
       </Grid>
 
+      {reservation.check_in_time && !feedbackSubmitted && (
+        <Grid item xs={12}>
+          <Paper elevation={3} style={{ padding: "20px", backgroundColor: "#F0F8FF", color: "#111", marginTop: "20px" }}>
+            <Typography variant="h5" style={{ fontWeight: "bold", textAlign: "center", marginBottom: "20px" }}>
+              Share Your Experience
+            </Typography>
 
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              {/* Hotel Rating */}
+              <Box>
+                <Typography component="legend" style={{ fontWeight: "bold", marginBottom: "8px" }}>
+                  Hotel Rating
+                </Typography>
+                <Rating
+                  name="hotel-rating"
+                  value={hotelRating}
+                  onChange={(event, newValue) => setHotelRating(newValue)}
+                  precision={0.5}
+                  emptyIcon={<StarIcon style={{ opacity: 0.55 }} fontSize="inherit" />}
+                  size="large"
+                />
+              </Box>
+
+              {/* Room Rating */}
+              <Box>
+                <Typography component="legend" style={{ fontWeight: "bold", marginBottom: "8px" }}>
+                  Room Rating
+                </Typography>
+                <Rating
+                  name="room-rating"
+                  value={roomRating}
+                  onChange={(event, newValue) => setRoomRating(newValue)}
+                  precision={0.5}
+                  emptyIcon={<StarIcon style={{ opacity: 0.55 }} fontSize="inherit" />}
+                  size="large"
+                />
+              </Box>
+
+              {/* Feedback Text */}
+              <TextField
+                label="Share your thoughts about your stay"
+                multiline
+                rows={4}
+                value={feedback}
+                onChange={(e) => setFeedback(e.target.value)}
+                variant="outlined"
+                fullWidth
+              />
+
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleFeedbackSubmit}
+                disabled={!hotelRating || !roomRating}
+                style={{ marginTop: "10px" }}
+              >
+                Submit Feedback
+              </Button>
+            </Box>
+          </Paper>
+        </Grid>
+      )}
+
+      {feedbackSubmitted && (
+        <Grid item xs={12}>
+          <Paper elevation={3} style={{ padding: "20px", backgroundColor: "#E8F5E9", color: "#111", marginTop: "20px" }}>
+            <Typography variant="h6" style={{ textAlign: "center", color: "green" }}>
+              Thank you for sharing your feedback!
+            </Typography>
+          </Paper>
+        </Grid>
+      )}
         {/* Modal for Viewing Documents */}
         <Modal
       open={open}
@@ -580,3 +678,4 @@ const BookingDetails = () => {
 };
 
 export default BookingDetails;
+

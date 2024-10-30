@@ -26,6 +26,7 @@ const MaintenanceJobModel = require("./models/MaintenanceJobmodel");
 const nodemailer = require('nodemailer');
 const RoomGuestModel=require('./models/Guestroom')
 const BillModel=require('./models/BillModel')
+const FeedbackModel=require('./models/FeedbackModel')
 
 
 
@@ -2998,7 +2999,102 @@ app.post('/rooms-details', async (req, res) => {
 });
 
 
+app.get('/saved-guests/:userId', async (req, res) => {
+  try {
+    const userId = req.params.userId;
 
+    // Find all guests for this user where saveDetails is true
+    const savedGuests = await RoomGuestModel.find({ user_id: userId, saveDetails: true });
+
+    if (savedGuests.length === 0) {
+      return res.status(404).json({ message: 'No saved guests found for this user' });
+    }
+
+    res.json(savedGuests);
+  } catch (error) {
+    console.error('Error fetching saved guests:', error);
+    res.status(500).json({ message: 'Server error while fetching saved guests' });
+  }
+});
+
+
+app.put('/update-guest/:id', async (req, res) => {
+  try {
+    const guestId = req.params.id;
+    const updatedData = req.body;
+
+    // Validate the incoming data
+    const { name, email, phone, address, dob, proofType, proofNumber } = updatedData;
+
+    if (!name || !email || !phone || !dob || !proofType || !proofNumber) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    // Perform any additional validations here if needed
+
+    // Update the guest in the database
+    const updatedGuest = await RoomGuestModel.findByIdAndUpdate(
+      guestId,
+      {
+        name,
+        email,
+        phone,
+        address,
+        dob,
+        proofType,
+        proofNumber,
+        // Don't update proofDocument here as it's typically handled separately
+      },
+      { new: true, runValidators: true } // Return the updated document and run schema validators
+    );
+
+    if (!updatedGuest) {
+      return res.status(404).json({ message: 'Guest not found' });
+    }
+
+    res.json(updatedGuest);
+  } catch (error) {
+    console.error('Error updating guest:', error);
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ message: error.message });
+    }
+    res.status(500).json({ message: 'Server error while updating guest' });
+  }
+});
+
+
+app.delete('/reservations/:id', async (req, res) => {
+  try {
+    const reservationId = req.params.id;
+    await ReservationModel.findByIdAndDelete(reservationId);
+    res.status(200).json({ message: "Reservation cancelled successfully" });
+  } catch (error) {
+    console.error("Error deleting reservation:", error);
+    res.status(500).json({ message: "Failed to cancel reservation" });
+  }
+});
+
+
+app.post('/feedback', async (req, res) => {
+  try {
+    const { reservationId, hotelRating, roomRating, feedback, userId } = req.body;
+
+    const newFeedback = new FeedbackModel({
+      reservationId,
+      userId,
+      hotelRating,
+      roomRating,
+      feedback,
+      submittedDate: new Date()
+    });
+
+    await newFeedback.save();
+    res.status(201).json({ message: 'Feedback submitted successfully' });
+  } catch (error) {
+    console.error('Error submitting feedback:', error);
+    res.status(500).json({ message: 'Failed to submit feedback' });
+  }
+});
 //user section end
 app.listen(3001, () => {
     console.log("Server connected");
