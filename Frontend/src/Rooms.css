@@ -382,3 +382,40 @@ body {
 /*.dropdown:hover .dropdown-content {
   display: block;
 } */
+
+
+/* Add these styles for the filter section */
+.filter-section {
+  background-color: #f5f5f5;
+  padding: 20px;
+  border-radius: 8px;
+  margin: 20px 0;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.filter-section h6 {
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.price-range {
+  width: 300px;
+}
+
+.price-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.no-results {
+  text-align: center;
+  margin: 40px 0;
+  color: #666;
+}

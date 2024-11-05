@@ -11,6 +11,7 @@ import facebook from './assets/facebook.png';
 import instagram from './assets/instagram.png';
 import youtube from './assets/youtube.png';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { FormControl, InputLabel, Select, MenuItem, Slider, Box, Typography } from '@mui/material';
 
 
 function Rooms() {
@@ -22,6 +23,9 @@ function Rooms() {
   const searchdata = state.data || {};
   const [roomNeed, setRoomNeed] = useState();
   const footerRef = useRef(null);
+  const [selectedRoomType, setSelectedRoomType] = useState('all');
+  const [priceRange, setPriceRange] = useState([0, 10000]); // Adjust max value as needed
+  const [filteredRooms, setFilteredRooms] = useState([]);
 
   const checkrooms = () => {
     axios.post("http://localhost:3001/checkrooms", { searchdata })
@@ -110,8 +114,93 @@ function Rooms() {
     }
   };
 
+  // Add this function to get unique room types
+  const getRoomTypes = () => {
+    const types = [...new Set(rooms.map(room => room.roomtype))];
+    return ['all', ...types];
+  };
+
+  // Add this function to handle price range changes
+  const handlePriceRangeChange = (event, newValue) => {
+    setPriceRange(newValue);
+  };
+
+  // Add this function to handle room type changes
+  const handleRoomTypeChange = (event) => {
+    setSelectedRoomType(event.target.value);
+  };
+
+  // Modify the useEffect to include filtering
+  useEffect(() => {
+    let filtered = [...rooms];
+
+    // Filter by room type
+    if (selectedRoomType !== 'all') {
+      filtered = filtered.filter(room => room.roomtype === selectedRoomType);
+    }
+
+    // Filter by price range
+    filtered = filtered.filter(room => 
+      room.rate >= priceRange[0] && room.rate <= priceRange[1]
+    );
+
+    setFilteredRooms(filtered);
+  }, [rooms, selectedRoomType, priceRange]);
+
+  // Add this component for the filter section
+  const FilterSection = () => (
+    <Box sx={{ 
+      padding: '20px', 
+      backgroundColor: '#f5f5f5', 
+      borderRadius: '8px',
+      margin: '20px 0',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    }}>
+      <Typography variant="h6" gutterBottom>
+        Filter Rooms
+      </Typography>
+      
+      <Box sx={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+        {/* Room Type Filter */}
+        <FormControl sx={{ minWidth: 200 }}>
+          <InputLabel>Room Type</InputLabel>
+          <Select
+            value={selectedRoomType}
+            onChange={handleRoomTypeChange}
+            label="Room Type"
+          >
+            {getRoomTypes().map(type => (
+              <MenuItem key={type} value={type}>
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        {/* Price Range Filter */}
+        <Box sx={{ width: 300 }}>
+          <Typography gutterBottom>
+            Price Range (₹)
+          </Typography>
+          <Slider
+            value={priceRange}
+            onChange={handlePriceRangeChange}
+            valueLabelDisplay="auto"
+            min={0}
+            max={10000} // Adjust based on your price range
+            step={500}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="body2">₹{priceRange[0]}</Typography>
+            <Typography variant="body2">₹{priceRange[1]}</Typography>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+
   return (
-    <div>
+    <div id='room-page'>
       <div className='room_nav'>
         <Header />
       </div>
@@ -122,10 +211,19 @@ function Rooms() {
         </p>
         <p className="section__subheader">OUR LIVING ROOM</p>
         <h2 className="section__header">The Most Memorable Rest Time Starts Here.</h2>
+        
+        {/* Add the filter section */}
+        <FilterSection />
+
+        {/* Show number of results */}
+        <Typography variant="body1" sx={{ margin: '20px 0' }}>
+          Showing {filteredRooms.length} room{filteredRooms.length !== 1 ? 's' : ''}
+        </Typography>
+
         <div className="room__grid">
-          {Object.keys(groupedRooms).map((roomtype) => {
-            const roomsOfType = groupedRooms[roomtype];
-            const room = roomsOfType[0]; // Display only the first room of this roomtype
+          {Object.keys(groupByRoomType(filteredRooms)).map((roomtype) => {
+            const roomsOfType = groupByRoomType(filteredRooms)[roomtype];
+            const room = roomsOfType[0];
             return (
               <div key={room._id} className="room__card">
                 <div className="room__card__image">
@@ -146,6 +244,19 @@ function Rooms() {
             );
           })}
         </div>
+
+        {filteredRooms.length === 0 && (
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              textAlign: 'center', 
+              margin: '40px 0',
+              color: '#666'
+            }}
+          >
+            No rooms found matching your criteria
+          </Typography>
+        )}
       </section>
       <footer className="footer" ref={footerRef} id="contact">
         <div className="section__container footer__container">

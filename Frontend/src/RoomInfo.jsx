@@ -223,7 +223,7 @@ const photos = roomdatas.images.map(photo => ({
         <Footer /> */}
        
       </div>
-      <footer className="footer" id="contact">
+      {/* <footer className="footer" id="contact">
         <div className="section__container footer__container">
           <div className="footer__col">
             <div className="logo">
@@ -270,7 +270,7 @@ const photos = roomdatas.images.map(photo => ({
         <div className="footer__bar">
           Copyright © 2024 INTELLISTAY Pvt.LTD. All rights reserved.
         </div>
-      </footer>
+      </footer> */}
     </div>
   );
 };

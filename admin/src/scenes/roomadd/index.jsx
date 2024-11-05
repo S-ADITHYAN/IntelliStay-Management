@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Box, Button, TextField, MenuItem, Select, useMediaQuery, IconButton } from "@mui/material";
 import { Header } from "../../components";
 import { Formik } from "formik";
@@ -42,6 +42,30 @@ const RoomAdd = () => {
     const [newRoomType, setNewRoomType] = useState("");
     const [addingNewRoomType, setAddingNewRoomType] = useState(false);
     const [selectedImages, setSelectedImages] = useState([]);
+
+    const [numberOfRooms, setNumberOfRooms] = useState(1);
+    const [roomTypeToAdd, setRoomTypeToAdd] = useState("");
+    const [commonRate, setCommonRate] = useState("");
+    const [commonStatus, setCommonStatus] = useState("available");
+    const [commonDescription, setCommonDescription] = useState("");
+
+    const [lastRoomNumber, setLastRoomNumber] = useState(0); // State to hold the last room number
+
+    // Fetch the last room number for the selected room type
+    useEffect(() => {
+        const fetchLastRoomNumber = async () => {
+            if (roomTypeToAdd) {
+                try {
+                    const response = await axios.get(`http://localhost:3001/lastRoomNumber/${roomTypeToAdd}`);
+                    setLastRoomNumber(response.data.lastRoomNumber);
+                } catch (error) {
+                    console.error("Error fetching last room number:", error);
+                }
+            }
+        };
+
+        fetchLastRoomNumber();
+    }, [roomTypeToAdd]);
 
     const handleFormSubmit = (values, { resetForm }) => {
         const formData = new FormData();
@@ -220,6 +244,26 @@ const RoomAdd = () => {
         saveAs(blob, "room_template.xlsx");
     };
 
+    const handleMultipleRoomAdd = async (roomsToAdd) => {
+        try {
+            // Make an API call to add multiple rooms
+            const response = await axios.post('http://localhost:3001/addMultipleRooms', roomsToAdd, {
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+    
+            if (response.data.success) {
+                Swal.fire("Success", "Rooms added successfully!", "success");
+            } else {
+                Swal.fire("Error", "Failed to add rooms: " + response.data.message, "error");
+            }
+        } catch (error) {
+            console.error("Error adding multiple rooms:", error);
+            Swal.fire("Error", "An error occurred while adding rooms: " + error.message, "error");
+        }
+    };
+
     const handleImageUpload = (e) => {
         const files = Array.from(e.target.files);
         const validFiles = files.filter(file => ['image/jpeg', 'image/jpg', 'image/png'].includes(file.type));
@@ -230,6 +274,26 @@ const RoomAdd = () => {
             setSelectedImages(validFiles);
         }
     };
+
+    const handleAddMultipleRooms = async () => {
+        const roomsToAdd = [];
+        const lastRoomNumber = 204; // This should be fetched from the database in a real scenario
+
+        for (let i = 0; i < numberOfRooms; i++) {
+            roomsToAdd.push({
+                roomno: lastRoomNumber + i + 1, // Increment room number
+                roomtype: roomTypeToAdd,
+                status: commonStatus,
+                rate: commonRate,
+                description: commonDescription,
+                images: selectedImages // Use the same images for all new rooms
+            });
+        }
+
+        // Call the function to validate and upload rooms
+        await handleMultipleRoomAdd(roomsToAdd);
+    };
+
     return (
         <Box m="20px">
             <Header title="ADD ROOM" subtitle="Add New Room Details" />
@@ -436,6 +500,119 @@ const RoomAdd = () => {
                                 sx={{ ml: 2 }}
                             >
                                 Download XLSX Template
+                            </Button>
+                        </Box>
+
+                        {/* New Section for Adding Multiple Rooms */}
+                        <Box mt="40px" gap="30px" sx={{ border: '1px solid #ccc', padding: '20px', borderRadius: '5px' }}>
+                            <h3>Add Multiple Rooms</h3>
+                            <Select
+                                fullWidth
+                                variant="filled"
+                                value={roomTypeToAdd}
+                                onBlur={handleBlur}
+                                onChange={(e) => setRoomTypeToAdd(e.target.value)}
+                                displayEmpty
+                                name="roomTypeToAdd"
+                                sx={{ gridColumn: "span 2" }}
+                            >
+                                {roomTypes.map((type, index) => (
+                                    <MenuItem key={index} value={type}>
+                                        {type}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+
+                            <TextField
+                                fullWidth
+                                variant="filled"
+                                type="number"
+                                label="Number of Rooms"
+                                onBlur={handleBlur}
+                                onChange={(e) => setNumberOfRooms(e.target.value)}
+                                value={numberOfRooms}
+                                name="numberOfRooms"
+                                error={touched.numberOfRooms && errors.numberOfRooms}
+                                helperText={touched.numberOfRooms && errors.numberOfRooms}
+                                sx={{ gridColumn: "span 2" }}
+                            />
+
+                            <TextField
+                                fullWidth
+                                variant="filled"
+                                type="text"
+                                label="Rate"
+                                onBlur={handleBlur}
+                                onChange={(e) => setCommonRate(e.target.value)}
+                                value={commonRate}
+                                name="commonRate"
+                                error={touched.commonRate && errors.commonRate}
+                                helperText={touched.commonRate && errors.commonRate}
+                                sx={{ gridColumn: "span 2" }}
+                            />
+
+                            <Select
+                                fullWidth
+                                variant="filled"
+                                value={commonStatus}
+                                onBlur={handleBlur}
+                                onChange={(e) => setCommonStatus(e.target.value)}
+                                displayEmpty
+                                name="commonStatus"
+                                sx={{ gridColumn: "span 2" }}
+                            >
+                                {roomstatus.map((status, index) => (
+                                    <MenuItem key={index} value={status}>
+                                        {status}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+
+                            <TextField
+                                fullWidth
+                                variant="filled"
+                                type="text"
+                                label="Description"
+                                onBlur={handleBlur}
+                                onChange={(e) => setCommonDescription(e.target.value)}
+                                value={commonDescription}
+                                name="commonDescription"
+                                error={touched.commonDescription && errors.commonDescription}
+                                helperText={touched.commonDescription && errors.commonDescription}
+                                sx={{ gridColumn: "span 4" }}
+                            />
+
+                        <TextField
+                                fullWidth
+                                variant="filled"
+                                type="file"
+                                inputProps={{ multiple: true, accept: ".jpg, .jpeg, .png" }}
+                                label="Upload Images"
+                                onChange={handleImageUpload}
+                                name="images"
+                                error={touched.images && errors.images}
+                                helperText={touched.images && errors.images}
+                                sx={{ 
+                                    gridColumn: "span 4", 
+                                    '& .MuiInputLabel-root': { 
+                                      marginBottom: '10px' // Adjust this value for the desired gap
+                                    },
+                                    '& .MuiFilledInput-root': {
+                                      paddingTop: '30px', // Increase the padding to make space for the label
+                                    }
+                                  }}
+                                  InputLabelProps={{
+                                    shrink: true, // This keeps the label in the "shrunk" position
+                                  }}
+                            />
+
+                            <Button
+                                type="button"
+                                color="secondary"
+                                variant="contained"
+                                onClick={handleAddMultipleRooms}
+                            >
+                                Add Multiple Rooms
                             </Button>
                         </Box>
                     </form>

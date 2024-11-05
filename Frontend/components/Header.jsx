@@ -150,7 +150,7 @@ import { jwtDecode } from "jwt-decode";
                         <a href="" className="username">Hi, {user}</a>
                             <div className="dropdown-content">
                                   <a href="/myprofile">Profile</a>
-                                   <a href="/my-bookings">My Bookings</a>
+                                   <a href="/my-bookings" id='my-bookings'>My Bookings</a>
                                    <a href="/saved-guests">Saved Guests</a>
                                    <a href="" onClick={handleLogout}>Logout</a>
                             </div>

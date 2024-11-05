@@ -85,7 +85,7 @@ const ReserveRoom = () => {
         if (res.status === 201) {
             const totalAmount = res.data.reservation.total_amount;
             const reservationId = res.data.reservation._id; // Store reservation ID for potential deletion
-
+            const reservationDetails = res.data.reservation; 
             const options = {
                 key: razerkeyid,
                 key_secret: razersecret,
@@ -103,14 +103,16 @@ const ReserveRoom = () => {
                         paymentId,
                         totalRate,
                         totldays,
-                        reservation_id: reservationId
+                        reservation_id: reservationId,
+                        checkInDate: reservationDetails.check_in,
+                        checkOutDate: reservationDetails.check_out,
                     };
 
                     axios.post('http://localhost:3001/orders/create', payLoad)
-                        .then((res) => {
+                        .then((response) => {
                             Swal.fire("Booking and payment successful");
-                            console.log(res.data.reservation);
-                            console.log("user details",res.data.user)
+                            console.log(response.data.reservation);
+                            console.log("user details",response.data.user)
         
          // Trigger PDF generation and download after successful booking
          const generatePDF = () => {
@@ -139,8 +141,8 @@ doc.text(`Room ID: ${res.data.reservation.room_id}`, 10, currentY);
 doc.text(`Booking Date: ${new Date(res.data.reservation.booking_date).toLocaleDateString("en-GB")}`, 200, currentY, { align: 'right' });
 currentY += 10;
 
-doc.text(`User Name: ${res.data.user.displayName}`, 10, currentY);
-doc.text(`User Email: ${res.data.user.email}`, 200, currentY, { align: 'right' });
+doc.text(`User Name: ${response.data.user.displayName}`, 10, currentY);
+doc.text(`User Email: ${response.data.user.email}`, 200, currentY, { align: 'right' });
 currentY += 20;
 
 doc.text(`Room Type: ${roomDetails.roomtype}`, 10, currentY);
@@ -266,14 +268,14 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
           // doc.text('Payment Method:', 10, currentY);
           doc.setFontSize(12);
           // doc.text(`Method: ${res.data.bill.paymentMethod}`, 10, currentY + 10); // Assuming you have paymentMethod variable
-          doc.text(`Transaction ID: ${res.data.bill.paymentId}`, 10, currentY + 10);
-          doc.text(`Reservation ID: ${res.data.bill.reservationid}`, 10, currentY + 20); // Assuming you have transactionId variable
-          doc.text(`Payment Status: ${res.data.bill.status}`, 10, currentY + 30); // Assuming you have paymentStatus variable
+          doc.text(`Transaction ID: ${response.data.bill.paymentId}`, 10, currentY + 10);
+          doc.text(`Reservation ID: ${response.data.bill.reservationid}`, 10, currentY + 20); // Assuming you have transactionId variable
+          doc.text(`Payment Status: ${response.data.bill.status}`, 10, currentY + 30); // Assuming you have paymentStatus variable
           currentY += 40;
 
           // Total Payment Amount
           doc.setFontSize(14);
-          doc.text(`Total Amount Paid: Rs.${res.data.bill.totalRate}`, 10, currentY); // Assuming you have totalAmountPaid variable
+          doc.text(`Total Amount Paid: Rs.${response.data.bill.totalRate}`, 10, currentY); // Assuming you have totalAmountPaid variable
           currentY += 10;
 
           // Automatically download the PDF
@@ -281,7 +283,7 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
           
         };
         generatePDF();
-                navigate('/'); // Redirect to orders or bookings page
+          navigate('/'); // Redirect to orders or bookings page
               })
               .catch(error => {
                 console.error("Error creating order:", error);
@@ -442,7 +444,7 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
           </Button>
         </Box>
       </Box>
-      <footer className="footer" id="contact">
+      {/* <footer className="footer" id="contact">
         <div className="section__container footer__container">
           <div className="footer__col">
             <div className="logo">
@@ -489,7 +491,7 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
         <div className="footer__bar">
           Copyright © 2024 INTELLISTAY Pvt.LTD. All rights reserved.
         </div>
-      </footer>
+      </footer> */}
     </>
   );
 };

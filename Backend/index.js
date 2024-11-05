@@ -41,7 +41,9 @@ app.use(cors({
 }));
 
 
-mongoose.connect("mongodb://127.0.0.1:27017/test2");
+// mongoose.connect("mongodb://127.0.0.1:27017/test2");
+
+mongoose.connect(process.env.Mongodb_Connection);
 
 app.use("/uploads",express.static("./uploads/rooms"))
 app.use("/cleanedrooms",express.static("./uploads/cleanedrooms"))
@@ -379,13 +381,15 @@ app.post('/verify-otp', async (req, res) => {
             delete otpStore[email]; // Clean up expired OTP
             return res.status(400).json({ message: "OTP has expired or is invalid." });
         }
-
+        
         // Check if the OTP matches
         if (otp === storedData.otp) {
             // OTP is correct, save user to the database
+            const salt=await bcrypt.genSalt(10);
+            const hashpass=await bcrypt.hash(storedData.password,salt)
             let user = new GoogleRegisterModel({
                 email,
-                password: storedData.password, // Ideally, hash this before saving
+                password: hashpass, // Ideally, hash this before saving
                 displayName: firstname,
             });
             await user.save();
@@ -1120,14 +1124,7 @@ const uploadHandler = uploadssss.array('proofDocuments', 10); // Maximum 10 file
 
 
 // Create a transporter using SMTP
-const mailtrans = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  auth: {
-    user:  process.env.email_id, // Replace with your email
-    pass:  process.env.password // Replace with your app password
-  }
-});
+
 
 app.post('/confirmbook', (req, res) => {
     uploadHandler(req, res, async (err) => {
@@ -1224,37 +1221,6 @@ app.post('/confirmbook', (req, res) => {
             const savedReservation = await newReservation.save();
 
             // Fetch user email from the database
-            const user = await GoogleRegisterModel.findById(userId);
-            if (!user || !user.email) {
-                throw new Error('User email not found');
-            }
-
-            // Prepare email content
-            const emailContent = `
-                Dear ${user.displayName},
-
-                Your booking has been confirmed!
-
-                Booking Details:
-                - Check-in: ${new Date(checkInDate).toLocaleDateString()}
-                - Check-out: ${new Date(checkOutDate).toLocaleDateString()}
-                - Total Amount: $${totalAmount}
-                - Number of Days: ${totldays}
-
-                Thank you for choosing our service!
-
-                Best regards,
-                Your IntelliStay Hotel Team
-            `;
-
-            // Send email
-            await mailtrans.sendMail({
-                from:  process.env.password,
-                to: user.email,
-                subject: 'Booking Confirmation',
-                text: emailContent
-            });
-
             res.status(201).json({
                 success: true,
                 message: 'Room booking confirmed and confirmation email sent!',
@@ -2934,10 +2900,16 @@ app.post("/user-guests-proofupdate/:id",load.single('proofDocument'),async (req,
 );
 
 
-
+const mailtrans = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  auth: {
+    user:  process.env.email_id, // Replace with your email
+    pass:  process.env.password // Replace with your app password
+  }
+});
 
 app.post('/orders/create', async (req, res) => {
-  const { userid, paymentId, totalRate, totldays ,reservation_id} = req.body;
+  const { userid, paymentId, totalRate, totldays ,reservation_id, checkInDate, checkOutDate} = req.body;
 
   try {
     // Validate the room availability before confirming the order
@@ -2945,8 +2917,7 @@ app.post('/orders/create', async (req, res) => {
     // Create new order object
     const newBill = new BillModel({
       userid,
-      paymentId,
-       // Assuming roomDetails contains info about each room
+      paymentId, // Assuming roomDetails contains info about each room
       totalRate,
       totldays,
       orderDate: new Date(),
@@ -2961,6 +2932,35 @@ app.post('/orders/create', async (req, res) => {
     // Fetch reservation details from Reservation model using reservation_id
     const reservationDetails = await ReservationModel.findById(reservation_id);
 
+    
+    // Prepare email content
+    const emailContent = `
+    Dear ${userDetails.displayName},
+
+    Your booking has been confirmed!
+
+    Booking Details:
+    - Check-in: ${new Date(checkInDate).toLocaleDateString()}
+    - Check-out: ${new Date(checkOutDate).toLocaleDateString()}
+    - Total Amount: $${totalRate}
+    - Number of Days: ${totldays}
+
+    Thank you for choosing our service!
+
+    Best regards,
+    Your IntelliStay Hotel Team
+`;
+
+// Send email
+await mailtrans.sendMail({
+    from:  process.env.password,
+    to: userDetails.email,
+    subject: 'Booking Confirmation',
+    text: emailContent
+});
+ console.log("email sent")
+ console.log(userDetails)
+ console.log(reservationDetails)
     res.status(201).json({ message: 'Payment successfully', bill: newBill , user: userDetails,  // Include user details in the response
       reservation: reservationDetails});
   } catch (error) {
@@ -3096,6 +3096,65 @@ app.post('/feedback', async (req, res) => {
   }
 });
 //user section end
+
+//admin section
+app.get('/lastRoomNumber/:roomType', async (req, res) => {
+  const { roomType } = req.params;
+
+  try {
+      const lastRoom = await RoomModel.findOne({ roomtype: roomType }).sort({ roomno: -1 }).limit(1);
+      const lastRoomNumber = lastRoom ? lastRoom.roomno : 0; // Return 0 if no rooms exist of that type
+      res.status(200).json({ lastRoomNumber });
+  } catch (error) {
+      console.error("Error fetching last room number:", error);
+      res.status(500).json({ message: 'Server error while fetching last room number' });
+  }
+});
+
+app.post('/addMultipleRooms', async (req, res) => {
+  const rooms = req.body; // Expecting an array of room objects
+
+  try {
+      const savedRooms = [];
+      const errors = [];
+
+      // Validate and save each room
+      for (const room of rooms) {
+          // Example validation (you can add more as needed)
+          if (!room.roomno || !room.roomtype || !room.status || !room.rate || !room.description) {
+              errors.push({ roomno: room.roomno, error: 'Missing required fields' });
+              continue; // Skip this room if validation fails
+          }
+
+          const newRoom = new RoomModel({
+              roomno: room.roomno,
+              roomtype: room.roomtype,
+              status: room.status,
+              rate: room.rate,
+              description: room.description,
+              images: room.images, // Assuming images is an array of image URLs or paths
+          });
+
+          try {
+              const savedRoom = await newRoom.save();
+              savedRooms.push(savedRoom);
+          } catch (error) {
+              errors.push({ roomno: room.roomno, error: error.message });
+          }
+      }
+
+      if (errors.length > 0) {
+          return res.status(400).json({ success: false, message: 'Some rooms could not be added', errors });
+      }
+
+      res.status(201).json({ success: true, message: 'Rooms added successfully', savedRooms });
+  } catch (error) {
+      console.error('Error adding multiple rooms:', error);
+      res.status(500).json({ success: false, message: 'Failed to add rooms', error: error.message });
+  }
+});
+
+//admin section end
 app.listen(3001, () => {
     console.log("Server connected");
 });

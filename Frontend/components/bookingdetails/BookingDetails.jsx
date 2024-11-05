@@ -233,7 +233,7 @@ const BookingDetails = () => {
   };
 
   return (
-    <>
+    <div id="booking-info">
       <div className='MyBookingsnav'>
         <Header />
       </div>
@@ -673,7 +673,7 @@ const BookingDetails = () => {
     </Modal>
 
       </Box>
-    </>
+    </div>
   );
 };
 

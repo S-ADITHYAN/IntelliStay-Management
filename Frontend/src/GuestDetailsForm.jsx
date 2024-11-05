@@ -663,7 +663,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                     </Grid>
                 </form>
             </Box>
-            <footer className="footer" id="contact">
+            {/* <footer className="footer" id="contact">
         <div className="section__container footer__container">
           <div className="footer__col">
             <div className="logo">
@@ -710,7 +710,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
         <div className="footer__bar">
           Copyright © 2024 INTELLISTAY Pvt.LTD. All rights reserved.
         </div>
-      </footer>
+      </footer> */}
         </>
     );
 };
