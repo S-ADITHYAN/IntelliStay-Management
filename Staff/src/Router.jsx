@@ -37,7 +37,7 @@ const AppRouter = () => {
     <Router>
       <Routes>
         
-        <Route path="/stafflogin" element={<StaffSignin />} /> 
+        <Route path="/" element={<StaffSignin />} /> 
         <Route path="/dashboard" element={<App />}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/dashboard/myprofile" element={<MyProfile />} />

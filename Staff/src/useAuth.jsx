@@ -9,7 +9,7 @@ const useAuth = () => {
     const token = localStorage.getItem('token');
 
     if (!token) {
-      history('/stafflogin');
+      history('/');
       // Optionally show a session expired message
       Swal.fire('Error','Session expired. Please log in again.','error');
     }

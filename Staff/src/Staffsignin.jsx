@@ -68,7 +68,7 @@ function StaffSignin() {
           setShowForgotPassword(false);
           setOtpSent(false);
           setOtpVerified(false);
-          navigate("/stafflogin");
+          navigate("/");
         }
         else{
           Swal.fire(res.data.message);
