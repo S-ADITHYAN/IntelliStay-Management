@@ -100,7 +100,7 @@ function Home() {
     });
 
     // Cleanup listeners on component unmount
-    axios.post("http://localhost:3001/rooms-details")
+    axios.post(`${import.meta.env.VITE_API}/rooms-details`)
   .then(res => {
     if (res.status === 200) {
       const { availableRooms, message } = res.data; // Destructure the response
@@ -173,7 +173,7 @@ function Home() {
           <div className="room__card__image">
             {/* Check if room.images is an array and has at least one element */}
             <img src={(room.images && room.images.length > 0) 
-              ? `http://localhost:3001/uploads/${room.images[0]}` 
+              ? `${import.meta.env.VITE_API}/uploads/${room.images[0]}` 
               : room1} 
               alt={room.roomtype} 
             />
@@ -260,32 +260,20 @@ function Home() {
         <div className="section__container footer__container">
           <div className="footer__col">
             <div className="logo">
-              <a href="#home"><img src={logo} alt="logo" /></a>
+            <a href="#home" onClick={()=>{navigate('/')}}><img src={logo} alt="logo" /></a>
             </div>
-            <p className="section__description">
-              Discover a world of comfort, luxury, and adventure as you explore
-              our curated selection of hotels, making every moment of your getaway
-              truly extraordinary.
-            </p>
-            <button className="btn">Book Now</button>
+            
           </div>
           <div className="footer__col">
             <h4>QUICK LINKS</h4>
             <ul className="footer__links">
-              <li><a href="#">Browse Destinations</a></li>
-              <li><a href="#">Special Offers & Packages</a></li>
-              <li><a href="#">Room Types & Amenities</a></li>
-              <li><a href="#">Customer Reviews & Ratings</a></li>
-              <li><a href="#">Travel Tips & Guides</a></li>
+            <li><a href="#home" onClick={()=>{navigate('/')}}>Home</a></li>
             </ul>
           </div>
           <div className="footer__col">
             <h4>OUR SERVICES</h4>
             <ul className="footer__links">
-              <li><a href="#">Concierge Assistance</a></li>
-              <li><a href="#">Flexible Booking Options</a></li>
-              <li><a href="#">Airport Transfers</a></li>
-              <li><a href="#">Wellness & Recreation</a></li>
+            <li><a href="" onClick={()=>{navigate('/rooms')}}>Reserve room</a></li>
             </ul>
           </div>
           <div className="footer__col">

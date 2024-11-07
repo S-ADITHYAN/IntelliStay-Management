@@ -45,7 +45,7 @@ const BookingDetails = () => {
       setError(null); // Reset any previous error state
 
       try {
-        const response = await axios.get(`http://localhost:3001/user-booking/${bookingId}`);
+        const response = await axios.get(`${import.meta.env.VITE_API}/user-booking/${bookingId}`);
 
         if (response.status === 200) {
           setBookingDetails(response.data); // response.data contains reservation, room, and guests
@@ -131,7 +131,7 @@ const BookingDetails = () => {
       if (result.isConfirmed) {
         try {
            
-          const response = await axios.post(`http://localhost:3001/user-bookings/cancel/${reservation._id}`);
+          const response = await axios.post(`${import.meta.env.VITE_API}/user-bookings/cancel/${reservation._id}`);
           Swal.fire('Cancelled!', response.data.message, 'success');
           setRefresh(prev => !prev);
         } catch (error) {
@@ -178,7 +178,7 @@ const BookingDetails = () => {
         formData.append('proofDocument', file);
   
         try {
-          const response = await axios.post(`http://localhost:3001/user-guests-proofupdate/${guestId}`, formData, {
+          const response = await axios.post(`${import.meta.env.VITE_API}/user-guests-proofupdate/${guestId}`, formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
@@ -215,7 +215,7 @@ const BookingDetails = () => {
 
   const handleFeedbackSubmit = async () => {
     try {
-      const response = await axios.post('http://localhost:3001/feedback', {
+      const response = await axios.post('${import.meta.env.VITE_API}/feedback', {
         reservationId: reservation._id,
         hotelRating,
         roomRating,
@@ -231,6 +231,20 @@ const BookingDetails = () => {
       Swal.fire('Error', 'Failed to submit feedback. Please try again.', 'error');
     }
   };
+
+  const checkIn = new Date(reservation.check_in);
+  const cancellationDate = reservation.cancel_date ? new Date(reservation.cancel_date) : null;
+
+  // Calculate the difference in days
+  const daysUntilCheckIn = Math.ceil((checkIn - new Date()) / (1000 * 60 * 60 * 24)); // Difference in days
+
+  // Determine payment status
+  let paymentStatus = bill.status;
+
+  // Check if cancellation is done 2 days before check-in
+  if (cancellationDate && daysUntilCheckIn >= 2) {
+      paymentStatus = 'Refunded';
+  }
 
   return (
     <div id="booking-info">
@@ -358,7 +372,7 @@ const BookingDetails = () => {
                       <Button onClick={handlePrevImage} style={{ position: "absolute", left: 0 }}>&lt;</Button>
                       <Box
                         component="img"
-                        src={`http://localhost:3001/uploads/${room.images[currentImageIndex]}`}
+                        src={`${import.meta.env.VITE_API}/uploads/${room.images[currentImageIndex]}`}
                         alt={`Room Image ${currentImageIndex + 1}`}
                         style={{
                           width: "500px", // Adjust size as needed
@@ -376,7 +390,7 @@ const BookingDetails = () => {
                         <Box key={index} mb={1} mr={1}>
                           <Box
                             component="img"
-                            src={`http://localhost:3001/uploads/${image}`}
+                            src={`${import.meta.env.VITE_API}/uploads/${image}`}
                             alt={`Room Thumbnail ${index + 1}`}
                             style={{
                               width: "60px",
@@ -414,7 +428,7 @@ const BookingDetails = () => {
           {guest.proofDocument && guest.proofDocument.length > 0 ? (
             <Box key={guest._id} mb={2}>
               <Avatar
-                src={`http://localhost:3001/profdocs/${guest.proofDocument}`}
+                src={`${import.meta.env.VITE_API}/profdocs/${guest.proofDocument}`}
                 alt={`Document ${guest._id + 1}`}
                 style={{ width: "100px", height: "100px", cursor: "pointer" }}
                 onClick={() => handleOpenModal(guest.proofDocument, "proof")}
@@ -448,38 +462,37 @@ const BookingDetails = () => {
 
 
 <Grid item xs={12}>
-  <Paper elevation={3} style={{ padding: "20px", backgroundColor: "#93C572", color: "#111" }}>
-    <Typography variant="h5" style={{ fontWeight: "bold", textAlign: "center", paddingBottom: "5px" }}>
-      Payment Details
-    </Typography>
-    
-    {bill && Object.keys(bill).length > 0 ? (
-      <>
-        <Typography variant="body1"><strong>Reservation id:</strong> {bill.reservationid}</Typography>
-        <Typography variant="body1"><strong>Transaction id:</strong> {bill.paymentId}</Typography>
-        <Typography variant="body1"><strong>Amount Paid:</strong> {bill.totalRate}</Typography>
+            <Paper elevation={3} style={{ padding: "20px", backgroundColor: "#93C572", color: "#111" }}>
+                <Typography variant="h5" style={{ fontWeight: "bold", textAlign: "center", paddingBottom: "5px" }}>
+                    Payment Details
+                </Typography>
+                
+                {bill && Object.keys(bill).length > 0 ? (
+                    <>
+                        <Typography variant="body1"><strong>Reservation ID:</strong> {bill.reservationid}</Typography>
+                        <Typography variant="body1"><strong>Transaction ID:</strong> {bill.paymentId}</Typography>
+                        <Typography variant="body1"><strong>Amount Paid:</strong> {bill.totalRate}</Typography>
 
-        <Typography variant="body1" style={{ display: 'flex', alignItems: 'center' }}>
-          <strong>Payment Status:</strong> 
-          <span style={{ color: bill.status === 'pending' ? 'red' : 'green', marginLeft: '4px' }}>
-            {bill.status}
-          </span>
-          
-          {bill.status === 'pending' ? (
-            <CancelIcon style={{ color: 'red', marginLeft: '8px', padding: "4px" }} />
-          ) : (
-            <CheckCircleIcon style={{ color: 'green', marginLeft: '8px' }} />
-          )}
-        </Typography>
-      </>
-    ) : (
-      <Typography variant="body1" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <strong style={{ color: 'orange' }}>Payment is pending</strong>
-        <PendingIcon style={{ color: 'orange', marginLeft: '8px' }} />
-      </Typography>
-    )}
-  </Paper>
-</Grid>
+                        <Typography variant="body1" style={{ display: 'flex', alignItems: 'center' }}>
+                            <strong>Payment Status:</strong> 
+                            <span style={{ color: paymentStatus === 'pending' ? 'red' : paymentStatus === 'Refunded' ? 'red' : 'green', marginLeft: '4px' }}>
+                                {paymentStatus}
+                            </span>
+                            
+                            {paymentStatus === 'pending' ? (
+                                <CancelIcon style={{ color: 'red', marginLeft: '8px', padding: "4px" }} />
+                            ) : paymentStatus === 'Refunded' ? (
+                                <PendingIcon style={{ color: 'red', marginLeft: '8px' }} />
+                            ) : (
+                                <CheckCircleIcon style={{ color: 'green', marginLeft: '8px' }} />
+                            )}
+                        </Typography>
+                    </>
+                ) : (
+                    <Typography variant="body1" style={{ textAlign: 'center' }}>No payment details available.</Typography>
+                )}
+            </Paper>
+        </Grid>
 
 
 {isCancellationAllowed && (
@@ -488,7 +501,7 @@ const BookingDetails = () => {
       Cancellation Rules:
     </Typography>
     <Typography variant="body2" color="textSecondary" paragraph>
-      - Full refund is available if cancelled more than 2 days before the check-in date.<br />
+      - Full refund is available if cancelled 2 days before the check-in date.<br />
       - No refund is available if cancelled within 2 days of the check-in date.
     </Typography>
 
@@ -623,7 +636,7 @@ const BookingDetails = () => {
               <Typography variant="h6" gutterBottom>Room Image</Typography>
               <Box
                 component="img"
-                src={`http://localhost:3001/uploads/${currentDocument}`}
+                src={`${import.meta.env.VITE_API}/uploads/${currentDocument}`}
                 alt="Room"
                 style={{
                   width: `${zoomLevel * 100}%`, // Adjust width based on zoom level
@@ -648,7 +661,7 @@ const BookingDetails = () => {
               <Typography variant="h6" gutterBottom>Proof Document</Typography>
               <Box
                 component="img"
-                src={`http://localhost:3001/profdocs/${currentDocument}`}
+                src={`${import.meta.env.VITE_API}/profdocs/${currentDocument}`}
                 alt="Proof Document"
                 style={{
                   width: `${zoomLevel * 100}%`, // Adjust width based on zoom level

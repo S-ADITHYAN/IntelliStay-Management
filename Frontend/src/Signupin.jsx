@@ -30,7 +30,7 @@ const [resetPasswordData, setResetPasswordData] = useState({ emailReset: '', otp
 
 const handleForgotPassword = (e) => {
   e.preventDefault();
-  axios.post('http://localhost:3001/send-otp', { email: resetPasswordData.emailReset })
+  axios.post(`${import.meta.env.VITE_API}/send-otp`, { email: resetPasswordData.emailReset })
     .then(res => {
       if (res.status === 200) {
         setOtpSent(true);
@@ -46,7 +46,7 @@ const handleForgotPassword = (e) => {
 
 const handleVerifyOtp = (e) => {
   e.preventDefault();
-  axios.post('http://localhost:3001/verify', { email: resetPasswordData.emailReset, otp: resetPasswordData.otp })
+  axios.post(`${import.meta.env.VITE_API}/verify`, { email: resetPasswordData.emailReset, otp: resetPasswordData.otp })
     .then(res => {
       if (res.status === 200) {
         setOtpVerified(true);
@@ -68,7 +68,7 @@ const handleResetPassword = (e) => {
     Swal.fire('Passwords do not match!');
     return;
   }
-  axios.post('http://localhost:3001/reset-password', { email: resetPasswordData.emailReset, password: resetPasswordData.newPassword,token:verifytoken })
+  axios.post(`${import.meta.env.VITE_API}/reset-password`, { email: resetPasswordData.emailReset, password: resetPasswordData.newPassword,token:verifytoken })
     .then(res => {
       if (res.status === 200) {
         Swal.fire('Password reset successfully.');
@@ -132,7 +132,7 @@ const navigate=useNavigate();
 
 // const handleSubmit=(e)=>{
 //     e.preventDefault()
-//     axios.post('http://localhost:3001/register',{...formData})
+//     axios.post('${import.meta.env.VITE_API}/register',{...formData})
 //     .then(res =>{console.log(res)
 //       if(res.data==="exists"){
 //         Swal.fire("email already exists...")
@@ -148,7 +148,7 @@ const navigate=useNavigate();
 const handleSubmit = (e) => {
   e.preventDefault();
   // Send registration request
-  axios.post('http://localhost:3001/register', formData)
+  axios.post(`${import.meta.env.VITE_API}/register`, formData)
     .then(res => {
       console.log(res.data.formdata)
       setdatas({...res.data.formdata})
@@ -172,7 +172,7 @@ const handleOtpSubmit = () => {
   
   setdatas({...datas, otp : otp })
   console.log(datas);
-  axios.post('http://localhost:3001/verify-otp', datas)
+  axios.post(`${import.meta.env.VITE_API}/verify-otp`, datas)
     .then(res => {
       if (res.status === 200) {
 
@@ -191,7 +191,7 @@ const handleOtpSubmit = () => {
 
 const handleLogin=(e)=>{
     e.preventDefault()
-    axios.post('http://localhost:3001/login',{...formData})
+    axios.post(`${import.meta.env.VITE_API}/login`,{...formData})
     .then(res => {console.log(res.data)
       
         if(res.data.message === 'success'){
@@ -209,7 +209,7 @@ const handleLogin=(e)=>{
 }
 
 // const loginwithgoogle=()=>{
-//   window.open("http://localhost:3001/auth/google/callback","_self")
+//   window.open("${import.meta.env.VITE_API}/auth/google/callback","_self")
 // }
 
 
@@ -230,7 +230,7 @@ const signInWithGoogle = () => {
        
 
 
-        axios.post("http://localhost:3001/authWithGoogle", fields).then((res) => {
+        axios.post(`${import.meta.env.VITE_API}/authWithGoogle`, fields).then((res) => {
           try {
             if (res.status === 200) {
               localStorage.setItem("token", res.data.token);

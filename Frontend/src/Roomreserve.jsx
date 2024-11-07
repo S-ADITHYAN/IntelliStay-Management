@@ -11,6 +11,9 @@ import facebook from './assets/facebook.png';
 import instagram from './assets/instagram.png';
 import youtube from './assets/youtube.png';
 import useAuth from './useAuth';
+import CircularProgress from '@mui/material/CircularProgress'; // Import Material-UI CircularProgress
+
+
 
 const ReserveRoom = () => {
   useAuth();
@@ -34,6 +37,7 @@ const ReserveRoom = () => {
   console.log("selected guestids",selectedGuestIds);
   console.log("new guest details",newGuestDetails);
   const userid= localStorage.getItem('userId');
+  const [loading, setLoading] = useState(false); 
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -76,7 +80,7 @@ const ReserveRoom = () => {
     });
 
     try {
-        const res = await axios.post('http://localhost:3001/confirmbook', formData, {
+        const res = await axios.post(`${import.meta.env.VITE_API}/confirmbook`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
@@ -107,9 +111,11 @@ const ReserveRoom = () => {
                         checkInDate: reservationDetails.check_in,
                         checkOutDate: reservationDetails.check_out,
                     };
-
-                    axios.post('http://localhost:3001/orders/create', payLoad)
+                    setLoading(true);
+                    axios.post(`${import.meta.env.VITE_API}/orders/create`, payLoad)
+                         
                         .then((response) => {
+
                             Swal.fire("Booking and payment successful");
                             console.log(response.data.reservation);
                             console.log("user details",response.data.user)
@@ -325,12 +331,13 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
       Swal.fire(errorMessage);
       console.error("Error:", err);
     }
+    
   };
 
   // Function to delete reservation
   const deleteReservation = async (reservationId) => {
     try {
-      await axios.delete(`http://localhost:3001/reservations/${reservationId}`);
+      await axios.delete(`${import.meta.env.VITE_API}/reservations/${reservationId}`);
       console.log("Reservation deleted successfully");
     } catch (error) {
       console.error("Error deleting reservation:", error);
@@ -436,6 +443,7 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
           <Button
             variant="contained"
             color="primary"
+            disabled={loading}
             size="large"
             id='booknow'
             onClick={handleBookNow}
@@ -444,6 +452,29 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
           </Button>
         </Box>
       </Box>
+      {loading && ( // Step 3: Render loader conditionally
+                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
+                    <CircularProgress /> {/* You can customize the loader here */}
+                </div>
+            )}
+
+            {/* Optionally, you can add a backdrop to cover the entire screen */}
+            {loading && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(255, 255, 255, 0.7)', // Semi-transparent background
+                    zIndex: 1000, // Ensure it covers other elements
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                }}>
+                    <CircularProgress />
+                </div>
+            )}
       {/* <footer className="footer" id="contact">
         <div className="section__container footer__container">
           <div className="footer__col">

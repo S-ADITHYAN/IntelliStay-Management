@@ -28,7 +28,7 @@ function Rooms() {
   const [filteredRooms, setFilteredRooms] = useState([]);
 
   const checkrooms = () => {
-    axios.post("http://localhost:3001/checkrooms", { searchdata })
+    axios.post(`${import.meta.env.VITE_API}/checkrooms`, { searchdata })
       .then(res => {
         if (res.status === 200) {
           const { availableRooms, roomsNeeded, roomsAvailable, message } = res.data;
@@ -227,7 +227,7 @@ function Rooms() {
             return (
               <div key={room._id} className="room__card">
                 <div className="room__card__image">
-                  <img src={(room.images.length > 0) ? `http://localhost:3001/uploads/${room.images[0]}` : room1} alt="room" />
+                  <img src={(room.images.length > 0) ? `${import.meta.env.VITE_API}/uploads/${room.images[0]}` : room1} alt="room" />
                   <div className="room__card__icons">
                     <span><i className="ri-heart-fill"></i></span>
                     <span><i className="ri-paint-fill"></i></span>

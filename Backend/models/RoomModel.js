@@ -7,6 +7,9 @@ const RoomSchema = new mongoose.Schema({
     rate: Number,
     description:String,
     images:[String],
+    allowedAdults: { type: Number, required: true, min: 1 }, // New field for allowed adults
+    allowedChildren: { type: Number, required: true, min: 0 }, // New field for allowed children
+    amenities: { type: String, required: true }, // New field for amenities
 
 },{timestamps:true});
 

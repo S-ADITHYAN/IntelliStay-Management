@@ -43,7 +43,7 @@ function SavedGuest() {
           return;
         }
 
-        const response = await axios.get(`http://localhost:3001/saved-guests/${userId}`);
+        const response = await axios.get(`${import.meta.env.VITE_API}/saved-guests/${userId}`);
         if (response.status === 200) {
           setSavedGuests(response.data);
           setFilteredGuests(response.data);
@@ -191,7 +191,7 @@ function SavedGuest() {
     }
 
     try {
-      const response = await axios.put(`http://localhost:3001/update-guest/${editedGuest._id}`, editedGuest);
+      const response = await axios.put(`${import.meta.env.VITE_API}/update-guest/${editedGuest._id}`, editedGuest);
       if (response.status === 200) {
         setSavedGuests(prevGuests => 
           prevGuests.map(guest => guest._id === editedGuest._id ? editedGuest : guest)
@@ -359,10 +359,10 @@ function SavedGuest() {
                     <strong>Proof Document:</strong>
                     {selectedGuest.proofDocument && (
                       <img 
-                        src={`http://localhost:3001/profdocs/${selectedGuest.proofDocument}`}
+                        src={`${import.meta.env.VITE_API}/profdocs/${selectedGuest.proofDocument}`}
                         alt="Proof Document"
                         className="proof-document-preview"
-                        onClick={() => setFullScreenImage(`http://localhost:3001/profdocs/${selectedGuest.proofDocument}`)}
+                        onClick={() => setFullScreenImage(`${import.meta.env.VITE_API}/profdocs/${selectedGuest.proofDocument}`)}
                       />
                     )}
                   </div>
@@ -386,34 +386,7 @@ function SavedGuest() {
       )}
        <footer ref={footerRef} className="footer">
         <div className="footer__container">
-          <div className="footer__col">
-            <div className="logo">
-              <a href="#home" onClick={()=>{navigate('/')}}><img src={logo} alt="logo" /></a>
-            </div>
-          </div>
-          <div className="footer__col">
-            <h4>QUICK LINKS</h4>
-            <ul className="footer__links">
-              <li><a href="#home" onClick={()=>{navigate('/')}}>Home</a></li>
-            </ul>
-          </div>
-          <div className="footer__col">
-            <h4>OUR SERVICES</h4>
-            <ul className="footer__links">
-              <li><a href="" onClick={()=>{navigate('/rooms')}}>Reserve room</a></li>
-            </ul>
-          </div>
-          <div className="footer__col">
-            <h4>CONTACT US</h4>
-            <ul className="footer__links">
-              <li><a href="#">intellistay@info.com</a></li>
-            </ul>
-            <div className="footer__socials">
-              <a href="#"><img src={facebook} alt="facebook" /></a>
-              <a href="#"><img src={instagram} alt="instagram" /></a>
-              <a href="#"><img src={youtube} alt="youtube" /></a>
-            </div>
-          </div>
+          
         </div>
         <div className="footer__bar">
           Copyright © 2024 INTELLISTAY Pvt.LTD. All rights reserved.

@@ -36,7 +36,7 @@ app.use(cookieParser());
 app.use(bodyParser.json());
 
 app.use(cors({
-  origin: ["https://intellistay-management-1.onrender.com","http://localhost:5174","http://localhost:5175"],
+  origin: ["http://localhost:5173","http://localhost:5174","http://localhost:5175"],
   methods: ["GET","POST","PUT","DELETE"],
   credentials: true // Allows cookies to be sent with the request
 }));
@@ -386,11 +386,11 @@ app.post('/verify-otp', async (req, res) => {
         // Check if the OTP matches
         if (otp === storedData.otp) {
             // OTP is correct, save user to the database
-            const salt=await bcrypt.genSalt(10);
-            const hashpass=await bcrypt.hash(storedData.password,salt)
+            // const salt=await bcrypt.genSalt(10);
+            // const hashpass=await bcrypt.hash(storedData.password,salt)
             let user = new GoogleRegisterModel({
                 email,
-                password: hashpass, // Ideally, hash this before saving
+                password: storedData.password, // Ideally, hash this before saving
                 displayName: firstname,
             });
             await user.save();
@@ -444,8 +444,8 @@ app.post('/addroom', (req, res) => {
         if (err) {
             return res.status(400).json({ error: err.message });
         }
-
-        const { roomno, roomtype, status, rate, description } = req.body;
+        console.log(req.body);
+        const { roomno, roomtype, status, rate, description ,allowedGuests,allowedChildren,amenities} = req.body;
         
         try {
             let room = await RoomModel.findOne({ roomno: roomno });
@@ -460,13 +460,16 @@ app.post('/addroom', (req, res) => {
                     status:status,
                     rate:rate,
                     description:description,
-                    images: imagePaths
+                    images: imagePaths,
+                    allowedAdults:allowedGuests,
+                    allowedChildren:allowedChildren,
+                    amenities:amenities
                 });
                 
                 await room.save();
                 return res.status(200).json("Room added successfully");
             } else {
-                return res.status(400).json("exists");
+                return res.json("exists");
             }
         } catch (error) {
             return res.status(500).json({ error: error.message });
@@ -3112,35 +3115,78 @@ app.get('/lastRoomNumber/:roomType', async (req, res) => {
   }
 });
 
-app.post('/addMultipleRooms', async (req, res) => {
-  const rooms = req.body; // Expecting an array of room objects
+const stud = multer.diskStorage({
+  destination: function(req, file, cb) {
+      cb(null, './uploads/rooms'); // Define the folder where images will be stored
+  },
+  filename: function(req, file, cb) {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + path.extname(file.originalname)); // Give each file a unique name
+  }
+});
 
+// File filter to accept only images
+const fillFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+  if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true); // Accept the file
+  } else {
+      cb(new Error('Invalid file type. Only JPG, PNG, and JPEG are allowed.'), false);
+  }
+};
+
+// Initialize Multer for multiple file uploads
+const upiii= multer({ 
+  storage: stud,
+  fileFilter: fillFilter
+}).array('imagessssss', 10);
+
+app.post('/addMultipleRooms', upiii, async (req, res) => {
+  const rooms = req.body; 
+  // Expecting an array of room objects
+  if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
+  }
+
+  console.log(rooms);
   try {
       const savedRooms = [];
       const errors = [];
+      console.log(req.files);
+      const imagePaths = req.files.map(file => path.basename(file.path));
 
+      // Get the last room number from the database
+      const lastRoom = await RoomModel.findOne().sort({ roomno: -1 }).exec();
+      const lastRoomNumber = lastRoom ? lastRoom.roomno : 200; // If no rooms exist, start from 0
+      const lastroomno=parseInt(lastRoomNumber, 10)
       // Validate and save each room
-      for (const room of rooms) {
+      for (let i = 0; i < rooms.numberOfRooms; i++) {
+          const room = rooms; // Use the same room details for each new room
+          const newRoomNo = lastroomno + i + 1; // Increment room number
+
           // Example validation (you can add more as needed)
-          if (!room.roomno || !room.roomtype || !room.status || !room.rate || !room.description) {
-              errors.push({ roomno: room.roomno, error: 'Missing required fields' });
+          if (!room.roomTypeToAdd || !room.commonStatus || !room.commonRate || !room.commonDescription) {
+              errors.push({ roomno: newRoomNo, error: 'Missing required fields' });
               continue; // Skip this room if validation fails
           }
 
           const newRoom = new RoomModel({
-              roomno: room.roomno,
-              roomtype: room.roomtype,
-              status: room.status,
-              rate: room.rate,
-              description: room.description,
-              images: room.images, // Assuming images is an array of image URLs or paths
+              roomno: newRoomNo, // Use the incremented room number
+              roomtype: room.roomTypeToAdd,
+              status: room.commonStatus,
+              rate: room.commonRate,
+              description: room.commonDescription,
+              images: imagePaths,
+              allowedAdults: room.allowedGuests,
+              allowedChildren: room.allowedChildren,
+              amenities: room.commonamenities,
           });
 
           try {
               const savedRoom = await newRoom.save();
               savedRooms.push(savedRoom);
           } catch (error) {
-              errors.push({ roomno: room.roomno, error: error.message });
+              errors.push({ roomno: newRoomNo, error: error.message });
           }
       }
 

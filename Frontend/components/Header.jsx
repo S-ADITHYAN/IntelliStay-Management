@@ -86,7 +86,7 @@ import { jwtDecode } from "jwt-decode";
     }, []);
     axios.defaults.withCredentials = true;
     const handleLogout = () => {
-      axios.post("http://localhost:3001/logout")
+      axios.post(`${import.meta.env.VITE_API}/logout`)
         .then(res => {
           if (res.status === 200) {
             localStorage.removeItem('userEmail');

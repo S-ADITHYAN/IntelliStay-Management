@@ -42,7 +42,7 @@ const SeeRoomDetails = () => {
 const handleBook=()=>{
   navigate('/rooms')
 };
-  // axios.post("http://localhost:3001/confirmbook", { roomdatas,datas,userid,trateString })
+  // axios.post("${import.meta.env.VITE_API}/confirmbook", { roomdatas,datas,userid,trateString })
   // .then(res => {
   //   if (res.status === 200) {
   //     Swal.fire("booking succesful");
@@ -59,7 +59,7 @@ const handleBook=()=>{
 
     
 const photos = roomdatas.images.map(photo => ({
-  src: `http://localhost:3001/uploads/${photo}`,
+  src: `${import.meta.env.VITE_API}/uploads/${photo}`,
 }));
 
   const handleOpen = (i) => {
@@ -130,7 +130,7 @@ const photos = roomdatas.images.map(photo => ({
               <div className="hotelImgWrapper" key={i}>
                 <img
                   onClick={() => handleOpen(i)}
-                  src={`http://localhost:3001/uploads/${photo}`}
+                  src={`${import.meta.env.VITE_API}/uploads/${photo}`}
                   alt=""
                   className="hotelImg"
                 />

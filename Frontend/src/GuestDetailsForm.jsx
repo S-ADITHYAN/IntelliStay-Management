@@ -21,7 +21,8 @@ import Header from '../components/Header';
 import './guestform.css'; // Import the CSS for the form
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle'; // Import this at the top of your file
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import Swal from 'sweetalert2'; // Import this at the top of your file
 
 const documentOptions = [
     { label: 'Aadhar', value: 'aadhar' },
@@ -97,7 +98,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
         // Fetch previous guest details when the component mounts
         const fetchPreviousGuest = async () => {
             try {
-                const response = await axios.get(`http://localhost:3001/previousGuestDetails/${userid}`);
+                const response = await axios.get(`${import.meta.env.VITE_API}/previousGuestDetails/${userid}`);
                 console.log(response.data);
                 setPreviousGuest(response.data || []); // Ensure it's an array, even if empty
             } catch (error) {
@@ -281,6 +282,11 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
         });
 
         if (guest.role === 'adult') {
+            if (adults.length >= roomdatas.allowedAdults) {
+                Swal.fire(`Maximum allowed adults (${allowedAdults}) reached.`);
+                return; // Exit the function if the limit is reached
+            }
+            else{
             setAdults(prevAdults => {
                 const existingIndex = prevAdults.findIndex(a => a._id === guest._id);
                 if (existingIndex !== -1) {
@@ -289,7 +295,13 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                     return [...prevAdults, { ...guest, errors: {} }];
                 }
             });
+        }
         } else if (guest.role === 'child') {
+            if (adults.length >= roomdatas.allowedChildren) {
+                Swal.fire(`Maximum allowed children (${allowedChildren}) reached.`);
+                return; // Exit the function if the limit is reached
+            }
+            else{
             setChildren(prevChildren => {
                 const existingIndex = prevChildren.findIndex(c => c._id === guest._id);
                 if (existingIndex !== -1) {
@@ -298,6 +310,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                     return [...prevChildren, { ...guest, errors: {} }];
                 }
             });
+        }
         }
     };
     
@@ -585,6 +598,11 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
 
     const addGuest = (type) => {
         if (type === 'adult') {
+            if (adults.length >= roomdatas.allowedAdults) {
+                Swal.fire(`Maximum allowed adults (${allowedAdultsCount}) reached.`);
+                return; // Exit the function if the limit is reached
+            }
+            else{
             setAdults(prevAdults => [
                 ...prevAdults,
                 {
@@ -599,8 +617,15 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                     errors: {},
                     // No _id for new guests
                 }
+            
             ]);
+        }
         } else if (type === 'child') {
+            if (adults.length >= roomdatas.allowedChildren) {
+                Swal.fire(`Maximum allowed children (${allowedChildren}) reached.`);
+                return; // Exit the function if the limit is reached
+            }
+            else{
             setChildren(prevChildren => [
                 ...prevChildren,
                 {
@@ -610,6 +635,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                     // No _id for new guests
                 }
             ]);
+        }
         }
     };
 

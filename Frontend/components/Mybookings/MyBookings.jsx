@@ -34,7 +34,7 @@ function MyBookings() {
           return;
         }
 
-        const response = await axios.get(`http://localhost:3001/my-bookings/${userId}`);
+        const response = await axios.get(`${import.meta.env.VITE_API}/my-bookings/${userId}`);
         if (response.status === 200) {
           setBookings(response.data);
           setFilteredBookings(response.data);
@@ -122,14 +122,14 @@ function MyBookings() {
                 <div className={searchQuery ? 'filtered-booking' : 'booking-card'} style={{ display: 'flex', alignItems: 'center' }}>
                 {booking.room_id && booking.room_id.images && booking.room_id.images.length > 0 && (
           <img
-            src={`http://localhost:3001/uploads/${booking.room_id.images[0]}`} // Assuming the first image is the thumbnail
+            src={`${import.meta.env.VITE_API}/uploads/${booking.room_id.images[0]}`} // Assuming the first image is the thumbnail
             alt="Room Thumbnail"
             style={{ width: '100px', height: '100px', objectFit: 'cover', marginRight: '10px' }} // Adjust width/height as needed
           />
         )}
         <div>
                   <p><strong>BookingId:</strong> {booking._id}</p>
-                  <p><strong>Room:</strong> {booking.room_id.roomtype}</p>
+                  <p><strong>Room:</strong> {booking.room_id?.roomtype || 'N/A'}</p>
                   <p><strong>Check-In Date:</strong> {new Date(booking.check_in).toLocaleDateString("en-GB")}</p>
                   <p><strong>Check-Out Date:</strong> {new Date(booking.check_out).toLocaleDateString("en-GB")}</p>
                   <p><strong>Status:</strong> {booking.status}</p>

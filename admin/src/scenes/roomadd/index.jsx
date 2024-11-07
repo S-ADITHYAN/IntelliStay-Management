@@ -18,7 +18,41 @@ const initialValues = {
     rate: "",
     description: "",
     images: [],
+    allowedGuests: 1,
+    allowedChildren: 0,
+    amenities: "",
 };
+
+const initialValuesMultipleRooms = {
+    roomTypeToAdd: "",        // Room type selection
+    numberOfRooms: 1,        // Number of rooms to add
+    allowedGuests: 1,        // Allowed guests
+    allowedChildren: 0,      // Allowed children
+    commonamenities: "",      // Amenities details
+    commonRate: "",           // Rate for the rooms
+    commonStatus: "available", // Default status for the rooms
+    commonDescription: "",     // Description for the rooms
+    allowedAdults: 1,  
+    imagess: [],       // Allowed adults
+};
+
+
+const multipleRoomsSchema = yup.object().shape({
+    roomTypeToAdd: yup.string().required("Room type is required"),
+    numberOfRooms: yup.number().required("Number of rooms is required").min(1, "At least one room is required"),
+    allowedGuests: yup.number().required("Number of allowed guests is required").min(1, "At least one guest is required"),
+    allowedChildren: yup.number().required("Number of allowed children is required").min(0, "Cannot have negative children"),
+    commonamenities: yup.string().required("Amenities details are required"),
+    commonRate: yup.string().required("Rate is required").matches(/^\d+$/, "Rate must be a valid number"), // Ensure it's a valid number
+    commonStatus: yup.string().required("Status is required"),
+    commonDescription: yup.string().required("Description is required"),
+    imagess: yup.mixed().test('fileType', 'Only JPG, JPEG, and PNG files are allowed', (value) => {
+        return value.every(file => ['image/jpeg', 'image/jpg', 'image/png'].includes(file.type));
+    }),
+    
+    allowedAdults: yup.number().required("Number of allowed adults is required").min(1, "At least one adult is required"),
+});
+
 
 const roomnoRegExp = /^[0-9]+$/;
 const rateRegExp = /^[0-9]{1,5}$/;
@@ -31,7 +65,11 @@ const checkoutSchema = yup.object().shape({
     description: yup.string().required("required"),
     images: yup.mixed().test('fileType', 'Only JPG, JPEG, and PNG files are allowed', (value) => {
         return value.every(file => ['image/jpeg', 'image/jpg', 'image/png'].includes(file.type));
-    })
+    }),
+     // Add validation for new fields
+     allowedGuests: yup.number().required("Number of allowed guests is required").min(1, "At least one guest is required"),
+     allowedChildren: yup.number().required("Number of allowed children is required").min(0, "Cannot have negative children"),
+     amenities: yup.string().required("Amenities details are required"),
 });
 
 const RoomAdd = () => {
@@ -46,10 +84,18 @@ const RoomAdd = () => {
     const [numberOfRooms, setNumberOfRooms] = useState(1);
     const [roomTypeToAdd, setRoomTypeToAdd] = useState("");
     const [commonRate, setCommonRate] = useState("");
-    const [commonStatus, setCommonStatus] = useState("available");
+    const [commonStatus, setCommonStatus] = useState("");
     const [commonDescription, setCommonDescription] = useState("");
 
     const [lastRoomNumber, setLastRoomNumber] = useState(0); // State to hold the last room number
+
+     // New state variables for allowed guests, children, and amenities
+     const [allowedGuests, setAllowedGuests] = useState(1);
+     const [allowedChildren, setAllowedChildren] = useState(0);
+     const [commonamenities, setCommonAmenities] = useState("");
+     const [allowedAdults, setAllowedAdults] = useState(1);
+     // Default value can be adjusted
+ 
 
     // Fetch the last room number for the selected room type
     useEffect(() => {
@@ -82,13 +128,14 @@ const RoomAdd = () => {
             formData.append('images', selectedImages[i]);
         }
 
+        console.log(values);
         axios.post('http://localhost:3001/addroom', formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
         }).then(res => {
             if (res.data === "exists") {
-                Swal.fire("Error","Room already exists!","error");
+                Swal.fire("Error","Room no already exists!","error");
             } else {
                 resetForm({ values: initialValues });
                 Swal.fire("Success","Room added successfully. :)","success");
@@ -244,16 +291,32 @@ const RoomAdd = () => {
         saveAs(blob, "room_template.xlsx");
     };
 
-    const handleMultipleRoomAdd = async (roomsToAdd) => {
+    const handleMultipleRoomAdd = async (values, { resetForm }) => {
         try {
+            const formData = new FormData();
+
+            Object.keys(values).forEach(key => {
+                if (key !== 'imagess') {
+                    formData.append(key, values[key]);
+                }
+            });
+    
+            // Append image files
+            for (let i = 0; i < selectedImages.length; i++) {
+                formData.append('imagessssss', selectedImages[i]); // Ensure this matches the backend
+            }
+    
             // Make an API call to add multiple rooms
-            const response = await axios.post('http://localhost:3001/addMultipleRooms', roomsToAdd, {
+           
+            
+            const response = await axios.post('http://localhost:3001/addMultipleRooms', formData, {
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'multipart/form-data'
                 }
             });
     
             if (response.data.success) {
+                resetForm({ values: initialValues });
                 Swal.fire("Success", "Rooms added successfully!", "success");
             } else {
                 Swal.fire("Error", "Failed to add rooms: " + response.data.message, "error");
@@ -277,16 +340,20 @@ const RoomAdd = () => {
 
     const handleAddMultipleRooms = async () => {
         const roomsToAdd = [];
-        const lastRoomNumber = 204; // This should be fetched from the database in a real scenario
-
+        // const lastRoomNumber = 204; // This should be fetched from the database in a real scenario
+        const lastRoomNumberAsInt = parseInt(lastRoomNumber, 10); // Ensure lastRoomNumber is an integer
         for (let i = 0; i < numberOfRooms; i++) {
             roomsToAdd.push({
-                roomno: lastRoomNumber + i + 1, // Increment room number
+                roomno: lastRoomNumberAsInt + i + 1, // Increment room number
                 roomtype: roomTypeToAdd,
                 status: commonStatus,
                 rate: commonRate,
                 description: commonDescription,
-                images: selectedImages // Use the same images for all new rooms
+                images: selectedImages,
+                allowedGuests:allowedAdults,
+                allowedChildren:allowedChildren,
+                amenities:commonamenities,
+                // Use the same images for all new rooms
             });
         }
 
@@ -443,6 +510,45 @@ const RoomAdd = () => {
                             <TextField
                                 fullWidth
                                 variant="filled"
+                                type="number"
+                                label="Number of Allowed Adults"
+                                onBlur={handleBlur}
+                                onChange={(e) => setFieldValue('allowedGuests', e.target.value)}
+                                value={values.allowedGuests}
+                                name="allowedGuests"
+                                error={touched.allowedGuests && errors.allowedGuests}
+                                helperText={touched.allowedGuests && errors.allowedGuests}
+                                sx={{ gridColumn: "span 2" }}
+                            />
+                            <TextField
+                                fullWidth
+                                variant="filled"
+                                type="number"
+                                label="Number of Allowed Children"
+                                onBlur={handleBlur}
+                                onChange={(e) => setFieldValue('allowedChildren', e.target.value)}
+                                value={values.allowedChildren}
+                                name="allowedChildren"
+                                error={touched.allowedChildren && errors.allowedChildren}
+                                helperText={touched.allowedChildren && errors.allowedChildren}
+                                sx={{ gridColumn: "span 2" }}
+                            />
+                            <TextField
+                                fullWidth
+                                variant="filled"
+                                type="text"
+                                label="Amenities"
+                                onBlur={handleBlur}
+                                onChange={(e) => setFieldValue('amenities', e.target.value)}
+                                value={values.amenities}
+                                name="amenities"
+                                error={touched.amenities && errors.amenities}
+                                helperText={touched.amenities && errors.amenities}
+                                sx={{ gridColumn: "span 4" }}
+                            />
+                            <TextField
+                                fullWidth
+                                variant="filled"
                                 type="file"
                                 inputProps={{ multiple: true, accept: ".jpg, .jpeg, .png" }}
                                 label="Upload Images"
@@ -503,117 +609,184 @@ const RoomAdd = () => {
                             </Button>
                         </Box>
 
-                        {/* New Section for Adding Multiple Rooms */}
-                        <Box mt="40px" gap="30px" sx={{ border: '1px solid #ccc', padding: '20px', borderRadius: '5px' }}>
-                            <h3>Add Multiple Rooms</h3>
-                            <Select
-                                fullWidth
-                                variant="filled"
-                                value={roomTypeToAdd}
-                                onBlur={handleBlur}
-                                onChange={(e) => setRoomTypeToAdd(e.target.value)}
-                                displayEmpty
-                                name="roomTypeToAdd"
-                                sx={{ gridColumn: "span 2" }}
-                            >
-                                {roomTypes.map((type, index) => (
-                                    <MenuItem key={index} value={type}>
-                                        {type}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-
-                            <TextField
-                                fullWidth
-                                variant="filled"
-                                type="number"
-                                label="Number of Rooms"
-                                onBlur={handleBlur}
-                                onChange={(e) => setNumberOfRooms(e.target.value)}
-                                value={numberOfRooms}
-                                name="numberOfRooms"
-                                error={touched.numberOfRooms && errors.numberOfRooms}
-                                helperText={touched.numberOfRooms && errors.numberOfRooms}
-                                sx={{ gridColumn: "span 2" }}
-                            />
-
-                            <TextField
-                                fullWidth
-                                variant="filled"
-                                type="text"
-                                label="Rate"
-                                onBlur={handleBlur}
-                                onChange={(e) => setCommonRate(e.target.value)}
-                                value={commonRate}
-                                name="commonRate"
-                                error={touched.commonRate && errors.commonRate}
-                                helperText={touched.commonRate && errors.commonRate}
-                                sx={{ gridColumn: "span 2" }}
-                            />
-
-                            <Select
-                                fullWidth
-                                variant="filled"
-                                value={commonStatus}
-                                onBlur={handleBlur}
-                                onChange={(e) => setCommonStatus(e.target.value)}
-                                displayEmpty
-                                name="commonStatus"
-                                sx={{ gridColumn: "span 2" }}
-                            >
-                                {roomstatus.map((status, index) => (
-                                    <MenuItem key={index} value={status}>
-                                        {status}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-
-                            <TextField
-                                fullWidth
-                                variant="filled"
-                                type="text"
-                                label="Description"
-                                onBlur={handleBlur}
-                                onChange={(e) => setCommonDescription(e.target.value)}
-                                value={commonDescription}
-                                name="commonDescription"
-                                error={touched.commonDescription && errors.commonDescription}
-                                helperText={touched.commonDescription && errors.commonDescription}
-                                sx={{ gridColumn: "span 4" }}
-                            />
+                        
+                    </form>
+                )}
+            </Formik>
+            <h2>Add Multiple Rooms</h2>
+            <Formik
+                initialValues={initialValuesMultipleRooms}
+                validationSchema={multipleRoomsSchema}
+                onSubmit={handleMultipleRoomAdd}
+            >
+                {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
+                    <form onSubmit={handleSubmit}>
+                        <Box
+                            display="grid"
+                            gap="30px"
+                            gridTemplateColumns="repeat(4, minmax(0, 1fr))"
+                            sx={{
+                                "& > div": {
+                                    gridColumn: isNonMobile ? undefined : "span 4",
+                                },
+                            }}
+                        >
+                         <Select
+                            fullWidth
+                            variant="filled"
+                            value={values.roomTypeToAdd}
+                            onBlur={handleBlur}
+                            onChange={handleChange}
+                            displayEmpty
+                            name="roomTypeToAdd"
+                            sx={{ gridColumn: "span 2" }}
+                            renderValue={(selected) => {
+                                if (!selected) {
+                                    return <em>Select Room Type</em>;
+                                }
+                                return selected;
+                            }}
+                        >
+                            {roomTypes.map((type, index) => (
+                                <MenuItem key={index} value={type}>
+                                    {type}
+                                </MenuItem>
+                            ))}
+                        </Select>
 
                         <TextField
-                                fullWidth
-                                variant="filled"
-                                type="file"
-                                inputProps={{ multiple: true, accept: ".jpg, .jpeg, .png" }}
-                                label="Upload Images"
-                                onChange={handleImageUpload}
-                                name="images"
-                                error={touched.images && errors.images}
-                                helperText={touched.images && errors.images}
-                                sx={{ 
-                                    gridColumn: "span 4", 
-                                    '& .MuiInputLabel-root': { 
-                                      marginBottom: '10px' // Adjust this value for the desired gap
-                                    },
-                                    '& .MuiFilledInput-root': {
-                                      paddingTop: '30px', // Increase the padding to make space for the label
-                                    }
-                                  }}
-                                  InputLabelProps={{
-                                    shrink: true, // This keeps the label in the "shrunk" position
-                                  }}
-                            />
+                            name="numberOfRooms"
+                            label="Number of Rooms"
+                            type="number"
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            value={values.numberOfRooms}
+                            error={touched.numberOfRooms && Boolean(errors.numberOfRooms)}
+                            helperText={touched.numberOfRooms && errors.numberOfRooms}
+                            sx={{ gridColumn: "span 2" }}
+                        />
+                        <TextField
+                    fullWidth
+                    variant="filled"
+                    type="text"
+                    label="Rate"
+                    onBlur={handleBlur}
+                    onChange={handleChange}
+                    value={values.commonRate}
+                    name="commonRate"
+                    error={touched.commonRate && errors.commonRate}
+                    helperText={touched.commonRate && errors.commonRate}
+                    sx={{ gridColumn: "span 2" }}
+                />
 
-                            <Button
-                                type="button"
-                                color="secondary"
-                                variant="contained"
-                                onClick={handleAddMultipleRooms}
-                            >
-                                Add Multiple Rooms
-                            </Button>
+                {/* Add the Status field */}
+                <Select
+                    fullWidth
+                    variant="filled"
+                    value={values.commonStatus}
+                    onBlur={handleBlur}
+                    onChange={handleChange}
+                    displayEmpty
+                    name="commonStatus"
+                    sx={{ gridColumn: "span 2" }}
+                    renderValue={(selected) => {
+                        if (!selected) {
+                            return <em>Select Room Status</em>;
+                        }
+                        return selected;
+                    }}
+                >
+                    {roomstatus.map((status, index) => (
+                        <MenuItem key={index} value={status}>
+                            {status}
+                        </MenuItem>
+                    ))}
+                </Select>
+
+                {/* Add the Description field */}
+                <TextField
+                    fullWidth
+                    variant="filled"
+                    type="text"
+                    label="Description"
+                    onBlur={handleBlur}
+                    onChange={handleChange}
+                    value={values.commonDescription}
+                    name="commonDescription"
+                    error={touched.commonDescription && errors.commonDescription}
+                    helperText={touched.commonDescription && errors.commonDescription}
+                    sx={{ gridColumn: "span 4" }}
+                />
+
+                        <TextField
+                            name="allowedGuests"
+                            label="Allowed Guests"
+                            type="number"
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            value={values.allowedGuests}
+                            error={touched.allowedGuests && Boolean(errors.allowedGuests)}
+                            helperText={touched.allowedGuests && errors.allowedGuests}
+                            sx={{ gridColumn: "span 2" }}
+                        />
+
+                        <TextField
+                            name="allowedChildren"
+                            label="Allowed Children"
+                            type="number"
+                            onChange={handleChange}
+                            onBlur={handleBlur}
+                            value={values.allowedChildren}
+                            error={touched.allowedChildren && Boolean(errors.allowedChildren)}
+                            helperText={touched.allowedChildren && errors.allowedChildren}
+                            sx={{ gridColumn: "span 2" }}
+                        />
+
+                        <TextField
+                            fullWidth
+                            variant="filled"
+                            type="text"
+                            label="Amenities"
+                            onBlur={handleBlur}
+                            onChange={handleChange}
+                            value={values.commonamenities}
+                            name="commonamenities"
+                            error={touched.commonamenities && errors.commonamenities}
+                            helperText={touched.commonamenities && errors.commonamenities}
+                            sx={{ gridColumn: "span 4" }}
+                        />
+
+                        <TextField
+                            fullWidth
+                            variant="filled"
+                            type="file"
+                            inputProps={{ multiple: true, accept: ".jpg, .jpeg, .png" }}
+                            label="Upload Images"
+                            onChange={handleImageUpload}
+                            name="imagess"
+                            error={touched.imagess && errors.imagess}
+                            helperText={touched.imagess && errors.imagess}
+                            sx={{
+                                gridColumn: "span 4",
+                                '& .MuiInputLabel-root': {
+                                    marginBottom: '10px' // Adjust this value for the desired gap
+                                },
+                                '& .MuiFilledInput-root': {
+                                    paddingTop: '30px', // Increase the padding to make space for the label
+                                }
+                            }}
+                            InputLabelProps={{
+                                shrink: true, // This keeps the label in the "shrunk" position
+                            }}
+                        />
+
+                        <Button
+                            type="submit"
+                            color="secondary"
+                            variant="contained"
+                        >
+                            Add Multiple Rooms
+                        </Button>
                         </Box>
                     </form>
                 )}
