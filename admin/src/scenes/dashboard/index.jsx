@@ -24,19 +24,35 @@ import {
 import { tokens } from "../../theme";
 import { mockTransactions } from "../../data/mockData";
 import useAuth from "../../useAuth";
+import React, { useEffect, useState } from "react";
 
 function Dashboard() {
   useAuth();
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
+  const [userCount, setUserCount] = useState(0);
+  useEffect(() => {
+    const fetchUserCount = async () => {
+      try {
+        const response = await axios.get("http://localhost:3001/totalUsers");
+        setUserCount(response.data.count);
+      } catch (error) {
+        console.error("Error fetching user count:", error);
+      }
+    };
+
+    fetchUserCount();
+  }, []);
   const isXlDevices = useMediaQuery("(min-width: 1260px)");
   const isMdDevices = useMediaQuery("(min-width: 724px)");
   const isXsDevices = useMediaQuery("(max-width: 436px)");
+ 
+
   return (
     <Box m="20px">
       <Box display="flex" justifyContent="space-between">
         <Header title="DASHBOARD" subtitle="Welcome to your dashboard" />
-        {/* {/* {!isXsDevices && (
+         {!isXsDevices && (
           <Box>
             <Button
               variant="contained"
@@ -61,7 +77,7 @@ function Dashboard() {
       </Box>
 
       {/* GRID & CHARTS */}
-      {/* <Box
+      <Box
         display="grid"
         gridTemplateColumns={
           isXlDevices
@@ -74,7 +90,7 @@ function Dashboard() {
         gap="20px"
       >
         {/* Statistic Items */}
-        {/* <Box
+         <Box
           gridColumn="span 3"
           bgcolor={colors.primary[400]}
           display="flex"
@@ -82,8 +98,8 @@ function Dashboard() {
           justifyContent="center"
         >
           <StatBox
-            title="11,361"
-            subtitle="Email Sent"
+            title={userCount.toString()}
+            subtitle="Total Users"
             progress="0.75"
             increase="+14%"
             icon={
@@ -92,7 +108,7 @@ function Dashboard() {
               />
             }
           />
-        </Box> */}
+        </Box> 
         {/* <Box
           gridColumn="span 3"
           backgroundColor={colors.primary[400]}
@@ -149,7 +165,7 @@ function Dashboard() {
               />
             }
           /> */}
-        {/* </Box>  */}
+        </Box>
 
         {/* ---------------- Row 2 ---------------- */}
 
@@ -315,8 +331,8 @@ function Dashboard() {
           >
             <GeographyChart isDashboard={true} />
           </Box>
-        </Box> */} 
-      </Box>
+        </Box> 
+      </Box>*/} 
     </Box> 
   );
 }

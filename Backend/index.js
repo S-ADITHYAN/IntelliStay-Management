@@ -3201,11 +3201,39 @@ app.post('/addMultipleRooms', upiii, async (req, res) => {
   }
 });
 
+app.get('/feedbacks', async (req, res) => {
+  console.log("Fetching feedbacks...");
+  try {
+      const feedbacks = await FeedbackModel.find()
+          .populate('userId', 'displayName email') // Populate user details from GoogleRegisters
+          .populate('reservationId')
+          .sort({ submittedDate: -1 }) // Populate reservation details if needed
+          .exec();
+      console.log(feedbacks)
+      res.status(200).json(feedbacks);
+  } catch (error) {
+      console.error("Error fetching feedbacks:", error);
+      res.status(500).json({ message: 'An error occurred while fetching feedbacks.' });
+  }
+});
+
+app.get('/totalUsers', async (req, res) => {
+  try {
+    const userCount = await GoogleRegisterModel.countDocuments();
+    console.log(userCount)// Replace with your actual model
+    res.status(200).json({ count: userCount });
+  } catch (error) {
+    console.error("Error fetching user count:", error);
+    res.status(500).json({ message: 'An error occurred while fetching user count.' });
+  }
+});
 //admin section end
 app.use(express.static(path.join(__dirname, '../Frontend/dist')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../Frontend/dist/', 'index.html'));
 });
+
+
 
 app.listen(3001, () => {
     console.log("Server connected");

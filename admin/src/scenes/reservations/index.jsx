@@ -11,7 +11,9 @@ const Reservation = () => {
   useAuth();
   const theme = useTheme();
   const [rdetails, setRdetails] = useState([]);
+  const [todayReservations, setTodayReservations] = useState([]); // State for today's reservations
   const navigate = useNavigate();
+
   const resdetails = () => {
     axios.post('http://localhost:3001/resdetails')
       .then(res => {
@@ -48,6 +50,20 @@ const Reservation = () => {
     resdetails();
   }, []);
 
+  useEffect(() => {
+    // Filter today's reservations
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+    const todaysReservations = rdetails.filter(reservation => {
+      const checkInDate = new Date(reservation.check_in);
+      return checkInDate >= startOfDay && checkInDate <= endOfDay;
+    });
+
+    setTodayReservations(todaysReservations);
+  }, [rdetails]); // Run this effect whenever rdetails changes
+
   const isCancellationAllowed = (check_in) => {
     const checkInDate = new Date(check_in);
     const currentDate = new Date();
@@ -60,42 +76,38 @@ const Reservation = () => {
 
   return (
     <Box m="20px">
-      <Header title="Reservation Details" subtitle="List of Reserved Rooms and their Details" />
+      {/* Today's Reservations Table */}
+      <Header title="Today's Reservations" subtitle="List of Reservations for Today" />
       <Table>
         <TableHead sx={{ backgroundColor: '#00A36C' }}>
           <TableRow>
             <TableCell><strong>Guest Name</strong></TableCell>
             <TableCell><strong>Guest Email</strong></TableCell>
-            
             <TableCell><strong>Room Number</strong></TableCell>
             <TableCell><strong>Check-In Date</strong></TableCell>
             <TableCell><strong>Check-Out Date</strong></TableCell>
-            
             <TableCell><strong>Status</strong></TableCell>
             <TableCell><strong>Actions</strong></TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {rdetails.map((reservation) => (
+          {todayReservations.map((reservation) => (
             <TableRow key={reservation._id}>
-              {/* Check if user and room exist before accessing properties */}
               <TableCell>{reservation.user?.displayName || "N/A"}</TableCell>
               <TableCell>{reservation.user?.email || "N/A"}</TableCell>
-              
               <TableCell>{reservation.room?.roomno || "N/A"}</TableCell>
               <TableCell>{new Date(reservation.check_in).toLocaleDateString("en-GB")}</TableCell>
               <TableCell>{new Date(reservation.check_out).toLocaleDateString("en-GB")}</TableCell>
-              
               <TableCell>
-  <Typography
-    variant="body2"
-    style={{
-      color: reservation.status === "Cancelled" ? "red" : "green",
-    }}
-  >
-    {reservation.status === "checked_in" ? "Check-in Completed" : reservation.status}
-  </Typography>
-</TableCell>
+                <Typography
+                  variant="body2"
+                  style={{
+                    color: reservation.status === "Cancelled" ? "red" : "green",
+                  }}
+                >
+                  {reservation.status === "checked_in" ? "Check-in Completed" : reservation.status}
+                </Typography>
+              </TableCell>
               <TableCell>
                 <Button
                   variant="contained"
@@ -124,6 +136,67 @@ const Reservation = () => {
           ))}
         </TableBody>
       </Table>
+      <Header title="Reservation Details" subtitle="List of Reserved Rooms and their Details"   sx={{ mt: 2 }} />
+      <Table>
+        <TableHead sx={{ backgroundColor: '#00A36C' }}>
+          <TableRow>
+            <TableCell><strong>Guest Name</strong></TableCell>
+            <TableCell><strong>Guest Email</strong></TableCell>
+            <TableCell><strong>Room Number</strong></TableCell>
+            <TableCell><strong>Check-In Date</strong></TableCell>
+            <TableCell><strong>Check-Out Date</strong></TableCell>
+            <TableCell><strong>Status</strong></TableCell>
+            <TableCell><strong>Actions</strong></TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {rdetails.map((reservation) => (
+            <TableRow key={reservation._id}>
+              <TableCell>{reservation.user?.displayName || "N/A"}</TableCell>
+              <TableCell>{reservation.user?.email || "N/A"}</TableCell>
+              <TableCell>{reservation.room?.roomno || "N/A"}</TableCell>
+              <TableCell>{new Date(reservation.check_in).toLocaleDateString("en-GB")}</TableCell>
+              <TableCell>{new Date(reservation.check_out).toLocaleDateString("en-GB")}</TableCell>
+              <TableCell>
+                <Typography
+                  variant="body2"
+                  style={{
+                    color: reservation.status === "Cancelled" ? "red" : "green",
+                  }}
+                >
+                  {reservation.status === "checked_in" ? "Check-in Completed" : reservation.status}
+                </Typography>
+              </TableCell>
+              <TableCell>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={() => reservation.status === "reserved" && isCancellationAllowed(reservation.check_in) ? handleCancellation(reservation._id) : null}
+                  style={{
+                    backgroundColor: reservation.status === "reserved" ? "red" : "#ff6666",
+                    cursor: reservation.status === "reserved" && isCancellationAllowed(reservation.check_in) ? "pointer" : "not-allowed",
+                  }}
+                  disabled={reservation.status !== "reserved" || !isCancellationAllowed(reservation.check_in)} // Disable if not reserved or cancellation is not allowed
+                >
+                  {reservation.status === "Cancelled" ? "Cancelled" : "Cancel"}
+                </Button>
+
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  startIcon={<VisibilityIcon />}
+                  onClick={() => handleViewDetails(reservation._id)}
+                  style={{ marginLeft: "10px", marginTop: "5px" }}
+                >
+                  View Details
+                </Button>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+
+      
     </Box>
   );
 };

@@ -19,6 +19,7 @@ const Viewassignedjobs = () => {
   const colors = tokens(theme.palette.mode);
 
   const [jobdetails, setjobdetails] = useState([]);
+  const [todayJobs, setTodayJobs] = useState([]); // State for today's assigned jobs
   const [selectedJob, setSelectedJob] = useState(null);
   const [openModal, setOpenModal] = useState(false);
 
@@ -45,6 +46,20 @@ const Viewassignedjobs = () => {
   useEffect(() => {
     asjobdetails();
   }, []);
+
+  useEffect(() => {
+    // Filter today's assigned jobs
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+    const todaysJobs = jobdetails.filter(job => {
+      const taskDate = new Date(job.taskDate);
+      return taskDate >= startOfDay && taskDate <= endOfDay;
+    });
+
+    setTodayJobs(todaysJobs);
+  }, [jobdetails]); // Run this effect whenever jobdetails changes
 
   const columns = [
     { field: "_id", headerName: "Job_ID", flex: 0.5 },
@@ -99,7 +114,7 @@ const Viewassignedjobs = () => {
 
   return (
     <Box m="20px">
-      <Header title="Staff Details" subtitle="List of Staff's and their Details " />
+      <Header title="Assigned Jobs Details" subtitle="List of Staff's and their Details " />
       <Box
         mt="40px"
         height="75vh"
@@ -152,6 +167,60 @@ const Viewassignedjobs = () => {
         />
       </Box>
 
+      {/* Today's Assigned Jobs Table */}
+      <Header title="Today's Assigned Jobs" subtitle="List of Jobs Assigned Today" sx={{ mt: 4 }} />
+      <Box
+        mt="20px"
+        height="75vh"
+        maxWidth="100%"
+        sx={{
+          "& .MuiDataGrid-root": {
+            border: "none",
+          },
+          "& .MuiDataGrid-cell": {
+            border: "none",
+          },
+          "& .name-column--cell": {
+            color: colors.greenAccent[300],
+          },
+          "& .MuiDataGrid-columnHeaders": {
+            backgroundColor: colors.blueAccent[500],
+            borderBottom: "none",
+          },
+          "& .MuiDataGrid-virtualScroller": {
+            backgroundColor: colors.primary[400],
+          },
+          "& .MuiDataGrid-footerContainer": {
+            borderTop: "none",
+            backgroundColor: colors.blueAccent[500],
+          },
+          "& .MuiCheckbox-root": {
+            color: `${colors.greenAccent[200]} !important`,
+          },
+          "& .MuiDataGrid-iconSeparator": {
+            color: colors.primary[100],
+          },
+          "& .MuiDataGrid-toolbarContainer .MuiButton-text": {
+            color: `${colors.gray[300]} !important`,
+          },
+        }}
+      >
+        <DataGrid
+          rows={todayJobs}
+          columns={columns}
+          getRowId={(row) => row._id}
+          components={{ Toolbar: GridToolbar }}
+          initialState={{
+            pagination: {
+              paginationModel: {
+                pageSize: 10,
+              },
+            },
+          }}
+          checkboxSelection
+        />
+      </Box>
+
       {/* Modal for Job Details */}
       <Modal
         open={openModal}
@@ -159,22 +228,21 @@ const Viewassignedjobs = () => {
         aria-labelledby="modal-title"
         aria-describedby="modal-description"
       >
-       <Box
-  sx={{
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
-    width: 1080, // Increase width
-    maxHeight: '80vh', // Optional: Set a maximum height
-    overflowY: 'auto', // Optional: Allow scrolling if content overflows
-    bgcolor: "background.paper",
-    border: "2px solid #000",
-    boxShadow: 24,
-    p: 4,
-  }}
->
-        
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            width: 1080, // Increase width
+            maxHeight: '80vh', // Optional: Set a maximum height
+            overflowY: 'auto', // Optional: Allow scrolling if content overflows
+            bgcolor: "background.paper",
+            border: "2px solid #000",
+            boxShadow: 24,
+            p: 4,
+          }}
+        >
           {selectedJob && (
             <>
               <Typography id="modal-title" variant="h6" component="h2">
@@ -195,9 +263,9 @@ const Viewassignedjobs = () => {
                 <br />
                 <strong>Staff Email:</strong> {selectedJob.staffEmail}
                 <br />
-                <strong>maintenanceRequired:</strong> {selectedJob.maintenanceRequired?selectedJob.maintenanceRequired:'job not completed'}
+                <strong>Maintenance Required:</strong> {selectedJob.maintenanceRequired ? selectedJob.maintenanceRequired : 'Job not completed'}
                 <br />
-                <strong>completedAt:</strong> {selectedJob.completedAt?selectedJob.completedAt:'job not completed'}
+                <strong>Completed At:</strong> {selectedJob.completedAt ? selectedJob.completedAt : 'Job not completed'}
                 <br />
                 {/* Display Images */}
                 {selectedJob.photos && selectedJob.photos.length > 0 && (
@@ -207,7 +275,7 @@ const Viewassignedjobs = () => {
                       {selectedJob.photos.map((photo, index) => (
                         <img
                           key={index}
-                          src={ `http://localhost:3001/cleanedrooms/${photo}` }
+                          src={`http://localhost:3001/cleanedrooms/${photo}`}
                           alt={`Job Image ${index}`}
                           style={{ width: '500px', height: 'auto', borderRadius: '5px' }} // Adjust size as needed
                         />

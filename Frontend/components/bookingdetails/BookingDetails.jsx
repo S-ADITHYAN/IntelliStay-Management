@@ -215,7 +215,7 @@ const BookingDetails = () => {
 
   const handleFeedbackSubmit = async () => {
     try {
-      const response = await axios.post('${import.meta.env.VITE_API}/feedback', {
+      const response = await axios.post(`${import.meta.env.VITE_API}/feedback`, {
         reservationId: reservation._id,
         hotelRating,
         roomRating,
