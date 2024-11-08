@@ -21,7 +21,7 @@ import ManualJobAssignment from "./jobassignment/jobassignment";
 import AttendanceMark from "./AttendenceMark/AttendenceMark";
 import ViewLeaveApplications from "./leaveapllications/ViewLeaveApplications";
 import ReservationDetails from "./reservationdetails";
-
+import ViewFeedback from "./viewfeedback/viewfeedback";
 
 export {
   Navbar,
@@ -32,6 +32,7 @@ export {
   Roomadd,
   Showroom,
   Reservation,
+  ViewFeedback,
   ViewLeaveApplications,
   ManualJobAssignment,
   AttendanceMark,

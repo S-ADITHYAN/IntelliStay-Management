@@ -191,6 +191,12 @@ const SideBar = () => {
             colors={colors}
             icon={<PeopleAltOutlined />}
           />
+          <Item
+            title="view Feedbacks"
+            path="/admindashboard/viewfeedback"
+            colors={colors}
+            icon={<PeopleAltOutlined />}
+          />
           {/* <Item
             title="Manage Team"
             path="/admindashboard/team"

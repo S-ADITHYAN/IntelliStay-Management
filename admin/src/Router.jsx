@@ -21,6 +21,7 @@ import {
   Pie,
   FAQ,
   Geography,
+  ViewFeedback,
   Calendar,
   Stream,
 } from "./scenes";
@@ -54,6 +55,7 @@ const AppRouter = () => {
           <Route path="/admindashboard/line" element={<Line />} />
           <Route path="/admindashboard/faq" element={<FAQ />} />
           <Route path="/admindashboard/geography" element={<Geography />} />
+          <Route path="/admindashboard/viewfeedback" element={<ViewFeedback />} />
         </Route>
         
       </Routes>
