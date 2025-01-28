@@ -2,6 +2,7 @@ import React, { useEffect,useState } from 'react';
 import './home.css';
 import Checkin from '../components/checkin';
 import Header from '../components/Header';
+import Chatbot from '../components/Chatbot/Chatbot';
 import logo from '../public/logo1.png';
 import about from './assets/about.jpg';
 import room1 from './assets/room-1.jpg';
@@ -20,6 +21,7 @@ function Home() {
   
   const navigate = useNavigate();
   const [rooms, setRooms] = useState([]);
+  const [showChatbot, setShowChatbot] = useState(false);
 
   const handleSeeDetails = (room) => {
     // Navigate to RoomInfo page with room data
@@ -29,7 +31,6 @@ function Home() {
         } 
     });
 };
-
 
   useEffect(() => {
     const menuBtn = document.getElementById("menu-btn");
@@ -100,7 +101,7 @@ function Home() {
     });
 
     // Cleanup listeners on component unmount
-    axios.post(`${import.meta.env.VITE_API}/rooms-details`)
+    axios.post(`${import.meta.env.VITE_API}/user/rooms-details`)
   .then(res => {
     if (res.status === 200) {
       const { availableRooms, message } = res.data; // Destructure the response
@@ -118,18 +119,34 @@ function Home() {
   .catch(err => {
     console.error("Error", err);
   });
-
-
-    return () => {
-      menuBtn.removeEventListener("click", toggleMenu);
-      navLinks.removeEventListener("click", () => {});
-    };
   }, []);
-  
+  useEffect(() => {
+    // Show chatbot after 3 seconds of page load
+    const chatbotTimer = setTimeout(() => {
+      setShowChatbot(true);
+    }, 3000);
+
+    return () => clearTimeout(chatbotTimer);
+  }, []);
+
+  useEffect(() => {
+    // Add this to hide chatbot on specific scroll positions if needed
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      if (scrollPosition > 3000) { // Adjust this value based on your needs
+        setShowChatbot(false);
+      } else {
+        setShowChatbot(true);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   
   return (
-    <div>
+    <div className="home-container">
       <header className="header">
         <Header />
         <div className="section__container header__container" id="home">
@@ -292,6 +309,12 @@ function Home() {
           Copyright © 2024 INTELLISTAY Pvt.LTD. All rights reserved.
         </div>
       </footer>
+
+      {showChatbot && (
+        <div className="chatbot-wrapper">
+          <Chatbot />
+        </div>
+      )}
     </div>
   );
 }

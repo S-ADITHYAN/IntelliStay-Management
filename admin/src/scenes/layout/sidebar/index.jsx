@@ -246,6 +246,12 @@ const SideBar = () => {
             colors={colors}
             icon={<PersonOutlined />}
           />
+          <Item
+            title="Restaurant"
+            path="/admindashboard/restaurant"
+            colors={colors}
+            icon={<BarChartOutlined />}
+          />
           {/* <Item
             title="Calendar"
             path="/admindashboard/calendar"

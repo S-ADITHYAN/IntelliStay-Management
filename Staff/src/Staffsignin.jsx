@@ -22,7 +22,7 @@ function StaffSignin() {
   
   const handleForgotPassword = (e) => {
     e.preventDefault();
-    axios.post('http://localhost:3001/staff-send-otp', { email: resetPasswordData.emailReset })
+    axios.post(`${import.meta.env.VITE_API}/staff/staff-send-otp`, { email: resetPasswordData.emailReset })
       .then(res => {
         if (res.status === 200) {
           setOtpSent(true);
@@ -39,7 +39,7 @@ function StaffSignin() {
   const handleVerifyOtp = (e) => {
     e.preventDefault();
     console.log(resetPasswordData);
-    axios.post('http://localhost:3001/staff-verify', { email: resetPasswordData.emailReset, otp: resetPasswordData.otp })
+    axios.post(`${import.meta.env.VITE_API}/staff/staff-verify`, { email: resetPasswordData.emailReset, otp: resetPasswordData.otp })
       .then(res => {
         if (res.status === 200) {
           setOtpVerified(true);
@@ -61,7 +61,7 @@ function StaffSignin() {
       Swal.fire('Passwords do not match!');
       return;
     }
-    axios.post('http://localhost:3001/staff-reset-password', { email: resetPasswordData.emailReset, password: resetPasswordData.newPassword,token:verifytoken })
+    axios.post(`${import.meta.env.VITE_API}/staff/staff-reset-password`, { email: resetPasswordData.emailReset, password: resetPasswordData.newPassword,token:verifytoken })
       .then(res => {
         if (res.status === 200) {
           Swal.fire('Password reset successfully.');
@@ -106,7 +106,7 @@ function StaffSignin() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    axios.post('http://localhost:3001/stafflogin', { ...formData })
+    axios.post(`${import.meta.env.VITE_API}/staff/stafflogin`, { ...formData })
       .then(res => {
         if (res.data.message === 'success') {
           localStorage.setItem('token', res.data.token);
@@ -150,7 +150,7 @@ function StaffSignin() {
                 name="passwordsign"
                 placeholder="Password"
                 value={formData.passwordsign}
-                pattern="^(?=.*[a-zA-Z])(?=.*\d)(?=.*[^a-zA-Z\d])([a-zA-Z\d[^a-zA-Z\d]]{6,50})$"
+                // pattern="^(?=.*[a-zA-Z])(?=.*\d)(?=.*[^a-zA-Z\d])([a-zA-Z\d[^a-zA-Z\d]]{6,50})$"
                 onChange={handleChange}
                 onBlur={() => setFocus({ ...focus, errPasswordsign: true })}
                 focus={focus.errPasswordsign.toString()}

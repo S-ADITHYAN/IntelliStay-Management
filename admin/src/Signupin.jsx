@@ -32,7 +32,7 @@ function Signin() {
 
   const handleLogin = (e) => {
     e.preventDefault();
-    axios.post('http://localhost:3001/Adminlogin', { ...formData })
+    axios.post('http://localhost:3001/admin/Adminlogin', { ...formData })
       .then(res => {
         if (res.status === 200) {
           localStorage.setItem('token', res.data.token);

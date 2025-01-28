@@ -43,7 +43,7 @@ function SavedGuest() {
           return;
         }
 
-        const response = await axios.get(`${import.meta.env.VITE_API}/saved-guests/${userId}`);
+        const response = await axios.get(`${import.meta.env.VITE_API}/user/saved-guests/${userId}`);
         if (response.status === 200) {
           setSavedGuests(response.data);
           setFilteredGuests(response.data);
@@ -191,7 +191,7 @@ function SavedGuest() {
     }
 
     try {
-      const response = await axios.put(`${import.meta.env.VITE_API}/update-guest/${editedGuest._id}`, editedGuest);
+      const response = await axios.put(`${import.meta.env.VITE_API}/user/update-guest/${editedGuest._id}`, editedGuest);
       if (response.status === 200) {
         setSavedGuests(prevGuests => 
           prevGuests.map(guest => guest._id === editedGuest._id ? editedGuest : guest)

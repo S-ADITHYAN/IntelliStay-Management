@@ -30,7 +30,7 @@ const Viewjobs = () => {
         const decodedToken = jwtDecode(token);
         setUserData(decodedToken);
 
-        axios.post(`http://localhost:3001/asjobdetails/${decodedToken._id}`)
+        axios.post(`${import.meta.env.VITE_API}/staff/asjobdetails/${decodedToken._id}`)
           .then((res) => setJobDetails(res.data))
           .catch((err) => console.error(err));
       } catch (error) {
@@ -41,7 +41,7 @@ const Viewjobs = () => {
 
   // Function to fetch job detail by ID
   const fetchJobDetail = (jobId) => {
-    axios.get(`http://localhost:3001/jobdetail/${jobId}`)
+    axios.get(`${import.meta.env.VITE_API}/staff/jobdetail/${jobId}`)
       .then((res) => {
         setSelectedJobDetail(res.data);
         setOpenDetailModal(true);
@@ -50,7 +50,7 @@ const Viewjobs = () => {
   };
 
   const handlePickJob = (jobId) => {
-    axios.post("http://localhost:3001/pickJob", { jobId })
+    axios.post(`${import.meta.env.VITE_API}/staff/pickJob`, { jobId })
       .then((res) => {
         Swal.fire("Job picked successfully!");
         updateJobDetails();
@@ -79,7 +79,7 @@ const Viewjobs = () => {
     });
     formData.append("maintenanceRequired", maintenanceRequired);
 
-    axios.post("http://localhost:3001/completeJob", formData)
+    axios.post(`${import.meta.env.VITE_API}/staff/completeJob`, formData)
       .then((res) => {
         Swal.fire("Job completed successfully!");
         setOpenModal(false);
@@ -93,7 +93,7 @@ const Viewjobs = () => {
     const token = localStorage.getItem("token");
     if (token) {
       const decodedToken = jwtDecode(token);
-      axios.post(`http://localhost:3001/asjobdetails/${decodedToken._id}`)
+      axios.post(`${import.meta.env.VITE_API}/staff/asjobdetails/${decodedToken._id}`)
         .then((res) => setJobDetails(res.data))
         .catch((err) => console.error(err));
     }
@@ -275,7 +275,7 @@ const Viewjobs = () => {
         <Typography><strong>Maintenance Required:</strong> {selectedJobDetail.maintenanceRequired}</Typography>
         <Typography><strong>Completed At:</strong> {selectedJobDetail.completedAt || "N/A"}</Typography>
         {selectedJobDetail.photos && selectedJobDetail.photos.map((photo, index) => (
-          <img key={index} src={`http://localhost:3001/cleanedrooms/${photo}`} alt={`Job photo ${index + 1}`} style={{ width: "80%", marginTop: "10px" }} />
+          <img key={index} src={`${import.meta.env.VITE_API}/cleanedrooms/${photo}`} alt={`Job photo ${index + 1}`} style={{ width: "80%", marginTop: "10px" }} />
         ))}
       </Box>
     )}

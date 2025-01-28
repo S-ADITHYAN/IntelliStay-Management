@@ -18,7 +18,7 @@ const Viewassignedjobs = () => {
     const [jobdetails, setjobdetails] = useState([]);
   
     const asjobdetails = () => {
-      axios.post('http://localhost:3001/asjobdetails')
+      axios.post(`${import.meta.env.VITE_API}/staff/asjobdetails`)
         .then(res => {
           console.log(res.data);
           setjobdetails(res.data);
@@ -28,7 +28,7 @@ const Viewassignedjobs = () => {
 
     const handleCancellation = (id) => {
         // Handle maintenance action
-        axios.post('http://localhost:3001/handleCancellation',{ id })
+        axios.post(`${import.meta.env.VITE_API}/staff/handleCancellation`,{ id })
           .then(res => {
            
             Swal.fire(res.data);

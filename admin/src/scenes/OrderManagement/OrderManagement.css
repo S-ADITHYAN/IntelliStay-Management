@@ -1,0 +1,230 @@
+.order-management {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.order-controls {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-bar {
+  position: relative;
+  width: 300px;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 0.8rem 1rem 0.8rem 2.5rem;
+  border: 1px solid #ddd;
+  border-radius: 25px;
+  font-size: 0.9rem;
+}
+
+.search-bar svg {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.filters select {
+  padding: 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+}
+
+.orders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+.order-card {
+  background: white;
+  border-radius: 15px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.order-card .order-header {
+  background: #f8f9fa;
+  padding: 1rem;
+  margin-bottom: 0;
+}
+
+.status-badge {
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.status-badge.pending {
+  background: #fff3e0;
+  color: #f57c00;
+}
+
+.status-badge.preparing {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.status-badge.ready {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.status-badge.delivered {
+  background: #e0f2f1;
+  color: #00897b;
+}
+
+.status-badge.cancelled {
+  background: #ffebee;
+  color: #d32f2f;
+}
+
+.order-info {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+}
+
+.order-info p {
+  margin: 0.5rem 0;
+  color: #666;
+}
+
+.order-items {
+  padding: 1rem;
+}
+
+.order-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.item-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.special-instructions {
+  margin-top: 4px;
+  padding-left: 20px;
+}
+
+.instruction-text {
+  font-size: 0.9rem;
+  color: #666;
+  font-style: italic;
+}
+
+/* Add hover effect */
+.order-item:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .special-instructions {
+    padding-left: 12px;
+  }
+  
+  .instruction-text {
+    font-size: 0.85rem;
+  }
+}
+
+.order-total {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-top: 1px solid #eee;
+}
+
+.order-actions {
+  padding: 1rem;
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.order-actions button {
+  flex: 1;
+  padding: 0.8rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.start-btn {
+  background: #e8f5e9;
+  color: #388e3c;
+}
+
+.ready-btn {
+  background: #e3f2fd;
+  color: #1976d2;
+}
+
+.deliver-btn {
+  background: #e0f2f1;
+  color: #00897b;
+}
+
+.print-btn {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.loading,
+.no-orders {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+@media (max-width: 768px) {
+  .order-management {
+    padding: 1rem;
+  }
+
+  .order-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .order-controls {
+    flex-direction: column;
+  }
+
+  .search-bar {
+    width: 100%;
+  }
+
+  .orders-grid {
+    grid-template-columns: 1fr;
+  }
+} 

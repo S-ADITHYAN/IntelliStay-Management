@@ -191,7 +191,7 @@ const handleOtpSubmit = () => {
 
 const handleLogin=(e)=>{
     e.preventDefault()
-    axios.post(`${import.meta.env.VITE_API}/login`,{...formData})
+    axios.post(`${import.meta.env.VITE_API}/user/login`,{...formData})
     .then(res => {console.log(res.data)
       
         if(res.data.message === 'success'){
@@ -230,7 +230,7 @@ const signInWithGoogle = () => {
        
 
 
-        axios.post(`${import.meta.env.VITE_API}/authWithGoogle`, fields).then((res) => {
+        axios.post(`${import.meta.env.VITE_API}/user/authWithGoogle`, fields).then((res) => {
           try {
             if (res.status === 200) {
               localStorage.setItem("token", res.data.token);

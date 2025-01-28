@@ -73,7 +73,7 @@ const Form = () => {
  
   const handleFormSubmit = (values, { resetForm }) => {
     console.log(values);
-    axios.post('http://localhost:3001/staffregister', values)
+    axios.post(`${import.meta.env.VITE_API}/staff/staffregister`, values)
       .then(res => {
         console.log(res);
         if (res.data === "exists") {
@@ -192,7 +192,7 @@ const validateAndUploadStaffs = async (staffs) => {
     } else {
         // No validation errors, proceed to bulk upload
         try {
-            await axios.post('http://localhost:3001/uploadBulkStaffData', validatedStaffs);
+            await axios.post(`${import.meta.env.VITE_API}/staff/uploadBulkStaffData`, validatedStaffs);
             Swal.fire("Success", "Bulk staff details uploaded successfully!", "success");
         } catch (error) {
             Swal.fire("Error", "Failed to upload bulk data. Please try again.", "error");

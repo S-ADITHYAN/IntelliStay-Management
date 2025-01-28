@@ -25,16 +25,22 @@ import { tokens } from "../../theme";
 import { mockTransactions } from "../../data/mockData";
 import useAuth from "../../useAuth";
 import React, { useEffect, useState } from "react";
+import axios from 'axios';
+import { People } from "@mui/icons-material"; 
+import EventAvailable from "@mui/icons-material/EventAvailable"; // Import the leave icon// Import the People icon
 
 function Dashboard() {
   useAuth();
   const theme = useTheme();
   const colors = tokens(theme.palette.mode);
   const [userCount, setUserCount] = useState(0);
+  const [leaveCount, setLeaveCount] = useState(0);
+  const [leaveStaff, setLeaveStaff] = useState([]); // State to hold staff on leave
+
   useEffect(() => {
     const fetchUserCount = async () => {
       try {
-        const response = await axios.get("http://localhost:3001/totalUsers");
+        const response = await axios.get(`${import.meta.env.VITE_API}/admin/totalUsers`);
         setUserCount(response.data.count);
       } catch (error) {
         console.error("Error fetching user count:", error);
@@ -42,11 +48,32 @@ function Dashboard() {
     };
 
     fetchUserCount();
+
+    const fetchLeaveCount = async () => {
+      try {
+        const response = await axios.get(`${import.meta.env.VITE_API}/admin/todayLeaveCount`);
+        setLeaveCount(response.data.count || 0); // Fallback to 0 if count is undefined
+        setLeaveStaff(response.data.staff || []); // Fallback to empty array if staff is undefined // Set staff on leave
+      } catch (error) {
+        console.error("Error fetching leave count:", error);
+        setError("Failed to fetch leave count."); // Set error message
+      }
+    };
+
+    fetchLeaveCount();
   }, []);
+
   const isXlDevices = useMediaQuery("(min-width: 1260px)");
   const isMdDevices = useMediaQuery("(min-width: 724px)");
   const isXsDevices = useMediaQuery("(max-width: 436px)");
- 
+  // Example dynamic values for progress and increase
+  const previousUserCount = 100; // This should be fetched or calculated based on your logic
+  const increase = userCount - previousUserCount; // Calculate increase
+  const progress = userCount / (previousUserCount + userCount); // Calculate progress as a fraction
+  const handleLeaveClick = () => {
+    // Display the staff on leave (you can implement a modal or a dialog)
+    alert(`Staff on leave today:\n${leaveStaff.map(staff => staff.staff_id).join(', ')}`);
+  };
 
   return (
     <Box m="20px">
@@ -54,7 +81,7 @@ function Dashboard() {
         <Header title="DASHBOARD" subtitle="Welcome to your dashboard" />
          {!isXsDevices && (
           <Box>
-            <Button
+            {/* <Button
               variant="contained"
               sx={{
                 bgcolor: colors.blueAccent[700],
@@ -71,7 +98,7 @@ function Dashboard() {
               startIcon={<DownloadOutlined />}
             >
               DOWNLOAD REPORTS
-            </Button>
+            </Button> */}
           </Box>
         )}
       </Box>
@@ -100,35 +127,38 @@ function Dashboard() {
           <StatBox
             title={userCount.toString()}
             subtitle="Total Users"
-            progress="0.75"
-            increase="+14%"
-            icon={
-              <Email
-                sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-              />
+            progress={progress.toString()}
+            increase={`+${increase}`}
+              icon={
+                <People // Change icon to People
+                  sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
+                />
+              
             }
           />
         </Box> 
-        {/* <Box
+        <Box
           gridColumn="span 3"
           backgroundColor={colors.primary[400]}
           display="flex"
           alignItems="center"
           justifyContent="center"
+          onClick={handleLeaveClick}
+          style={{ cursor: 'pointer' }}
         >
           <StatBox
-            title="431,225"
-            subtitle="Sales Obtained" */}
-            {/* progress="0.50"
-            increase="+21%"
+            title={leaveCount.toString()}
+            subtitle="Staff leave on today" 
+            // progress="0.50"
+            // increase="+21%"
             icon={
-              <PointOfSale
-                sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-              />
+              <EventAvailable // Change icon to EventAvailable (leave icon)
+              sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
+            />
             }
           />
-        </Box>
-        <Box
+         </Box>
+        {/*<Box
           gridColumn="span 3"
           backgroundColor={colors.primary[400]}
           display="flex"

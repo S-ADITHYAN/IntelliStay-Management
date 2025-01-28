@@ -102,7 +102,7 @@ const RoomAdd = () => {
         const fetchLastRoomNumber = async () => {
             if (roomTypeToAdd) {
                 try {
-                    const response = await axios.get(`http://localhost:3001/lastRoomNumber/${roomTypeToAdd}`);
+                    const response = await axios.get(`${import.meta.env.VITE_API}/admin/lastRoomNumber/${roomTypeToAdd}`);
                     setLastRoomNumber(response.data.lastRoomNumber);
                 } catch (error) {
                     console.error("Error fetching last room number:", error);
@@ -129,7 +129,7 @@ const RoomAdd = () => {
         }
 
         console.log(values);
-        axios.post('http://localhost:3001/addroom', formData, {
+        axios.post(`${import.meta.env.VITE_API}/admin/addroom`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data'
             }
@@ -241,7 +241,7 @@ const RoomAdd = () => {
         } else {
             // No validation errors, proceed to bulk upload
             try {
-                await axios.post('http://localhost:3001/uploadBulkData', validatedRooms);
+                await axios.post(`${import.meta.env.VITE_API}/admin/uploadBulkData`, validatedRooms);
                 Swal.fire("Success", "Bulk data uploaded successfully!", "success");
             } catch (error) {
                 Swal.fire("Error", "Failed to upload bulk data. Please try again.", "error");
@@ -309,7 +309,7 @@ const RoomAdd = () => {
             // Make an API call to add multiple rooms
            
             
-            const response = await axios.post('http://localhost:3001/addMultipleRooms', formData, {
+            const response = await axios.post(`${import.meta.env.VITE_API}/admin/addMultipleRooms`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data'
                 }

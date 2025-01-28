@@ -28,7 +28,7 @@ function Rooms() {
   const [filteredRooms, setFilteredRooms] = useState([]);
 
   const checkrooms = () => {
-    axios.post(`${import.meta.env.VITE_API}/checkrooms`, { searchdata })
+    axios.post(`${import.meta.env.VITE_API}/user/checkrooms`, { searchdata })
       .then(res => {
         if (res.status === 200) {
           const { availableRooms, roomsNeeded, roomsAvailable, message } = res.data;

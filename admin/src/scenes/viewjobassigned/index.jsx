@@ -25,7 +25,7 @@ const Viewassignedjobs = () => {
 
   const asjobdetails = () => {
     axios
-      .post("http://localhost:3001/asjobdetails")
+      .post(`${import.meta.env.VITE_API}/admin/asjobdetails`)
       .then((res) => {
         console.log(res.data);
         setjobdetails(res.data);
@@ -275,7 +275,7 @@ const Viewassignedjobs = () => {
                       {selectedJob.photos.map((photo, index) => (
                         <img
                           key={index}
-                          src={`http://localhost:3001/cleanedrooms/${photo}`}
+                          src={`${import.meta.env.VITE_API}/cleanedrooms/${photo}`}
                           alt={`Job Image ${index}`}
                           style={{ width: '500px', height: 'auto', borderRadius: '5px' }} // Adjust size as needed
                         />

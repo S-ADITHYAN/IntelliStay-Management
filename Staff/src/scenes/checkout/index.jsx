@@ -12,7 +12,7 @@ const Checkout = () => {
   useEffect(() => {
     const fetchReservations = async () => {
       try {
-        const response = await axios.get("http://localhost:3001/reservations/todays-checkouts");
+        const response = await axios.get(`${import.meta.env.VITE_API}/staff/reservations/todays-checkouts`);
         setReservations(response.data);
       } catch (error) {
         console.error("Error fetching reservations", error);
@@ -26,7 +26,7 @@ const Checkout = () => {
   // Handle checkout
   const handleCheckout = async (reservationId) => {
     try {
-      await axios.put(`http://localhost:3001/reservations/checkout/${reservationId}`);
+      await axios.put(`${import.meta.env.VITE_API}/staff/reservations/checkout/${reservationId}`);
       setReservations((prevState) =>
         prevState.map((reservation) =>
           reservation._id === reservationId

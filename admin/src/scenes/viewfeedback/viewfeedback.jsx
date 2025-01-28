@@ -13,7 +13,7 @@ const ViewFeedback = () => {
 
     const fetchFeedbacks = async () => {
         try {
-            const response = await axios.get('http://localhost:3001/feedbacks');
+            const response = await axios.get(`${import.meta.env.VITE_API}/admin/feedbacks`);
             console.log("API Response:", response.data); // Log the response // Adjust the endpoint as necessary
             setFeedbacks(response.data);
         } catch (err) {

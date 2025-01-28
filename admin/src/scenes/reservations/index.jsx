@@ -15,7 +15,7 @@ const Reservation = () => {
   const navigate = useNavigate();
 
   const resdetails = () => {
-    axios.post('http://localhost:3001/resdetails')
+    axios.post(`${import.meta.env.VITE_API}/admin/resdetails`)
       .then(res => {
         setRdetails(res.data);
       })
@@ -34,7 +34,7 @@ const Reservation = () => {
       cancelButtonText: 'No, keep it'
     }).then((result) => {
       if (result.isConfirmed) {
-        axios.post('http://localhost:3001/handleCancellation', { id })
+        axios.post(`${import.meta.env.VITE_API}/admin/handleCancellation`, { id })
           .then(res => {
             Swal.fire('Cancelled!', res.data, 'success');
             resdetails(); // Refresh reservation details

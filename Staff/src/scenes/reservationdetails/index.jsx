@@ -36,7 +36,7 @@ const ReservationDetails = () => {
       setError(null); // Reset any previous error state
 
       try {
-        const response = await axios.get(`http://localhost:3001/user-booking/${id}`);
+        const response = await axios.get(`${import.meta.env.VITE_API}/staff/user-booking/${id}`);
 
         if (response.status === 200) {
           setBookingDetails(response.data); // response.data contains reservation, room, and guests
@@ -122,7 +122,7 @@ const ReservationDetails = () => {
       if (result.isConfirmed) {
         try {
            
-          const response = await axios.post(`http://localhost:3001/user-bookings/cancel/${reservation._id}`);
+          const response = await axios.post(`${import.meta.env.VITE_API}/staff/user-bookings/cancel/${reservation._id}`);
           Swal.fire('Cancelled!', response.data.message, 'success');
           setRefresh(prev => !prev);
         } catch (error) {
@@ -169,7 +169,7 @@ const ReservationDetails = () => {
         formData.append('proofDocument', file);
   
         try {
-          const response = await axios.post(`http://localhost:3001/user-guests-proofupdate/${guestId}`, formData, {
+          const response = await axios.post(`${import.meta.env.VITE_API}/staff/user-guests-proofupdate/${guestId}`, formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
@@ -328,7 +328,7 @@ const ReservationDetails = () => {
                       <Button onClick={handlePrevImage} style={{ position: "absolute", left: 0 }}>&lt;</Button>
                       <Box
                         component="img"
-                        src={`http://localhost:3001/uploads/${room.images[currentImageIndex]}`}
+                        src={`${import.meta.env.VITE_API}/uploads/${room.images[currentImageIndex]}`}
                         alt={`Room Image ${currentImageIndex + 1}`}
                         style={{
                           width: "500px", // Adjust size as needed
@@ -346,7 +346,7 @@ const ReservationDetails = () => {
                         <Box key={index} mb={1} mr={1}>
                           <Box
                             component="img"
-                            src={`http://localhost:3001/uploads/${image}`}
+                            src={`${import.meta.env.VITE_API}/uploads/${image}`}
                             alt={`Room Thumbnail ${index + 1}`}
                             style={{
                               width: "60px",
@@ -384,7 +384,7 @@ const ReservationDetails = () => {
           {guest.proofDocument && guest.proofDocument.length > 0 ? (
             <Box key={guest._id} mb={2}>
               <Avatar
-                src={`http://localhost:3001/profdocs/${guest.proofDocument}`}
+                src={`${import.meta.env.VITE_API}/profdocs/${guest.proofDocument}`}
                 alt={`Document ${guest._id + 1}`}
                 style={{ width: "100px", height: "100px", cursor: "pointer" }}
                 onClick={() => handleOpenModal(guest.proofDocument, "proof")}
@@ -521,7 +521,7 @@ const ReservationDetails = () => {
               <Typography variant="h6" gutterBottom>Room Image</Typography>
               <Box
                 component="img"
-                src={`http://localhost:3001/uploads/${currentDocument}`}
+                src={`${import.meta.env.VITE_API}/uploads/${currentDocument}`}
                 alt="Room"
                 style={{
                   width: `${zoomLevel * 100}%`, // Adjust width based on zoom level
@@ -546,7 +546,7 @@ const ReservationDetails = () => {
               <Typography variant="h6" gutterBottom>Proof Document</Typography>
               <Box
                 component="img"
-                src={`http://localhost:3001/profdocs/${currentDocument}`}
+                src={`${import.meta.env.VITE_API}/profdocs/${currentDocument}`}
                 alt="Proof Document"
                 style={{
                   width: `${zoomLevel * 100}%`, // Adjust width based on zoom level

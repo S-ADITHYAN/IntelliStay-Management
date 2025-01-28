@@ -18,7 +18,7 @@ const Viewstaff = () => {
     const [stafdetails, setstafdetails] = useState([]);
   
     const staffdetails = () => {
-      axios.post('http://localhost:3001/staffdetails')
+      axios.post(`${import.meta.env.VITE_API}/admin/staffdetails`)
         .then(res => {
           console.log(res.data);
           setstafdetails(res.data);
@@ -28,7 +28,7 @@ const Viewstaff = () => {
 
     const handleCancellation = (id) => {
         // Handle maintenance action
-        axios.post('http://localhost:3001/handleCancellation',{ id })
+        axios.post(`${import.meta.env.VITE_API}/admin/handleCancellation`,{ id })
           .then(res => {
            
             Swal.fire(res.data);

@@ -9,7 +9,9 @@ import {
     MenuItem,
     Avatar,
     Checkbox,
-    FormControlLabel // Add this import
+    FormControlLabel,
+    CircularProgress,
+    Chip
 } from '@mui/material';
 import logo from '../public/logo1.png';
 import facebook from './assets/facebook.png';
@@ -23,6 +25,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import Swal from 'sweetalert2'; // Import this at the top of your file
+import { verifyDocument } from '../utils/documentVerification';
+import WarningIcon from '@mui/icons-material/Warning';
 
 const documentOptions = [
     { label: 'Aadhar', value: 'aadhar' },
@@ -94,11 +98,14 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
     const [newGuestDetails, setNewGuestDetails] = useState({ adults: [], children: [] });
     const userid= localStorage.getItem('userId');
     const [previousGuest, setPreviousGuest] = useState([]);
+    const [isVerifying, setIsVerifying] = useState(false);
+    const [verificationStatus, setVerificationStatus] = useState({});
+
     useEffect(() => {
         // Fetch previous guest details when the component mounts
         const fetchPreviousGuest = async () => {
             try {
-                const response = await axios.get(`${import.meta.env.VITE_API}/previousGuestDetails/${userid}`);
+                const response = await axios.get(`${import.meta.env.VITE_API}/user/previousGuestDetails/${userid}`);
                 console.log(response.data);
                 setPreviousGuest(response.data || []); // Ensure it's an array, even if empty
             } catch (error) {
@@ -147,20 +154,32 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
 
     // Validate form
     const validateForm = () => {
-        const isValid = (guests) => guests.every(guest => {
+        let isValid = true;
+        const newAdults = [...adults];
+        const newChildren = [...children];
+
+        // Validate adults
+        newAdults.forEach((adult, index) => {
             const errors = {};
-            errors.name = validateField('name', guest.name);
-            errors.email = validateField('email', guest.email);
-            errors.phone = validateField('phone', guest.phone);
-            errors.dob = validateField('dob', guest.dob);
-            if (guest.proofType) {
-                errors.proofNumber = validateField('proofNumber', guest.proofNumber);
+            if (!adult.name) errors.name = 'Name is required';
+            if (!adult.email) errors.email = 'Email is required';
+            if (!adult.phone) errors.phone = 'Phone is required';
+            if (!adult.dob) errors.dob = 'Date of Birth is required';
+            if (!adult.proofType) errors.proofType = 'Proof type is required';
+            if (!adult.proofNumber) errors.proofNumber = 'Proof number is required';
+            
+            // Check document verification status for adults
+            if (adult.proofType && adult.proofNumber && !verificationStatus[`adult_${index}`]) {
+                errors.proofDocument = 'Document verification required';
+                isValid = false;
             }
 
-            return Object.values(errors).every(error => error === '');
+            newAdults[index].errors = errors;
+            if (Object.keys(errors).length > 0) isValid = false;
         });
 
-        return isValid(adults) && isValid(children);
+        setAdults(newAdults);
+        return isValid;
     };
 
     const handleSaveDetailsChange = (index, isChecked, type) => {
@@ -249,19 +268,92 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                 } 
             });
         } else {
-            alert('Please fix validation errors before submitting.');
+            // Check for unverified documents
+            const unverifiedAdults = adults.filter((_, index) => 
+                !verificationStatus[`adult_${index}`] && adults[index].proofType && adults[index].proofNumber
+            );
+
+            if (unverifiedAdults.length > 0) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Document Verification Required',
+                    text: 'Please verify all required documents before proceeding.',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Validation Error',
+                    text: 'Please fix all validation errors before submitting.',
+                    confirmButtonText: 'OK'
+                });
+            }
         }
     };
 
     // Upload file handler
-    const handleFileUpload = (e, index, type) => {
-        const file = e.target.files[0];
-        if (file) {
-            // Create a preview URL for the selected file
+    const handleFileUpload = async (e, index, type) => {
+        try {
+            setIsVerifying(true);
+            const file = e.target.files[0];
+            if (!file) return;
+
+            // Create preview
             const filePreviewUrl = URL.createObjectURL(file);
             setPreview(filePreviewUrl);
-            // You can also handle the file upload logic here
+
+            // Get the guest data
+            const guest = type === 'adult' ? adults[index] : children[index];
+
+            // Verify document
+            const verificationResult = await verifyDocument(
+                file,
+                guest.proofType,
+                guest.proofNumber
+            );
+
+            // Update verification status
+            setVerificationStatus(prev => ({
+                ...prev,
+                [`${type}_${index}`]: verificationResult.isValid
+            }));
+
+            if (!verificationResult.isValid) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Document Verification Failed',
+                    text: verificationResult.error,
+                    confirmButtonText: 'Try Again'
+                }).then(() => {
+                    // Reset the file input
+                    e.target.value = '';
+                    setPreview(null);
+                });
+            } else {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Document Verified',
+                    text: 'The document has been successfully verified.'
+                });
+                updateGuestDocument(file, type, index);
+            }
+        } catch (error) {
+            console.error('Error handling file upload:', error);
+            setVerificationStatus(prev => ({
+                ...prev,
+                [`${type}_${index}`]: false
+            }));
+            Swal.fire({
+                icon: 'error',
+                title: 'Upload Error',
+                text: 'There was an error processing your document. Please try again.'
+            });
+        } finally {
+            setIsVerifying(false);
         }
+    };
+
+    const updateGuestDocument = (file, type, index) => {
         if (type === 'adult') {
             const newAdults = [...adults];
             newAdults[index].proofDocument = file;
@@ -272,6 +364,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
             setChildren(newChildren);
         }
     };
+
     const handlePreviousGuestClick = (guest) => {
         setSelectedGuestIds(prevIds => {
             if (prevIds.includes(guest._id)) {
@@ -536,7 +629,7 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                                                 <img
                                                     src={preview}
                                                     alt="File Preview"
-                                                    style={{ maxWidth: '15%', height: 'auto' }} // Ensure the image fits well
+                                                    style={{ maxWidth: '15%', height: 'auto' }}
                                                 />
                                             </div>
                                         )}
@@ -544,12 +637,15 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                                             variant="contained"
                                             component="label"
                                             fullWidth
+                                            disabled={isVerifying}
+                                            startIcon={isVerifying ? <CircularProgress size={20} /> : null}
                                         >
-                                            Upload {guest.proofType} Document
+                                            {isVerifying ? 'Verifying...' : `Upload ${guest.proofType} Document`}
                                             <input
                                                 type="file"
                                                 hidden
                                                 onChange={(e) => handleFileUpload(e, index, type)}
+                                                accept="image/*,.pdf"
                                             />
                                         </Button>
                                     </Grid>
@@ -585,6 +681,28 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                         >
                             Remove {type === 'adult' ? 'Adult' : 'Child'}
                         </Button>
+                    </Box>
+                )}
+                {guest.proofType && guest.proofNumber && (
+                    <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" color="text.secondary">
+                            Document Status:
+                        </Typography>
+                        {verificationStatus[`${type}_${index}`] ? (
+                            <Chip
+                                label="Verified"
+                                color="success"
+                                size="small"
+                                icon={<CheckCircleIcon />}
+                            />
+                        ) : (
+                            <Chip
+                                label="Verification Required"
+                                color="warning"
+                                size="small"
+                                icon={<WarningIcon />}
+                            />
+                        )}
                     </Box>
                 )}
             </Paper>

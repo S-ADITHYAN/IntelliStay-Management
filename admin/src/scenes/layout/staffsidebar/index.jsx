@@ -253,6 +253,12 @@ const StaffSideBar = () => {
           }}
         >
           <Item
+            title="Restaurant"
+            path="/admindashboard/restaurant"
+            colors={colors}
+            icon={<BarChartOutlined />}
+          />
+          <Item
             title="Bar Chart"
             path="/admindashboard/bar"
             colors={colors}

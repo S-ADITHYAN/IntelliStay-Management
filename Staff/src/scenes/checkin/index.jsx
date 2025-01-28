@@ -26,7 +26,7 @@ const CheckIn = () => {
     const fetchReservations = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:3001/reservations/todays-reservations"
+          `${import.meta.env.VITE_API}/staff/reservations/todays-reservations`
         );
         setReservations(response.data);
       } catch (error) {
@@ -41,7 +41,7 @@ const CheckIn = () => {
   const handleVerify = async (reservationId) => {
     try {
       await axios.put(
-        `http://localhost:3001/reservations/verify/${reservationId}`
+        `${import.meta.env.VITE_API}/staff/reservations/verify/${reservationId}`
       );
       setVerifyStatus((prevState) => ({
         ...prevState,
@@ -55,7 +55,7 @@ const CheckIn = () => {
   const handleCheckIn = async (reservationId) => {
     try {
       await axios.put(
-        `http://localhost:3001/reservations/checkin/${reservationId}`
+        `${import.meta.env.VITE_API}/staff/reservations/checkin/${reservationId}`
       );
       setReservations((prevState) =>
         prevState.map((reservation) =>

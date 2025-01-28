@@ -53,7 +53,7 @@ const MyProfile = () => {
 
   const fetchProfileData = useCallback(async (userId) => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API}/profile/${userId}`);
+      const response = await axios.get(`${import.meta.env.VITE_API}/user/profile/${userId}`);
       const data = response.data;
       setProfileData({
         displayName: data.displayName || "",
@@ -149,7 +149,7 @@ const MyProfile = () => {
       return;
     }
 
-    axios.post(`${import.meta.env.VITE_API}/profile/update/${userData._id}`, profileData)
+    axios.post(`${import.meta.env.VITE_API}/user/profile/update/${userData._id}`, profileData)
       .then(response => {
         Swal.fire("Success", "Profile updated successfully", "success");
         setEditMode(false);
@@ -223,7 +223,7 @@ const MyProfile = () => {
       return;
     }
 
-    axios.put(`${import.meta.env.VITE_API}/change-password/${userData._id}`, {
+    axios.put(`${import.meta.env.VITE_API}/user/change-password/${userData._id}`, {
       currentPassword: passwordData.currentPassword,
       newPassword: passwordData.newPassword
     })
@@ -253,7 +253,7 @@ const MyProfile = () => {
     const formData = new FormData();
     formData.append("image", file);
   
-    axios.post(`${import.meta.env.VITE_API}/upload-photo/${userData._id}`, formData)
+    axios.post(`${import.meta.env.VITE_API}/user/upload-photo/${userData._id}`, formData)
       .then(response => {
         Swal.fire("Success", "Profile image updated successfully", "success");
         setProfileData(prevData => ({
@@ -284,7 +284,7 @@ const MyProfile = () => {
         <Box display="flex" flexDirection="column" alignItems="center" mb={4} position="relative">
           <Avatar
             alt={profileData.displayName || "User"}
-            src={profileData.image ? `${import.meta.env.VITE_API}/profilepicture/${profileData.image}` : "/placeholder-avatar.png"}
+            src={profileData.image ? profileData.image : "/placeholder-avatar.png"}
             sx={{
               width: 150,
               height: 150,

@@ -84,7 +84,7 @@ const Form = () => {
         Swal.showLoading(); // Show loading animation
       },
     });
-    axios.post('http://localhost:3001/staffregister', values)
+    axios.post(`${import.meta.env.VITE_API}/admin/staffregister`, values)
       .then(res => {
         console.log(res);
         Swal.close();
@@ -224,7 +224,7 @@ const validateAndUploadStaffs = async (staffs) => {
               Swal.showLoading(); // Show loading animation
             },
           });
-            await axios.post('http://localhost:3001/uploadBulkStaffData', validatedStaffs);
+            await axios.post(`${import.meta.env.VITE_API}/admin/uploadBulkStaffData`, validatedStaffs);
             Swal.close();
             Swal.fire("Success", "Bulk staff details uploaded successfully!", "success");
         } catch (error) {

@@ -27,7 +27,7 @@ const ReserveRoom = () => {
   useEffect(() => {
     const fetchRoomTypes = async () => {
       try {
-        const response = await axios.get("http://localhost:3001/staff/rooms/types");
+        const response = await axios.get(`${import.meta.env.VITE_API}/staff/rooms/types`);
         setRoomTypes(response.data);
       } catch (error) {
         console.error("Failed to fetch room types", error);
@@ -40,7 +40,7 @@ const ReserveRoom = () => {
     const fetchAvailableRooms = async () => {
       if (selectedRoomType && checkInDate && checkOutDate && adults > 0 && children >= 0) {
         try {
-          const response = await axios.get("http://localhost:3001/staff/rooms/available", {
+          const response = await axios.get(`${import.meta.env.VITE_API}/staff/rooms/available`, {
             params: {
               roomType: selectedRoomType,
               checkInDate,

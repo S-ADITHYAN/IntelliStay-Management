@@ -15,7 +15,7 @@ const Showroom = () => {
   const [editRoomData, setEditRoomData] = useState(null); // State to hold the data of the room being edited
 
   const showr = () => {
-    axios.post('http://localhost:3001/roomdetails')
+    axios.post(`${import.meta.env.VITE_API}/roomdetails`)
       .then(res => {
         setRoomdetails(res.data);
       })
@@ -33,7 +33,7 @@ const Showroom = () => {
   };
 
   const handleMaintenance = (id) => {
-    axios.post('http://localhost:3001/handleMaintenance', { id })
+    axios.post(`${import.meta.env.VITE_API}/handleMaintenance`, { id })
       .then(res => {
         Swal.fire(res.data);
         showr();
@@ -42,7 +42,7 @@ const Showroom = () => {
   };
 
   const handleAvailable = (id) => {
-    axios.post('http://localhost:3001/handleAvailable', { id })
+    axios.post(`${import.meta.env.VITE_API}/handleAvailable`, { id })
       .then(res => {
         Swal.fire(res.data);
         showr();

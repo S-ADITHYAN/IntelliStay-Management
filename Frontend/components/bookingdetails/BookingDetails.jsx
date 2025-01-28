@@ -45,7 +45,7 @@ const BookingDetails = () => {
       setError(null); // Reset any previous error state
 
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API}/user-booking/${bookingId}`);
+        const response = await axios.get(`${import.meta.env.VITE_API}/user/user-booking/${bookingId}`);
 
         if (response.status === 200) {
           setBookingDetails(response.data); // response.data contains reservation, room, and guests
@@ -131,7 +131,7 @@ const BookingDetails = () => {
       if (result.isConfirmed) {
         try {
            
-          const response = await axios.post(`${import.meta.env.VITE_API}/user-bookings/cancel/${reservation._id}`);
+          const response = await axios.post(`${import.meta.env.VITE_API}/user/user-bookings/cancel/${reservation._id}`);
           Swal.fire('Cancelled!', response.data.message, 'success');
           setRefresh(prev => !prev);
         } catch (error) {
@@ -178,7 +178,7 @@ const BookingDetails = () => {
         formData.append('proofDocument', file);
   
         try {
-          const response = await axios.post(`${import.meta.env.VITE_API}/user-guests-proofupdate/${guestId}`, formData, {
+          const response = await axios.post(`${import.meta.env.VITE_API}/user/guests-proofupdatess/${guestId}`, formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
@@ -215,7 +215,7 @@ const BookingDetails = () => {
 
   const handleFeedbackSubmit = async () => {
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API}/feedback`, {
+      const response = await axios.post(`${import.meta.env.VITE_API}/user/feedback`, {
         reservationId: reservation._id,
         hotelRating,
         roomRating,
@@ -428,7 +428,7 @@ const BookingDetails = () => {
           {guest.proofDocument && guest.proofDocument.length > 0 ? (
             <Box key={guest._id} mb={2}>
               <Avatar
-                src={`${import.meta.env.VITE_API}/profdocs/${guest.proofDocument}`}
+                src={guest.proofDocument}
                 alt={`Document ${guest._id + 1}`}
                 style={{ width: "100px", height: "100px", cursor: "pointer" }}
                 onClick={() => handleOpenModal(guest.proofDocument, "proof")}

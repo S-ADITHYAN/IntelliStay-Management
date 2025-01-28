@@ -5,9 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import ScrollReveal from 'scrollreveal'; 
 import { jwtDecode } from "jwt-decode";
+import { FaUtensils } from 'react-icons/fa';
 
  function Header() {
     const navigate = useNavigate();
+    const [dropdownOpen, setDropdownOpen] = useState(false);
 
     useEffect(() => {
       const menuBtn = document.getElementById("menu-btn");
@@ -86,7 +88,7 @@ import { jwtDecode } from "jwt-decode";
     }, []);
     axios.defaults.withCredentials = true;
     const handleLogout = () => {
-      axios.post(`${import.meta.env.VITE_API}/logout`)
+      axios.post(`${import.meta.env.VITE_API}/user/logout`)
         .then(res => {
           if (res.status === 200) {
             localStorage.removeItem('userEmail');
@@ -122,6 +124,23 @@ import { jwtDecode } from "jwt-decode";
          // Redirect to login if no session found
       }
     }, []);
+
+    // Add mouseEnter and mouseLeave handlers
+    const handleMouseEnter = () => {
+      setDropdownOpen(true);
+    };
+
+    const handleMouseLeave = () => {
+      setDropdownOpen(false);
+    };
+
+    // Add click handler for dropdown items
+    const handleDropdownClick = (e, path) => {
+      e.preventDefault();
+      navigate(path);
+      setDropdownOpen(false);
+    };
+
   return (
     <div>
       
@@ -143,6 +162,32 @@ import { jwtDecode } from "jwt-decode";
             <li><a href="#service" onClick={()=>{navigate('/')}}>Services</a></li>
             <li><a href="#gallery" onClick={()=>{navigate('/')}}>Gallery</a></li>
             <li><a href="#contact" onClick={()=>{navigate('/')}}>Contact</a></li>
+            <li 
+              className="dropdown" 
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+            >
+              <a href="#" className="restaurant-link">
+                <FaUtensils className="nav-icon" /> Restaurant
+              </a>
+              <div className={`dropdown-content ${dropdownOpen ? 'show' : ''}`}>
+                <a href="/restaurant/cart" onClick={(e) => handleDropdownClick(e, '/restaurant/cart')}>
+                  My Cart
+                </a>
+                <a href="/restaurant/menu" onClick={(e) => handleDropdownClick(e, '/restaurant/menu')}>
+                  View Menu
+                </a>
+                <a href="/restaurant/reservations" onClick={(e) => handleDropdownClick(e, '/restaurant/reservations')}>
+                  Book Table
+                </a>
+                <a href="/restaurant/orders" onClick={(e) => handleDropdownClick(e, '/restaurant/orders')}>
+                  Order Online
+                </a>
+                <a href="/restaurant/table-reservations" onClick={(e) => handleDropdownClick(e, '/restaurant/table-reservations')}>
+                  Table Reservation
+                </a>
+              </div>
+            </li>
             {user ? (
                 <>
                  

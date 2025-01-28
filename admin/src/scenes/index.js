@@ -22,6 +22,11 @@ import AttendanceMark from "./AttendenceMark/AttendenceMark";
 import ViewLeaveApplications from "./leaveapllications/ViewLeaveApplications";
 import ReservationDetails from "./reservationdetails";
 import ViewFeedback from "./viewfeedback/viewfeedback";
+import RestaurantDashboard from "./restaurant/RestaurantDashboard";
+import TableManagement from "./TableManagement/TableManagement";
+import ReservationManagement from "./RestaurantReservation/ReservationManagement";
+import MenuManagement from "./MenuManagement/MenuManagement"; 
+import OrderManagement from "./OrderManagement/OrderManagement";
 
 export {
   Navbar,
@@ -35,6 +40,11 @@ export {
   ViewFeedback,
   ViewLeaveApplications,
   ManualJobAssignment,
+  RestaurantDashboard,
+  TableManagement,
+  ReservationManagement,
+  MenuManagement,
+  OrderManagement,
   AttendanceMark,
   Invoices,
   Viewstaff,

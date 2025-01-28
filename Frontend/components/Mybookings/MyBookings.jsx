@@ -34,7 +34,7 @@ function MyBookings() {
           return;
         }
 
-        const response = await axios.get(`${import.meta.env.VITE_API}/my-bookings/${userId}`);
+        const response = await axios.get(`${import.meta.env.VITE_API}/user/my-bookings/${userId}`);
         if (response.status === 200) {
           setBookings(response.data);
           setFilteredBookings(response.data);

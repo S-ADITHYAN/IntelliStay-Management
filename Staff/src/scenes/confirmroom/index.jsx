@@ -45,7 +45,7 @@ const ConfirmRoom = () => {
     };
 
     try {
-      const res = await axios.post('http://localhost:3001/staff/confirmbook', bookingData, {
+      const res = await axios.post(`${import.meta.env.VITE_API}/staff/confirmbook`, bookingData, {
         headers: {
           'Content-Type': 'application/json', // JSON format is used here instead of FormData
         },

@@ -15,12 +15,12 @@ const AttendanceMark = () => {
   // Fetch all staff members and today's attendance on component mount
   useEffect(() => {
     // Fetch staff list
-    axios.post('http://localhost:3001/staffdetails')
+    axios.post(`${import.meta.env.VITE_API}/admin/staffdetails`)
       .then(response => setStaffList(response.data))
       .catch(error => console.error('Error fetching staff list', error));
 
     // Check if today's attendance is marked
-    axios.post('http://localhost:3001/attendance/today')
+    axios.post(`${import.meta.env.VITE_API}/admin/attendance/today`)
       .then(response => {
         if (response.data.length > 0) {
           console.log(response.data)
@@ -44,7 +44,7 @@ const AttendanceMark = () => {
   const submitAttendance = () => {
 
     console.log(attendance)
-    axios.post('http://localhost:3001/attendance/mark', attendance)
+    axios.post(`${import.meta.env.VITE_API}/admin/attendance/mark`, attendance)
       .then(() => {
         Swal.fire('Success!','Attendance marked successfully!','succes');
       })

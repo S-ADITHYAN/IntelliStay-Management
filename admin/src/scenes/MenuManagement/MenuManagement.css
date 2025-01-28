@@ -1,0 +1,339 @@
+.menu-management {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  min-height: 100vh;
+  transition: all 0.3s ease;
+}
+
+.menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.menu-header h2 {
+  font-size: 2rem;
+  color: var(--text-primary, #333);
+  margin: 0;
+  transition: color 0.3s ease;
+}
+
+.menu-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.menu-actions button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.add-btn {
+  background-color: var(--primary-color, #4CAF50);
+  color: white;
+}
+
+.add-btn:hover {
+  background-color: var(--primary-color-dark, #388E3C);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
+}
+
+.upload-btn {
+  background-color: var(--secondary-color, #2196F3);
+  color: white;
+}
+
+.upload-btn:hover {
+  background-color: var(--secondary-color-dark, #1976D2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.2);
+}
+
+.menu-filters {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.search-bar {
+  flex: 1;
+  position: relative;
+  max-width: 500px;
+}
+
+.search-bar input {
+  width: 100%;
+  padding: 0.75rem 1rem 0.75rem 2.5rem;
+  border-radius: 8px;
+  border: 1px solid;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.search-bar input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+}
+
+.search-bar svg {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary, #666);
+}
+
+select {
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border-color, #eaeaea);
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: white;
+  cursor: pointer;
+  min-width: 200px;
+  transition: all 0.2s ease;
+}
+
+select:focus {
+  border-color: var(--primary-color, #4CAF50);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 2rem;
+  animation: fadeIn 0.3s ease;
+}
+
+.menu-item-card {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.menu-item-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.menu-item-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.item-details {
+  padding: 1.5rem;
+}
+
+.item-details h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-primary, #333);
+  font-size: 1.25rem;
+}
+
+.item-details p {
+  color: var(--text-secondary, #666);
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+.item-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+.price {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--primary-color, #4CAF50);
+}
+
+.status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.available {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: var(--primary-color, #4CAF50);
+}
+
+.unavailable {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+}
+
+.item-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.item-actions button {
+  flex: 1;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.item-actions button:first-child {
+  background-color: var(--edit-color, #FFC107);
+  color: #000;
+}
+
+.item-actions button:last-child {
+  background-color: var(--delete-color, #f44336);
+  color: white;
+}
+
+.item-actions button:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+  padding: 2rem;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+    --border-color: #444444;
+    --primary-color: #66BB6A;
+    --primary-color-dark: #4CAF50;
+    --secondary-color: #42A5F5;
+    --secondary-color-dark: #2196F3;
+    --edit-color: #FFD54F;
+    --delete-color: #EF5350;
+  }
+
+  .menu-item-card {
+    background: #1e1e1e;
+  }
+
+  select, .search-bar input {
+    background-color: #1e1e1e;
+    color: var(--text-primary);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .menu-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .menu-filters {
+    flex-direction: column;
+  }
+
+  .search-bar {
+    max-width: 100%;
+  }
+
+  .menu-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.page-header {
+  margin-bottom: 1rem;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  transform: translateX(-4px);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .back-btn:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+  }
+} 

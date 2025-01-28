@@ -80,7 +80,7 @@ const ReserveRoom = () => {
     });
 
     try {
-        const res = await axios.post(`${import.meta.env.VITE_API}/confirmbook`, formData, {
+        const res = await axios.post(`${import.meta.env.VITE_API}/user/confirmbook`, formData, {
             headers: {
                 'Content-Type': 'multipart/form-data',
             },
@@ -112,7 +112,7 @@ const ReserveRoom = () => {
                         checkOutDate: reservationDetails.check_out,
                     };
                     setLoading(true);
-                    axios.post(`${import.meta.env.VITE_API}/orders/create`, payLoad)
+                    axios.post(`${import.meta.env.VITE_API}/user/orders/create`, payLoad)
                          
                         .then((response) => {
 
@@ -337,7 +337,7 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
   // Function to delete reservation
   const deleteReservation = async (reservationId) => {
     try {
-      await axios.delete(`${import.meta.env.VITE_API}/reservations/${reservationId}`);
+      await axios.delete(`${import.meta.env.VITE_API}/user/reservations/${reservationId}`);
       console.log("Reservation deleted successfully");
     } catch (error) {
       console.error("Error deleting reservation:", error);

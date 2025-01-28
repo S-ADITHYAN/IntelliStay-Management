@@ -27,7 +27,7 @@ const ViewLeaveStatus = () => {
         setUserData(decodedToken);
 
         axios
-          .post(`http://localhost:3001/leaveDetails/${decodedToken._id}`)
+          .post(`${import.meta.env.VITE_API}/staff/leaveDetails/${decodedToken._id}`)
           .then((res) => setLeaveDetails(res.data))
           .catch((err) => console.error(err));
       } catch (error) {
@@ -38,7 +38,7 @@ const ViewLeaveStatus = () => {
 
   const fetchLeaveDetail = (leaveId) => {
     axios
-      .get(`http://localhost:3001/leaveDetail/${leaveId}`)
+      .get(`${import.meta.env.VITE_API}/staff/leaveDetail/${leaveId}`)
       .then((res) => {
         setSelectedLeaveDetail(res.data);
         setOpenDetailModal(true);
@@ -59,7 +59,7 @@ const ViewLeaveStatus = () => {
     }).then((result) => {
       if (result.isConfirmed) {
         axios
-          .delete(`http://localhost:3001/deleteLeave/${leaveId}`)
+          .delete(`${import.meta.env.VITE_API}/staff/deleteLeave/${leaveId}`)
           .then((res) => {
             setLeaveDetails((prev) => prev.filter((leave) => leave._id !== leaveId));
             Swal.fire("Deleted!", "Your leave request has been deleted.", "success");

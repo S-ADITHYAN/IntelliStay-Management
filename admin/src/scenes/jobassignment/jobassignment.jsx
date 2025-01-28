@@ -15,7 +15,7 @@ const ManualJobAssignment = () => {
 
     useEffect(() => {
         // Fetch staff who are present today
-        axios.get('http://localhost:3001/today')
+        axios.get(`${import.meta.env.VITE_API}/admin/today`)
             .then(response => {
                 setStaffList(response.data);
 
@@ -33,7 +33,7 @@ const ManualJobAssignment = () => {
 
         // Check if jobs are already assigned for the selected role
         if (selectedRole) {
-            axios.get(`http://localhost:3001/checkJobs/${selectedRole}`)
+            axios.get(`${import.meta.env.VITE_API}/admin/checkJobs/${selectedRole}`)
                 .then(response => {
                     setJobsAssigned(response.data.jobsAssigned);
                 })
@@ -54,7 +54,7 @@ const ManualJobAssignment = () => {
         }));
 
         // Send job assignments to the server
-        axios.post('http://localhost:3001/assign', jobAssignments)
+        axios.post(`${import.meta.env.VITE_API}/admin/assign`, jobAssignments)
             .then(() => {
                 Swal.fire('Success', 'Jobs assigned successfully!', 'success');
                 setTask(''); // Reset task input

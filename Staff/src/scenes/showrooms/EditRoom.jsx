@@ -15,7 +15,7 @@ const EditRoom = ({ roomData, onClose, onUpdateComplete }) => {
   // State for managing image display and update mode
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isUpdatingImages, setIsUpdatingImages] = useState(false);
-  const imageBaseUrl = 'http://localhost:3001/uploads/'; 
+  const imageBaseUrl = `${import.meta.env.VITE_API}/uploads/`; 
   // When adding new images, handle both file uploads and existing images
 // Assuming roomData.images contains the filenames of the images
 const initialImages = roomData.images.map(image => image.replace(/^.*\/([^\/]+)$/, '$1'));
@@ -69,7 +69,7 @@ console.log(updatedImages)
   });
 
   const handleFormSubmit = (values) => {
-    axios.post(`http://localhost:3001/updateroom/${roomData._id}`, { ...values, images: updatedImages })
+    axios.post(`${import.meta.env.VITE_API}/updateroom/${roomData._id}`, { ...values, images: updatedImages })
       .then(res => {
         Swal.fire("Room updated successfully.");
         onUpdateComplete();

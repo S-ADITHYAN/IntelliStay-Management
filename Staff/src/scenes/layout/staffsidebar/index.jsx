@@ -33,7 +33,7 @@ const StaffSideBar = () => {
         setUserData(decodedToken); // Store the decoded data in the state
         const fetchStaffData = async () => {
           try {
-            const response = await axios.get(`http://localhost:3001/staffprof/${decodedToken._id}`);
+            const response = await axios.get(`${import.meta.env.VITE_API}/staff/staffprof/${decodedToken._id}`);
             setUserData((prev) => ({ ...prev, ...response.data }));
             
           } catch (error) {
@@ -121,7 +121,7 @@ const StaffSideBar = () => {
         >
           <Avatar
             alt={ (userData)? userData.displayName:"avatar"}
-            src={`http://localhost:3001/profilepicture/${
+            src={`${import.meta.env.VITE_API}/profilepicture/${
               userData?.image || avatar
             }`}
             sx={{ width: "100px", height: "100px" }}
@@ -178,6 +178,12 @@ const StaffSideBar = () => {
             colors={colors}
             icon={<PeopleAltOutlined />}
           />
+          {/* <Item
+                title="view assigned jobs"
+                path="/dashboard/viewjobs"
+                colors={colors}
+                icon={<PersonOutlined />}
+              /> */}
 
           {/* Role-based items */}
           {userData?.role === "receptionist" && (

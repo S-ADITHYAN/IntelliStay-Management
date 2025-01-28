@@ -14,6 +14,8 @@ import MyProfile from "../components/profile/MyProfile.jsx"
 import BookingDetails from '../components/bookingdetails/BookingDetails.jsx'
 import SeeRoomDetails from "./SeeRoomDetails.jsx"
 import SavedGuest from "../components/savedguest/savedguest.jsx"
+import RestaurantRoutes from "./routes/RestaurantRoutes.jsx";
+import Login from './Login.jsx';
 
 function App(){
 
@@ -34,6 +36,8 @@ function App(){
             <Route path="/booking-details/:bookingId" element={<BookingDetails />} />
             <Route path="/roomdetails" element={<SeeRoomDetails />} />
             <Route path="/saved-guests" element={<SavedGuest />} />
+            <Route path="/restaurant/*" element={<RestaurantRoutes />} />
+            <Route path="/restaurent_login" element={<Login />} /> 
             </Routes>
          </BrowserRouter> 
       )

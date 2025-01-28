@@ -14,6 +14,11 @@ import {
   ReservationDetails,
   ManualJobAssignment,
   ViewLeaveApplications,
+  RestaurantDashboard,
+  MenuManagement,
+  OrderManagement,
+  ReservationManagement,
+  TableManagement,
   AttendanceMark,
   Form,
   Bar,
@@ -35,7 +40,11 @@ const AppRouter = () => {
         <Route path="/adminlogin" element={<Signin />} /> 
         <Route path="/admindashboard" element={<App />}>
           <Route path="/admindashboard" element={<Dashboard />} />
-          
+          <Route path="/admindashboard/restaurant" element={<RestaurantDashboard />} />
+          <Route path="/admindashboard/restaurant/menu" element={<MenuManagement />} />
+          <Route path="/admindashboard/restaurant/orders" element={<OrderManagement />} />
+          <Route path="/admindashboard/restaurant/reservations" element={<ReservationManagement />} />
+          <Route path="/admindashboard/restaurant/tables" element={<TableManagement />} />
           <Route path="/admindashboard/roomadd" element={<Roomadd />} />
           <Route path="/admindashboard/reservations" element={<Reservation />} />
           <Route path="/admindashboard/showrooms" element={<Showroom />} />

@@ -21,7 +21,7 @@ const ViewLeaveApplications = () => {
   // Fetch leave applications
   const fetchLeaveApplications = () => {
     axios
-      .get("http://localhost:3001/leave-applications")
+      .get(`${import.meta.env.VITE_API}/admin/leave-applications`)
       .then((res) => {
         setApplications(res.data);
       })
@@ -31,7 +31,7 @@ const ViewLeaveApplications = () => {
   // Handle accepting a leave application
   const handleAccept = (id) => {
     axios
-      .post(`http://localhost:3001/leave-applications/accept/${id}`)
+      .post(`${import.meta.env.VITE_API}/admin/leave-applications/accept/${id}`)
       .then(() => {
         Swal.fire("Success!", "Leave application accepted.", "success");
         // Update local state
@@ -47,7 +47,7 @@ const ViewLeaveApplications = () => {
   // Handle rejecting a leave application
   const handleReject = (id) => {
     axios
-      .post(`http://localhost:3001/leave-applications/reject/${id}`)
+      .post(`${import.meta.env.VITE_API}/admin/leave-applications/reject/${id}`)
       .then(() => {
         Swal.fire("Oops!", "Leave application rejected.", "error");
         // Update local state

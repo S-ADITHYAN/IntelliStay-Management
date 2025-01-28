@@ -161,7 +161,7 @@ nav {
     background-color: rgba(249, 249, 249, 0.7);
     min-width: 160px;
     box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
+    z-index: 10000;
     border-radius: 10px;
   }
   

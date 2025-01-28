@@ -13,7 +13,7 @@ const EditRoom = ({ roomData, onClose, onUpdateComplete }) => {
   const isNonMobile = useMediaQuery("(min-width:600px)");
 
   // Base URL for images
-  const imageBaseUrl = 'http://localhost:3001/uploads/';
+  const imageBaseUrl = `${import.meta.env.VITE_API}/uploads/`;
   const initialImages = roomData.images.map(image => image.replace(/^.*\/([^\/]+)$/, '$1')); // Extract image name from URL
 
   const [updatedImages, setUpdatedImages] = useState(initialImages.length ? initialImages : []);
@@ -93,7 +93,7 @@ const rateRegExp = /^[0-9]{1,5}$/;
       formData.append('newImages', imageFile); // Append new image files
     });
 
-    axios.post(`http://localhost:3001/updateroom/${roomData._id}`, formData, {
+    axios.post(`${import.meta.env.VITE_API}/admin/updateroom/${roomData._id}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },

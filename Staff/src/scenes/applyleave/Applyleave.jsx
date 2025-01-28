@@ -33,7 +33,7 @@ const Applyleave = () => {
 
     const handleFormSubmit = (values, { resetForm }) => {
         const formdata={staff_id:userData._id,...values};
-        axios.post('http://localhost:3001/applyleave', formdata)
+        axios.post(`${import.meta.env.VITE_API}/staff/applyleave`, formdata)
             .then(res => {
                 if (res.status === 200) {
                     Swal.fire("Error", res.data.message, "error");
