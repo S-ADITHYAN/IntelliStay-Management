@@ -24,6 +24,7 @@ import {
   LocationOn,
 } from '@mui/icons-material';
 import { generateContent } from '../../services/geminiAPI';
+import Swal from 'sweetalert2';
 
 const TransportInfo = () => {
   const [loading, setLoading] = useState(false);
@@ -43,7 +44,38 @@ const TransportInfo = () => {
     setError(null);
 
     try {
-      const prompt = `Act as a comprehensive transport guide and provide information about traveling from ${from} to ${to}. 
+      // First, correct both location names
+      const correctionPrompt = `Given the locations "from: ${from}" and "to: ${to}", return ONLY a JSON object with correct location names in this structure: {"fromLocation": "correct from name", "toLocation": "correct to name"}. If names are already correct, return the same names. Example: for "New Yrok" to "Washingten" return {"fromLocation": "New York", "toLocation": "Washington"}`;
+      
+      const correctionResult = await generateContent(correctionPrompt, GEMINI_API_KEY);
+      
+      if (correctionResult.error) {
+        throw new Error(correctionResult.message);
+      }
+
+      const correctedFrom = correctionResult.fromLocation;
+      const correctedTo = correctionResult.toLocation;
+
+      // Show correction notification if either location was corrected
+      if (correctedFrom.toLowerCase() !== from.toLowerCase() || 
+          correctedTo.toLowerCase() !== to.toLowerCase()) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Locations Corrected',
+          html: `Showing results for:<br>
+                ${from !== correctedFrom ? `<b>From:</b> "${correctedFrom}" (corrected from "${from}")<br>` : ''}
+                ${to !== correctedTo ? `<b>To:</b> "${correctedTo}" (corrected from "${to}")` : ''}`,
+          showConfirmButton: true,
+          timer: 3000
+        });
+        
+        // Update the input fields
+        setFrom(correctedFrom);
+        setTo(correctedTo);
+      }
+
+      // Get transport information with corrected locations
+      const prompt = `Act as a comprehensive transport guide and provide information about traveling from ${correctedFrom} to ${correctedTo}. 
                      Return ONLY a JSON object with the following structure:
                      {
                        "flights": [{"duration": "", "priceRange": "", "airlines": "", "frequency": "", "bestTimeToBook": "", "terminalTips": ""}],
@@ -64,9 +96,9 @@ const TransportInfo = () => {
     } catch (error) {
       console.error('Error fetching transport information:', error);
       setError('Failed to fetch transport information. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (

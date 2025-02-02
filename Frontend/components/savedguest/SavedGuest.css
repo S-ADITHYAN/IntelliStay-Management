@@ -3,69 +3,72 @@
   }
   
   .saved-guests-container {
-    max-width: 800px;
+    padding: 2rem;
+    max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
   }
   
   .saved-guests-list {
-    list-style-type: none;
+    list-style: none;
     padding: 0;
+    margin: 20px 0;
   }
   
   .guest-card {
-    background-color: #f9f9f9;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    border-radius: 10px;
+    padding: 20px;
     margin-bottom: 15px;
-    transition: box-shadow 0.3s ease, transform 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    cursor: pointer;
   }
   
   .guest-card:hover {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    transform: translateY(-4px);
-    cursor: pointer;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
   
   .see-more-button,
   .see-less-button {
-    display: block;
-    background-color: #4CAF50;
-    color: white;
-    padding: 10px 20px;
-    margin: 20px auto;
+    padding: 8px 16px;
+    border-radius: 6px;
     border: none;
-    border-radius: 5px;
+    background-color: #f0f0f0;
+    color: #333;
     cursor: pointer;
-    text-align: center;
-    font-size: 16px;
-    width: 200px;
-    transition: background-color 0.3s ease;
+    transition: all 0.3s ease;
   }
   
   .see-more-button:hover,
   .see-less-button:hover {
-    background-color: #45a049;
+    background-color: #e0e0e0;
   }
   
   .search-bar {
-    margin-bottom: 20px;
-    text-align: center;
+    position: relative;
+    margin: 20px 0;
+    display: flex;
+    align-items: center;
+    background-color: white;
+    border-radius: 8px;
+    padding: 12px 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+  }
+  
+  .search-bar:focus-within {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
   }
   
   .search-bar input {
     width: 100%;
-    padding: 10px;
-    font-size: 16px;
-    border: 3px solid #2e94e2;
-    border-radius: 5px;
-    transition: border-color 0.3s ease;
-  }
-  
-  .search-bar input:focus {
+    border: none;
     outline: none;
-    border-color: #4CAF50;
+    padding: 8px;
+    font-size: 1rem;
+    background: transparent;
   }
   
   .saved-guests-container h2 {
@@ -93,18 +96,8 @@
   }
   
   .filtered-guest {
-    background-color: #f9f9f9;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 15px;
-    transition: box-shadow 0.3s ease, transform 0.3s ease;
-    border: 2px solid green;
-  }
-  
-  .filtered-guest:hover {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    transform: translateY(-4px);
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196f3;
   }
   
   /* Additional styles for guest details */
@@ -128,18 +121,27 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 400px;
   background-color: white;
-  box-shadow: 0px 3px 15px rgba(0,0,0,0.2);
-  padding: 20px;
-  border-radius: 8px;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .close-icon {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 16px;
+  right: 16px;
   cursor: pointer;
+  color: #666;
+  transition: color 0.3s ease;
+}
+
+.close-icon:hover {
+  color: #333;
 }
 
 .guest-modal h2 {
@@ -155,29 +157,30 @@
 }
 
 .proof-document-preview {
-  width: 100px;
-  height: 100px;
+  max-width: 200px;
+  max-height: 200px;
   object-fit: cover;
+  border-radius: 8px;
   cursor: pointer;
-  border-radius: 4px;
-  margin-top: 10px;
+  transition: transform 0.3s ease;
+}
+
+.proof-document-preview:hover {
+  transform: scale(1.05);
 }
 
 .full-screen-image-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.9);
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 90vw;
+  max-height: 90vh;
 }
 
 .full-screen-image {
-  max-width: 90%;
-  max-height: 90%;
+  max-width: 100%;
+  max-height: 90vh;
   object-fit: contain;
 }
 
@@ -189,7 +192,6 @@
   cursor: pointer;
   font-size: 30px;
 }
-
 
 /* Footer styles */
 .footer {
@@ -266,7 +268,7 @@
   
   @media (width > 768px) {
     .footer__container {
-      grid-template-columns: repeat(4, 1fr);
+      grid-width: repeat(4, 1fr);
     }
   }
   
@@ -291,3 +293,126 @@
   .btn:hover {
     background-color: var(--primary-color-dark);
   }
+
+/* Button Group Styles */
+.button-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+/* Action Buttons */
+.action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.edit-button {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+}
+
+.edit-button:hover {
+  background-color: #1976d2;
+}
+
+.delete-button {
+  background-color: #f44336;
+  color: white;
+  border: none;
+}
+
+.delete-button:hover {
+  background-color: #d32f2f;
+}
+
+/* Form Field Styles */
+.form-field {
+  margin-bottom: 16px;
+}
+
+.error-message {
+  color: #f44336;
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .saved-guests-container {
+    padding: 1rem;
+  }
+
+  .guest-modal {
+    width: 95%;
+    padding: 16px;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .action-button {
+    width: 100%;
+  }
+
+  .proof-document-preview {
+    max-width: 150px;
+    max-height: 150px;
+  }
+}
+
+/* Loading and Error States */
+.loading-state,
+.error-state {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.loading-spinner {
+  margin-bottom: 16px;
+}
+
+/* Empty State */
+.no-guests {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+/* Material UI Overrides */
+.MuiTextField-root {
+  margin-bottom: 16px !important;
+}
+
+.MuiButton-root {
+  text-transform: none !important;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.guest-card {
+  animation: fadeIn 0.3s ease;
+}

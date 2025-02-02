@@ -780,3 +780,102 @@
   background-color: #cccccc;
   cursor: not-allowed;
 }
+
+.available-quantity {
+  font-size: 0.8rem;
+  color: #666;
+  margin-left: 8px;
+}
+
+.quantity-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Optional: Add warning style when near max quantity */
+.quantity-btn[disabled]:hover::after {
+  content: 'Max quantity reached';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #f44336;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.dine-in-preferences {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.preference-item {
+  margin-bottom: 15px;
+}
+
+.preference-item label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #495057;
+}
+
+.preference-item select,
+.preference-item input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 14px;
+}
+
+.preference-item select:focus,
+.preference-item input:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+.preference-item input[type="number"] {
+  width: 100px;
+}
+
+/* Time slot styling */
+.time-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.time-slot {
+  padding: 8px;
+  text-align: center;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.time-slot:hover {
+  background-color: #e9ecef;
+}
+
+.time-slot.selected {
+  background-color: #007bff;
+  color: white;
+  border-color: #0056b3;
+}
+
+.time-slot.unavailable {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f8f9fa;
+}

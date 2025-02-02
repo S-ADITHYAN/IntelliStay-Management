@@ -7,10 +7,13 @@ import { toast } from 'react-toastify';
 import { razorpayService } from '../../services/razorpayService';
 import './OrderCheckout.css';
 import Header from '../../components/Header';
+import Footer from '../../components/footer';
+import useAuth from '../../src/useAuth';
 
 // const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
 
 const OrderCheckout = ({ cart, totalAmount }) => {
+  useAuth();
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState('card');
   const [loading, setLoading] = useState(false);
@@ -216,6 +219,9 @@ const OrderCheckout = ({ cart, totalAmount }) => {
       >
         {loading ? 'Processing...' : 'Confirm Order'}
       </button>
+    </div>
+    <div className='footer'>
+      <Footer/>
     </div>
     </>
   );

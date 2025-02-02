@@ -33,6 +33,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { motion } from 'framer-motion';
 import { generateContent } from '../../services/geminiAPI';
+import Swal from 'sweetalert2';
 
 // Styled components
 const StyledCard = styled(Card)(({ theme }) => ({
@@ -97,7 +98,31 @@ const TravelGuide = () => {
     setError(null);
 
     try {
-      const prompt = `Act as a local tour guide and provide comprehensive information about ${location}. 
+      // First, try to get the correct location name
+      const correctionPrompt = `Given the location "${location}", return ONLY the correct location name as a JSON object with this structure: {"correctedLocation": "correct name"}. If it's already correct, return the same name. Example: for "New Yrok" return {"correctedLocation": "New York"}`;
+      
+      const correctionResult = await generateContent(correctionPrompt, GEMINI_API_KEY);
+      
+      if (correctionResult.error) {
+        throw new Error(correctionResult.message);
+      }
+
+      const correctedLocation = correctionResult.correctedLocation;
+
+      // If location was corrected, show a notification
+      if (correctedLocation.toLowerCase() !== location.toLowerCase()) {
+        Swal.fire({
+          icon: 'info',
+          title: 'Location Corrected',
+          text: `Showing results for "${correctedLocation}" instead of "${location}"`,
+          showConfirmButton: false,
+          timer: 2000
+        });
+        setLocation(correctedLocation); // Update the input field
+      }
+
+      // Now get the travel information with the corrected location
+      const prompt = `Act as a local tour guide and provide comprehensive information about ${correctedLocation}. 
                      Return ONLY a JSON object with the following structure:
                      {
                        "nearbyAttractions": [{"name": "", "description": "", "type": "", "bestTime": "", "rating": "", "ticketPrice": "", "tips": ""}],
@@ -118,9 +143,9 @@ const TravelGuide = () => {
     } catch (error) {
       console.error('Error fetching places:', error);
       setError('Failed to fetch location information. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (

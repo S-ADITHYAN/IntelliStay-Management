@@ -20,6 +20,7 @@ import TravelGuide from '../TravelGuide/TravelGuide';
 import TransportInfo from '../TravelGuide/TransportInfo';
 import Header from '../../../components/Header';
 import './Guide.css';
+import useAuth from '../../useAuth';
 
 
 
@@ -74,6 +75,7 @@ const TabPanel = ({ children, value, index, ...other }) => (
 );
 
 const Guide = () => {
+  useAuth();
   const [activeTab, setActiveTab] = useState(0);
 
   const handleTabChange = (event, newValue) => {

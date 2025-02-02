@@ -10,6 +10,9 @@ import logo from '../../public/logo1.png';
 import facebook from '../../src/assets/facebook.png';
 import instagram from '../../src/assets/instagram.png';
 import youtube from '../../src/assets/youtube.png';
+import Footer from '../footer';
+import { Delete as DeleteIcon, Edit as EditIcon } from '@mui/icons-material';
+import Swal from 'sweetalert2';
 
 function SavedGuest() {
   useAuth();
@@ -206,6 +209,65 @@ function SavedGuest() {
     }
   };
 
+  const handleDeleteGuest = async (guestId) => {
+    try {
+      const result = await Swal.fire({
+        title: 'Delete Guest',
+        text: 'Are you sure you want to remove this guest? This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true
+      });
+
+      if (result.isConfirmed) {
+        // Show loading state
+        Swal.fire({
+          title: 'Deleting Guest',
+          text: 'Please wait...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        const response = await axios.delete(
+          `${import.meta.env.VITE_API}/user/delete-guest/${selectedGuest._id}`
+        );
+
+        if (response.status === 200) {
+          // Remove guest from state
+          setSavedGuests(prevGuests => 
+            prevGuests.filter(guest => guest._id !== selectedGuest._id)
+          );
+          
+          // Close modal
+          handleCloseModal();
+
+          // Show success message
+          await Swal.fire({
+            icon: 'success',
+            title: 'Guest Deleted',
+            text: 'The guest has been successfully removed',
+            timer: 1500,
+            showConfirmButton: false
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting guest:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Delete Failed',
+        text: 'Failed to delete guest. Please try again.',
+        confirmButtonColor: '#3085d6'
+      });
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>{error}</div>;
 
@@ -359,16 +421,32 @@ function SavedGuest() {
                     <strong>Proof Document:</strong>
                     {selectedGuest.proofDocument && (
                       <img 
-                        src={`${import.meta.env.VITE_API}/profdocs/${selectedGuest.proofDocument}`}
+                        src={`${selectedGuest.proofDocument}`}
                         alt="Proof Document"
                         className="proof-document-preview"
-                        onClick={() => setFullScreenImage(`${import.meta.env.VITE_API}/profdocs/${selectedGuest.proofDocument}`)}
+                        onClick={() => setFullScreenImage(`${selectedGuest.proofDocument}`)}
                       />
                     )}
                   </div>
-                  <Button onClick={handleEditClick} variant="contained" color="primary">
-                    Edit
-                  </Button>
+                  <div className="button-group">
+                    <Button 
+                      onClick={handleEditClick} 
+                      variant="contained" 
+                      color="primary"
+                      startIcon={<EditIcon />}
+                      sx={{ mr: 2 }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={() => handleDeleteGuest(selectedGuest._id)}
+                      variant="contained"
+                      color="error"
+                      startIcon={<DeleteIcon />}
+                    >
+                      Delete
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -384,15 +462,11 @@ function SavedGuest() {
           </div>
         </Modal>
       )}
-       <footer ref={footerRef} className="footer">
-        <div className="footer__container">
-          
-        </div>
-        <div className="footer__bar">
-          Copyright © 2024 INTELLISTAY Pvt.LTD. All rights reserved.
-        </div>
-      </footer>
+      <div className='footer'>
+      <Footer/>
     </div>
+    </div>
+    
   );
 }
 

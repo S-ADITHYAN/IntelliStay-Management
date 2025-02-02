@@ -893,69 +893,77 @@ exports.confirmbook = [
   uploadProofDoc.array('proofDocuments', 10),
   async (req, res) => {
     try {
-      if (!req.files || req.files.length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'No files uploaded'
-        });
-      }
-
-      // Get Cloudinary URLs from uploaded files
-      const documentUrls = req.files.map(file => file.path);
-
       // Parse request body data
       const roomDetails = JSON.parse(req.body.roomDetails);
       const datas = JSON.parse(req.body.datas);
-      const selectedGuestIds = JSON.parse(req.body.selectedGuestIds);
-      const newGuestDetails = JSON.parse(req.body.newGuestDetails);
+      const selectedGuestIds = JSON.parse(req.body.selectedGuestIds || '[]');
+      const newGuestDetails = req.body.newGuestDetails ? JSON.parse(req.body.newGuestDetails) : null;
       const userid = req.body.userid;
       const totalRate = req.body.totalRate;
       const totldays = req.body.totldays;
+      console.log(newGuestDetails)
 
-      // Process new guests with their documents
-      let fileIndex = 0;
-      const newGuestIds = [];
-
-      // Process new adults
-      if (Array.isArray(newGuestDetails.adults)) {
-        for (const adult of newGuestDetails.adults) {
-          const proofDocument = documentUrls[fileIndex++];
-          
-          const newGuest = new RoomGuestModel({
-            user_id: userid,
-            name: adult.name,
-            email: adult.email,
-            phone: adult.phone,
-            address: adult.address,
-            dob: adult.dob,
-            role: 'adult',
-            proofType: adult.proofType,
-            proofNumber: adult.proofNumber,
-            proofDocument,
-            saveDetails: adult.saveDetails,
-          });
-
-          const savedGuest = await newGuest.save();
-          newGuestIds.push(savedGuest._id);
-        }
+      // Only validate files if new guests are being added
+      if (newGuestDetails.adults.length > 0 && newGuestDetails.children.length > 0 )
+      {
+        if(!req.files || req.files.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Proof documents required for new guests'
+        });
+      }
       }
 
-      // Process new children
-      if (Array.isArray(newGuestDetails.children)) {
-        for (const child of newGuestDetails.children) {
-          const newChildGuest = new RoomGuestModel({
-            name: child.name,
-            dob: child.dob,
-            role: 'child',
-            saveDetails: child.saveDetails,
-          });
-          const savedChild = await newChildGuest.save();
-          newGuestIds.push(savedChild._id);
-        }
-      }
+      let allGuestIds = [...selectedGuestIds]; // Start with selected guests
 
+      // Process new guests only if they exist
+      if (newGuestDetails) {
+        let fileIndex = 0;
+        const newGuestIds = [];
+
+        // Process new adults
+        if (Array.isArray(newGuestDetails.adults)) {
+          for (const adult of newGuestDetails.adults) {
+            const proofDocument = req.files[fileIndex++].path;
+            
+            const newGuest = new RoomGuestModel({
+              user_id: userid,
+              name: adult.name,
+              email: adult.email,
+              phone: adult.phone,
+              address: adult.address,
+              dob: adult.dob,
+              role: 'adult',
+              proofType: adult.proofType,
+              proofNumber: adult.proofNumber,
+              proofDocument,
+              saveDetails: adult.saveDetails,
+            });
+
+            const savedGuest = await newGuest.save();
+            newGuestIds.push(savedGuest._id);
+          }
+        }
+
+        // Process new children
+        if (Array.isArray(newGuestDetails.children)) {
+          for (const child of newGuestDetails.children) {
+            const newChildGuest = new RoomGuestModel({
+              name: child.name,
+              dob: child.dob,
+              role: 'child',
+              saveDetails: child.saveDetails,
+            });
+            const savedChild = await newChildGuest.save();
+            newGuestIds.push(savedChild._id);
+          }
+        }
+
+        // Add new guest IDs to the complete list
+        allGuestIds = [...allGuestIds, ...newGuestIds];
+      }
+      console.log(allGuestIds)
       // Create reservation with all guest IDs
-      const allGuestIds = [...selectedGuestIds, ...newGuestIds];
       const newReservation = new ReservationModel({
         user_id: userid,
         room_id: roomDetails._id,
@@ -1074,7 +1082,7 @@ exports.getMenuItemss =  async (req, res) => {
   try {
       // Fetch all active menu items
       const menuItems = await MenuItem.find({ isAvailable: true })
-          .select('name description price category image preparationTime specialTags spicyLevel foodtype')
+          .select('name description price category image preparationTime specialTags spicyLevel foodtype quantity availableQuantity')
           .sort({ category: 1, name: 1 }); // Sort by category and then by name
 
       // Check if any menu items exist
@@ -1205,7 +1213,7 @@ exports.get_cart_items = async (req, res) => {
 
       // Get all cart items for the user
       const cartItems = await Cart.find({ userId })
-          .populate('menuItemId', 'name description category image price foodtype')
+          .populate('menuItemId', 'name description category image price foodtype quantity availableQuantity')
           .sort('-createdAt');
       console.log(cartItems)
       // Calculate cart totals
@@ -1375,11 +1383,12 @@ exports.verifyPayment = async (req, res) => {
 
     // Verify signature
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
-    const expectedSign = razorpay
+    const expectedSign = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(sign)
       .digest("hex");
 
+    // Verify the signature
     if (razorpay_signature !== expectedSign) {
       return res.status(400).json({
         success: false,
@@ -1387,9 +1396,28 @@ exports.verifyPayment = async (req, res) => {
       });
     }
 
+    // Verify payment status with Razorpay
+    const payment = await razorpay.payments.fetch(razorpay_payment_id);
+    
+    if (payment.status !== 'captured') {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment not captured'
+      });
+    }
+
+    // Update your database with payment status
+    // ... your database update code here ...
+
     res.status(200).json({
       success: true,
-      message: 'Payment verified successfully'
+      message: 'Payment verified successfully',
+      payment: {
+        id: razorpay_payment_id,
+        orderId: razorpay_order_id,
+        status: payment.status,
+        amount: payment.amount / 100 // Convert from paise to rupees
+      }
     });
 
   } catch (error) {
@@ -1397,12 +1425,59 @@ exports.verifyPayment = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error verifying payment',
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 };
-
 // Create Order in Database
+
+const checkTableAvailability = async (tableLocation, preferredTime) => {
+  try {
+    // Find the table by location
+    const table = await Table.findOne({ location: tableLocation });
+    if (!table) {
+      throw new Error('Table not found for the selected location');
+    }
+
+    // Convert preferred time to Date object
+    const [hours, minutes] = preferredTime.split(':');
+    const reservationTime = new Date();
+    reservationTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+    // Set time window (±2 hours from preferred time)
+    const startTime = new Date(reservationTime);
+    startTime.setHours(startTime.getHours() - 2);
+    
+    const endTime = new Date(reservationTime);
+    endTime.setHours(endTime.getHours() + 2);
+
+    // Check if table is already reserved for the specific time
+    const existingReservation = await TableReservationModel.findOne({
+      table_id: table._id,
+      $and: [
+        {
+          reservationDate: {
+            $gte: startTime,
+            $lt: endTime
+          }
+        },
+        { time: preferredTime }, // Check exact preferred time
+        { status: { $nin: ['cancelled', 'completed'] } }
+      ]
+    });
+
+    if (existingReservation) {
+      throw new Error(`Table is already reserved for ${preferredTime}`);
+    }
+
+    return table;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// In your order creation endpoint
+
 exports.createOrderInDB = async (req, res) => {
   try {
     const {
@@ -1411,11 +1486,43 @@ exports.createOrderInDB = async (req, res) => {
       paymentDetails,
       totalAmount,
       specialInstructions,
-      orderType
+      orderType,
+      dineInPreferences
     } = req.body;
-    console.log("cartItems",cartItems)
 
-    // Create order document
+    let tableReservationId = null; // To store the reservation ID
+
+    // Check table availability for dine-in orders
+    if (orderType === 'dine-in') {
+      try {
+        const table = await checkTableAvailability(
+          dineInPreferences.tableLocation,
+          dineInPreferences.preferredTime
+        );
+
+        // Create table reservation
+        const tableReservation = new TableReservationModel({
+          user: userid,
+          table_id: table._id,
+          tableNumber: table.tableNumber,
+          reservationDate: new Date(),
+          time: dineInPreferences.preferredTime,
+          numberOfGuests: dineInPreferences.numberOfGuests,
+          status: 'confirmed'
+        });
+
+        const savedReservation = await tableReservation.save();
+        tableReservationId = savedReservation._id; // Store the reservation ID
+
+      } catch (error) {
+        return res.status(400).json({
+          success: false,
+          message: error.message
+        });
+      }
+    }
+
+    // Create order document with table reservation reference
     const order = new Order({
       user: userid,
       items: cartItems.map(item => ({
@@ -1431,10 +1538,23 @@ exports.createOrderInDB = async (req, res) => {
         razorpay_order_id: paymentDetails.razorpay_order_id,
         razorpay_signature: paymentDetails.razorpay_signature
       },
-      status: 'pending'
+      status: 'pending',
+      ...(orderType === 'dine-in' && { 
+        dineInPreferences,
+        tablereservation_id: tableReservationId // Add reservation reference
+      })
     });
 
     await order.save();
+
+    // Update menu item quantities
+    await Promise.all(cartItems.map(item => 
+      MenuItem.findByIdAndUpdate(
+        item.menuItemId._id,
+        { $inc: { availableQuantity: -item.quantity } },
+        { new: true }
+      )
+    ));
 
     // Clear user's cart
     await Cart.deleteMany({ userId: userid });
@@ -1454,6 +1574,162 @@ exports.createOrderInDB = async (req, res) => {
     });
   }
 };
+// exports.createOrderInDB = async (req, res) => {
+//   try {
+//     const {
+//       userid,
+//       cartItems,
+//       paymentDetails,
+//       totalAmount,
+//       specialInstructions,
+//       orderType,
+//       dineInPreferences
+//     } = req.body;
+
+//     // Check table availability for dine-in orders
+//     if (orderType === 'dine-in') {
+//       try {
+//         const table = await checkTableAvailability(
+//           dineInPreferences.tableLocation,
+//           dineInPreferences.preferredTime
+//         );
+
+//         // Create table reservation
+//         const tableReservation = new TableReservationModel({
+//           user: userid,
+//           table_id: table._id,
+//           tableNumber: table.tableNumber,
+//           reservationDate: new Date(),
+//           time: dineInPreferences.preferredTime,
+//           numberOfGuests: dineInPreferences.numberOfGuests,
+//           status: 'confirmed'
+//         });
+
+//         await tableReservation.save();
+
+//       } catch (error) {
+//         return res.status(400).json({
+//           success: false,
+//           message: error.message
+//         });
+//       }
+//     }
+
+//     // Create order document
+//     const order = new Order({
+//       user: userid,
+//       items: cartItems.map(item => ({
+//         menuItem: item.menuItemId._id,
+//         quantity: item.quantity,
+//         price: item.menuItemId.price,
+//         specialInstructions: specialInstructions[item._id] || ''
+//       })),
+//       totalAmount,
+//       orderType,
+//       paymentDetails: {
+//         razorpay_payment_id: paymentDetails.razorpay_payment_id,
+//         razorpay_order_id: paymentDetails.razorpay_order_id,
+//         razorpay_signature: paymentDetails.razorpay_signature
+//       },
+//       status: 'pending',
+//       ...(orderType === 'dine-in' && { dineInPreferences })
+//     });
+
+//     await order.save();
+
+//     await Promise.all(cartItems.map(item => 
+//             MenuItem.findByIdAndUpdate(
+//               item.menuItemId._id,
+//               { $inc: { availableQuantity: -item.quantity } },
+//               { new: true }
+//             )
+//           ));
+
+
+//     // Clear user's cart
+//     await Cart.deleteMany({ userId: userid });
+
+//     res.status(201).json({
+//       success: true,
+//       message: 'Order created successfully',
+//       order: order
+//     });
+
+//   } catch (error) {
+//     console.error('Create order in DB error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Error creating order in database',
+//       error: error.message
+//     });
+//   }
+// };
+// exports.createOrderInDB = async (req, res) => {
+//   try {
+//     const {
+//       userid,
+//       cartItems,
+//       paymentDetails,
+//       totalAmount,
+//       specialInstructions,
+//       orderType,
+//       dineInPreferences
+//     } = req.body;
+//     console.log("dineInPreferences",dineInPreferences)
+//     console.log("cartItems",cartItems)
+
+//     if(orderType === 'dine-in'){
+//       const table = await Table.findOne({ location: dineInPreferences.tableLocation,i });
+//       if (!table) {
+//         return res.status(404).json({ success: false, message: 'Table not found' });
+//       }
+//     }
+//     // Create order document
+//     const order = new Order({
+//       user: userid,
+//       items: cartItems.map(item => ({
+//         menuItem: item.menuItemId._id,
+//         quantity: item.quantity,
+//         price: item.menuItemId.price,
+//         specialInstructions: specialInstructions[item._id] || ''
+//       })),
+//       totalAmount,
+//       orderType,
+//       paymentDetails: {
+//         razorpay_payment_id: paymentDetails.razorpay_payment_id,
+//         razorpay_order_id: paymentDetails.razorpay_order_id,
+//         razorpay_signature: paymentDetails.razorpay_signature
+//       },
+//       status: 'pending'
+//     });
+
+//     await order.save();
+
+//     await Promise.all(cartItems.map(item => 
+//       MenuItem.findByIdAndUpdate(
+//         item.menuItemId._id,
+//         { $inc: { availableQuantity: -item.quantity } },
+//         { new: true }
+//       )
+//     ));
+//     // Clear user's cart
+//     await Cart.deleteMany({ userId: userid });
+
+//     res.status(201).json({
+//       success: true,
+//       message: 'Order created successfully',
+//       order: order
+//     });
+
+//   } catch (error) {
+//     console.error('Create order in DB error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Error creating order in database',
+//       error: error.message
+//     });
+//   }
+// };
 
 // Clear Cart
 exports.clearCart = async (req, res) => {
@@ -2135,5 +2411,63 @@ exports.getUserReservation = async (req, res, next) => {
       message: 'Failed to fetch reservation details',
       error: error.message
     });
+  }
+};
+
+exports.deleteGuest = async (req, res) => {
+  try {
+      const guestId = req.params.id;
+      
+      // Validate if guestId exists
+      if (!guestId) {
+          return res.status(400).json({
+              success: false,
+              message: 'Guest ID is required'
+          });
+      }
+
+      // Find and delete the guest
+      const deletedGuest = await RoomGuestModel .findByIdAndDelete(guestId);
+
+      // Check if guest was found and deleted
+      if (!deletedGuest) {
+          return res.status(404).json({
+              success: false,
+              message: 'Guest not found'
+          });
+      }
+
+      // If guest had a proof document, delete it from storage
+      if (deletedGuest.proofDocument) {
+          try {
+              // Extract file path from URL
+              const filePath = deletedGuest.proofDocument.split('/uploads/')[1];
+              if (filePath) {
+                  const fullPath = path.join(__dirname, '../uploads', filePath);
+                  // Delete file if it exists
+                  if (fs.existsSync(fullPath)) {
+                      fs.unlinkSync(fullPath);
+                  }
+              }
+          } catch (fileError) {
+              console.error('Error deleting proof document:', fileError);
+              // Continue with the response even if file deletion fails
+          }
+      }
+
+      // Send success response
+      res.status(200).json({
+          success: true,
+          message: 'Guest deleted successfully',
+          data: deletedGuest
+      });
+
+  } catch (error) {
+      console.error('Delete guest error:', error);
+      res.status(500).json({
+          success: false,
+          message: 'Error deleting guest',
+          error: error.message
+      });
   }
 };

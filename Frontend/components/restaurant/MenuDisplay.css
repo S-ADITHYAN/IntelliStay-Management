@@ -692,4 +692,81 @@
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* Login Prompt Banner */
+.login-prompt-banner {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+  padding: 12px 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.banner-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 20px;
+}
+
+.banner-icon {
+  color: #2196f3;
+  font-size: 1.2rem;
+}
+
+.banner-content p {
+  margin: 0;
+  color: #495057;
+  font-size: 1rem;
+}
+
+.banner-content a {
+  color: #2196f3;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.banner-content a:hover {
+  color: #1976d2;
+  text-decoration: underline;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .banner-content {
+    flex-direction: column;
+    text-align: center;
+    padding: 10px 20px;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .login-prompt-banner {
+    background-color: #1a1a1a;
+    border-bottom-color: #333;
+  }
+
+  .banner-content p {
+    color: #e2e8f0;
+  }
+
+  .banner-icon {
+    color: #63b3ed;
+  }
+
+  .banner-content a {
+    color: #63b3ed;
+  }
+
+  .banner-content a:hover {
+    color: #90cdf4;
+  }
 } 

@@ -27,17 +27,49 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { MenuItem, Table,TableReservation,Order } = require('../models/RestaurantModel');
 const Cart=require('../models/Cart')
 const Razorpay = require('razorpay');
-const Facility = require('../models/Facility');
-const Package = require('../models/Package');
-const Restaurant = require('../models/Restaurant');
+const FacilityModel = require('../models/Facility');
+const PackageModel = require('../models/Package');
+const RestaurantModel = require('../models/Restaurant');
 
 exports.getRooms = async (req, res) => {
     try {
-      const rooms = await RoomModel.find()
-        .select('type price features available capacity')
-        .lean();
-      
+      // Get distinct room types with their details
+      const rooms = await RoomModel.aggregate([
+        // Get first document for each unique roomType
+        {
+          $group: {
+            _id: "$roomtype",
+            // Get all fields from the first document of each roomType
+            roomDetails: { 
+              $first: {
+                roomtype: "$roomtype",
+                rate: "$rate",
+                description: "$description",
+                allowedAdults: "$allowedAdults",
+                allowedChildren: "$allowedChildren",
+                amenities: "$amenities",
+                status: "$status"
+              }
+            }
+          }
+        },
+        // Reshape the output
+        {
+          $replaceRoot: { 
+            newRoot: "$roomDetails" 
+          }
+        },
+        // Sort by roomType
+        {
+          $sort: { 
+            roomtype: 1 
+          }
+        }
+      ]);
+
+      console.log('Unique room types:', rooms);
       res.status(200).json(rooms);
+      
     } catch (error) {
       console.error('Error fetching rooms:', error);
       res.status(500).json({ message: 'Error fetching rooms data' });
@@ -47,7 +79,7 @@ exports.getRooms = async (req, res) => {
   exports.getRestaurant = async (req, res) => {
     try {
         // Get restaurant details
-        const restaurant = await Restaurant.findOne().lean();
+        const restaurant = await RestaurantModel.findOne().lean();
     
         // Get all menu items
         const menuItems = await MenuItem.find({ isAvailable: true }).lean();
@@ -123,7 +155,7 @@ exports.getRooms = async (req, res) => {
 
   exports.getAllFacilities = async (req, res) => {
     try {
-      const facilities = await Facility.find()
+      const facilities = await FacilityModel.find()
         .select('-__v')
         .lean();
   
@@ -174,7 +206,7 @@ exports.getRooms = async (req, res) => {
 
   exports.getAllPackages = async (req, res) => {
     try {
-      const packages = await Package.find({
+      const packages = await PackageModel.find({
         'validityPeriod.endDate': { $gte: new Date() }
       })
       .select('-__v')
@@ -226,3 +258,87 @@ exports.getRooms = async (req, res) => {
     const diffTime = endDate - now;
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
+
+exports.handleChatResponse = async (req, res) => {
+  try {
+    const { message } = req.body;
+    const lowerMessage = message.toLowerCase();
+
+    // Initialize response object
+    let response = {
+      text: '',
+      data: null,
+      type: 'text'
+    };
+
+    // Pattern matching for different queries
+    if (lowerMessage.includes('room') || lowerMessage.includes('accommodation')) {
+      const rooms = await RoomModel.find()
+        .select('roomType rate description available allowedAdults allowedChildren')
+        .lean();
+      
+      response = {
+        text: 'Here are our available rooms:',
+        data: rooms,
+        type: 'rooms'
+      };
+    }
+    
+    else if (lowerMessage.includes('restaurant') || lowerMessage.includes('food') || lowerMessage.includes('dining')) {
+      const restaurant = await RestaurantModel.findOne().lean();
+      const menuItems = await MenuItem.find({ isAvailable: true }).lean();
+      
+      response = {
+        text: 'Here are our restaurant details and menu:',
+        data: {
+          restaurant,
+          menuItems: groupMenuByCategory(menuItems)
+        },
+        type: 'restaurant'
+      };
+    }
+    
+    else if (lowerMessage.includes('facility') || lowerMessage.includes('amenities')) {
+      const facilities = await FacilityModel.find().lean();
+      
+      response = {
+        text: 'Here are our facilities:',
+        data: facilities.map(facility => ({
+          ...facility,
+          isCurrentlyOpen: isOpen(facility.operatingHours),
+          availabilityStatus: getAvailabilityStatus(facility)
+        })),
+        type: 'facilities'
+      };
+    }
+    
+    else if (lowerMessage.includes('package') || lowerMessage.includes('deal')) {
+      const packages = await PackageModel.find({
+        'validityPeriod.endDate': { $gte: new Date() }
+      }).lean();
+      
+      response = {
+        text: 'Here are our current packages:',
+        data: packages.map(pkg => ({
+          ...pkg,
+          isAvailable: checkAvailability(pkg),
+          currentPrice: calculateDiscountedPrice(pkg)
+        })),
+        type: 'packages'
+      };
+    }
+    
+    else {
+      response.text = "I can help you with information about our rooms, restaurant, facilities, and special packages. What would you like to know?";
+    }
+
+    res.status(200).json(response);
+    
+  } catch (error) {
+    console.error('Chat error:', error);
+    res.status(500).json({ 
+      message: 'Sorry, I encountered an error. Please try again.',
+      error: error.message 
+    });
+  }
+};

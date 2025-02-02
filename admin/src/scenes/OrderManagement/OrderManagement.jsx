@@ -15,6 +15,7 @@ import './OrderManagement.css';
 import { useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { tokens } from '../../theme'; // Adjust path as needed
+import Swal from 'sweetalert2';
 
 const OrderManagement = () => {
   const theme = useTheme();
@@ -41,6 +42,7 @@ const OrderManagement = () => {
   const fetchOrders = async () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API}/admin/restaurant/orders`);
+      console.log(response.data);
       setOrders(response.data);
       setLoading(false);
     } catch (error) {
@@ -52,36 +54,66 @@ const OrderManagement = () => {
   const applyFilters = () => {
     let filtered = [...orders];
 
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(order => 
-        order.orderId.includes(searchTerm) ||
-        order.customerName.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+    // Apply search filter with proper validation
+    if (searchTerm && searchTerm.trim() !== '') {
+      const searchQuery = searchTerm.toLowerCase().trim();
+      filtered = filtered.filter(order => {
+        // Safely check each property with optional chaining and nullish coalescing
+        const orderIdMatch = (order?.orderId ?? '').toString().toLowerCase().includes(searchQuery);
+        const customerNameMatch = (order?.user?.displayName ?? '').toLowerCase().includes(searchQuery);
+        const orderTypeMatch = (order?.orderType ?? '').toLowerCase().includes(searchQuery);
+        const statusMatch = (order?.status ?? '').toLowerCase().includes(searchQuery);
+        const tableMatch = (order?.tableNumber ?? '').toString().toLowerCase().includes(searchQuery);
+        
+        // Check if any items match the search query
+        const itemsMatch = order?.items?.some(item => 
+          (item?.name ?? '').toLowerCase().includes(searchQuery) ||
+          (item?.specialInstructions ?? '').toLowerCase().includes(searchQuery)
+        ) ?? false;
+
+        return orderIdMatch || 
+               customerNameMatch || 
+               orderTypeMatch || 
+               statusMatch || 
+               tableMatch || 
+               itemsMatch;
+      });
     }
 
     // Apply status filter
     if (filterStatus !== 'all') {
-      filtered = filtered.filter(order => order.status === filterStatus);
+      filtered = filtered.filter(order => order?.status === filterStatus);
     }
 
-    // Apply date filter
+    // Apply date filter with proper date handling
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
     switch (filterDate) {
       case 'today':
-        filtered = filtered.filter(order => new Date(order.orderDate) >= today);
+        filtered = filtered.filter(order => {
+          const orderDate = order?.orderDate ? new Date(order.orderDate) : null;
+          return orderDate && orderDate >= today;
+        });
         break;
       case 'week':
         const weekAgo = new Date(today);
         weekAgo.setDate(weekAgo.getDate() - 7);
-        filtered = filtered.filter(order => new Date(order.orderDate) >= weekAgo);
+        filtered = filtered.filter(order => {
+          const orderDate = order?.orderDate ? new Date(order.orderDate) : null;
+          return orderDate && orderDate >= weekAgo;
+        });
         break;
       case 'month':
         const monthAgo = new Date(today);
         monthAgo.setMonth(monthAgo.getMonth() - 1);
-        filtered = filtered.filter(order => new Date(order.orderDate) >= monthAgo);
+        filtered = filtered.filter(order => {
+          const orderDate = order?.orderDate ? new Date(order.orderDate) : null;
+          return orderDate && orderDate >= monthAgo;
+        });
+        break;
+      default:
+        // 'all' - no date filtering
         break;
     }
 
@@ -89,13 +121,80 @@ const OrderManagement = () => {
   };
 
   const updateOrderStatus = async (orderId, newStatus) => {
+    let confirmTitle, confirmText, successText;
+    
+    // Set appropriate messages based on status
+    switch (newStatus) {
+      case 'preparing':
+        confirmTitle = 'Start Preparing Order?';
+        confirmText = 'Are you sure you want to start preparing this order?';
+        successText = 'Order is now being prepared';
+        break;
+      case 'ready':
+        confirmTitle = 'Mark Order as Ready?';
+        confirmText = 'Confirm that the order is ready for pickup/delivery?';
+        successText = 'Order has been marked as ready';
+        break;
+      case 'delivered':
+        confirmTitle = 'Mark Order as Delivered?';
+        confirmText = 'Confirm that the order has been delivered to the customer?';
+        successText = 'Order has been marked as delivered';
+        break;
+      default:
+        return;
+    }
+
     try {
-      await axios.put(`${import.meta.env.VITE_API}/admin/restaurant/orders/status/${orderId}`, {
-        status: newStatus
+      const result = await Swal.fire({
+        title: confirmTitle,
+        text: confirmText,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, update status',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true
       });
-      fetchOrders();
+
+      if (result.isConfirmed) {
+        // Show loading state
+        Swal.fire({
+          title: 'Updating Status',
+          text: 'Please wait...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        // Make API call
+        await axios.put(`${import.meta.env.VITE_API}/admin/restaurant/orders/status/${orderId}`, {
+          status: newStatus
+        });
+
+        // Show success message
+        await Swal.fire({
+          icon: 'success',
+          title: 'Status Updated!',
+          text: successText,
+          timer: 1500,
+          showConfirmButton: false
+        });
+
+        // Refresh orders
+        fetchOrders();
+      }
     } catch (error) {
       console.error('Error updating order status:', error);
+      
+      // Show error message
+      await Swal.fire({
+        icon: 'error',
+        title: 'Update Failed',
+        text: 'Failed to update order status. Please try again.',
+        confirmButtonColor: '#3085d6'
+      });
     }
   };
 
@@ -115,23 +214,23 @@ const OrderManagement = () => {
         </head>
         <body>
           <div class="header">
-            <h2>Order #${order.orderId}</h2>
+            <h2>Order #${order._id}</h2>
             <p>Date: ${new Date(order.orderDate).toLocaleString()}</p>
           </div>
           <div class="order-details">
-            <p>Customer: ${order.customerName}</p>
+            <p>Customer: ${order.user.displayName}</p>
             <p>Type: ${order.orderType}</p>
             ${order.tableNumber ? `<p>Table: ${order.tableNumber}</p>` : ''}
           </div>
           <div class="items">
             <h3>Items:</h3>
             ${order.items.map(item => `
-              <p>${item.quantity}x ${item.name} - $${(item.price * item.quantity).toFixed(2)}</p>
+              <p>${item.quantity}x ${item.menuItem.name} - ₹${(item.menuItem.price * item.quantity).toFixed(2)}</p>
               ${item.specialInstructions ? `<p><i>Note: ${item.specialInstructions}</i></p>` : ''}
             `).join('')}
           </div>
           <div class="total">
-            <p>Total: $${order.totalAmount.toFixed(2)}</p>
+            <p>Total: ₹${order.totalAmount.toFixed(2)}</p>
           </div>
         </body>
       </html>
@@ -141,6 +240,12 @@ const OrderManagement = () => {
   };
   const handleBack = () => {
     navigate(-1); // Goes back to previous page
+  };
+
+  // Enhanced search input with debounce
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchTerm(value);
   };
 
   return (
@@ -158,13 +263,22 @@ const OrderManagement = () => {
         <h2>Order Management</h2>
         <div className="order-controls">
           <div className="search-bar">
-            <FaSearch />
+            <FaSearch className="search-icon" />
             <input
               type="text"
-              placeholder="Search orders..."
+              placeholder="Search by order ID, customer, items..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={handleSearchChange}
+              className="search-input"
             />
+            {searchTerm && (
+              <button 
+                className="clear-search"
+                onClick={() => setSearchTerm('')}
+              >
+                <FaTimes />
+              </button>
+            )}
           </div>
           
           <div className="filters">
@@ -202,7 +316,7 @@ const OrderManagement = () => {
           {filteredOrders.map(order => (
             <div key={order._id} className={`order-card ${order.status}`}>
               <div className="order-header">
-                <h3>Order #{order.orderId}</h3>
+                <h3 style={{color: colors.primary?.[300] || '#000000'}}>Order #{order._id}</h3>
                 <span className={`status-badge ${order.status}`}>
                   {order.status}
                 </span>
@@ -220,8 +334,8 @@ const OrderManagement = () => {
                 {order.items.map((item, index) => (
                   <div key={index} className="order-item">
                     <div className="item-main">
-                      <span>{item.quantity}x {item.name}</span>
-                      <span>₹{(item.price * item.quantity).toFixed(2)}</span>
+                      <span style={{color: colors.primary?.[300] || '#000000'}}>{item.quantity}x {item.menuItem.name}</span>
+                      <span style={{color: colors.primary?.[300] || '#000000'}}>₹{(item.menuItem.price * item.quantity).toFixed(2)}</span>
                     </div>
                     {item.specialInstructions && (
                       <div className="special-instructions">
@@ -232,8 +346,8 @@ const OrderManagement = () => {
                 ))}
               </div>
 
-              <div className="order-total">
-                <strong>Total:</strong> ${order.totalAmount.toFixed(2)}
+              <div className="order-total" style={{color: colors.primary?.[300] || '#000000'}}>
+                <strong>Total:</strong> ₹{order.totalAmount.toFixed(2)}
               </div>
 
               <div className="order-actions">

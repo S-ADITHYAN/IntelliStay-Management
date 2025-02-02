@@ -203,7 +203,7 @@ function Home() {
           <div className="room__card__details">
             <h4>{room.roomtype}</h4>
             <p>{room.description}</p>
-            <h5>Starting from <span>${room.rate}/night</span></h5>
+            <h5>Starting from <span>₹{room.rate}/night</span></h5>
             <button className="btn" onClick={() => handleSeeDetails(room)}>See Details</button>
           </div>
         </div>

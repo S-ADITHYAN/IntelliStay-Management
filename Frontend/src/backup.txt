@@ -1,0 +1,729 @@
+import React, { useEffect, useState,useRef } from 'react';
+import axios from 'axios'; // Ensure axios is imported
+import Header from '../components/Header';
+import './Rooms.css';
+import room1 from '../src/assets/room-1.jpg';
+import room2 from '../src/assets/room-2.jpg';
+import room3 from '../src/assets/room-3.jpg';
+import Checkin from '../components/checkin';
+import logo from '../public/logo1.png';
+import facebook from './assets/facebook.png';
+import instagram from './assets/instagram.png';
+import youtube from './assets/youtube.png';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { FormControl, InputLabel, Select, MenuItem, Slider, Box, Typography } from '@mui/material';
+import Footer from '../components/footer';
+import Swal from 'sweetalert2';
+
+
+function Rooms() {
+  
+  const navigate = useNavigate();
+  const [rooms, setRooms] = useState([]);
+  const location = useLocation();
+  const state = location.state || {};
+  const searchdata = state.data || {};
+  const [roomNeed, setRoomNeed] = useState();
+  const footerRef = useRef(null);
+  const [selectedRoomType, setSelectedRoomType] = useState('all');
+  const [priceRange, setPriceRange] = useState([0, 10000]); // Adjust max value as needed
+  const [filteredRooms, setFilteredRooms] = useState([]);
+
+  const checkrooms = () => {
+    axios.post(`${import.meta.env.VITE_API}/user/checkrooms`, { searchdata })
+      .then(res => {
+        if (res.status === 200) {
+          const { availableRooms, roomsNeeded, roomsAvailable, message } = res.data;
+          console.log(res.data);
+          // Handle the case where not enough rooms are available
+          if (availableRooms.length < roomsNeeded) {
+            console.log(message);
+            console.log(`Rooms needed: ${roomsNeeded}, Rooms available: ${roomsAvailable}`);
+          } else {
+            console.log(message);
+            setRoomNeed(roomsNeeded);
+            setRooms(availableRooms); // Set only the available rooms to state
+          }
+        }
+      })
+      .catch(err => {
+        console.error("Error", err);
+      });
+  };
+
+  useEffect(() => {
+    checkrooms();
+  }, [searchdata]);
+
+  // useEffect(() => {
+  //   // const footer = footerRef.current;
+  //   // let lastScrollY = window.pageYOffset;
+  //   // // let footerHeight = footer.offsetHeight;
+  //   // let viewportHeight = window.innerHeight;
+  //   // let documentHeight = document.documentElement.scrollHeight;
+  
+  //   // const handleScroll = () => {
+  //   //   const currentScrollY = window.pageYOffset;
+  //   //   const maxScroll = documentHeight - viewportHeight;
+  //   //   const scrollPercentage = currentScrollY / maxScroll;
+  //   //   const footerVisibleHeight = Math.min(footerHeight, Math.max(50, scrollPercentage * footerHeight));
+  
+  //   //   if (currentScrollY < lastScrollY) {
+  //   //     // Scrolling up
+  //   //     footer.style.transform = `translateY(calc(100% - ${footerVisibleHeight}px))`;
+  //   //   } else {
+  //   //     // Scrolling down
+  //   //     footer.style.transform = 'translateY(calc(100% - 50px))';
+  //   //   }
+  //   //   lastScrollY = currentScrollY;
+  //   // };
+  
+  //   const handleResize = () => {
+  //     footerHeight = footer.offsetHeight;
+  //     viewportHeight = window.innerHeight;
+  //     documentHeight = document.documentElement.scrollHeight;
+  //   };
+  
+  //   window.addEventListener('scroll', handleScroll, { passive: true });
+  //   window.addEventListener('resize', handleResize);
+  
+  //   return () => {
+  //     window.removeEventListener('scroll', handleScroll);
+  //     window.removeEventListener('resize', handleResize);
+  //   };
+  // }, []);
+
+  // Function to group rooms by roomtype
+  const groupByRoomType = (rooms) => {
+    const groupedRooms = {};
+    rooms.forEach((room) => {
+      if (!groupedRooms[room.roomtype]) {
+        groupedRooms[room.roomtype] = [];
+      }
+      groupedRooms[room.roomtype].push(room);
+    });
+    return groupedRooms;
+  };
+
+  const groupedRooms = groupByRoomType(rooms);
+
+  // Function to randomly select a room for booking from the available rooms of the same roomtype
+  const handleRoomBooking = (roomtype) => {
+    const roomsOfType = groupedRooms[roomtype];
+    console.log("roomsOfType", roomsOfType)
+    if (roomsOfType.length > 0) {
+      const totalAdults = parseInt(searchdata.adults);
+      const totalChildren = parseInt(searchdata.children);
+      const roomCapacity = {
+        adults: roomsOfType[0].allowedAdults,
+        children: roomsOfType[0].allowedChildren
+      };
+      console.log("roomCapacity", roomCapacity)
+      console.log("totalAdults", totalAdults)
+      console.log("totalChildren", totalChildren)
+      // Calculate required number of rooms
+      const requiredRooms = Math.ceil(
+        Math.max(
+          totalAdults / roomCapacity.adults,
+          totalChildren / roomCapacity.children
+        )
+      );
+      console.log("requiredRooms", requiredRooms)
+      // Check if enough rooms are available
+      if (roomsOfType.length < requiredRooms) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Not Enough Rooms',
+          text: `You need ${requiredRooms} rooms of this type to accommodate ${totalAdults} adults and ${totalChildren} children. Only ${roomsOfType.length} rooms available.`
+        });
+        return;
+      }
+
+      // Select required number of rooms randomly
+      const selectedRooms = [];
+      const availableRooms = [...roomsOfType];
+      
+      for (let i = 0; i < requiredRooms; i++) {
+        const randomIndex = Math.floor(Math.random() * availableRooms.length);
+        selectedRooms.push(availableRooms.splice(randomIndex, 1)[0]);
+      }
+
+      // Calculate guest distribution per room
+      const guestDistribution = distributeGuests(
+        totalAdults,
+        totalChildren,
+        selectedRooms.length,
+        roomCapacity
+      );
+      console.log("guestDistribution", guestDistribution)
+      console.log("selectedRooms", selectedRooms)
+      navigate('/roominfo', { 
+        state: { 
+          data: searchdata, 
+          roomdata: selectedRooms,
+          guestDistribution: guestDistribution
+        } 
+      });
+    }
+  };
+
+  // Helper function to distribute guests among rooms
+  const distributeGuests = (totalAdults, totalChildren, numRooms, capacity) => {
+    const distribution = Array(numRooms).fill().map(() => ({
+      adults: 0,
+      children: 0
+    }));
+
+    // Distribute adults
+    let remainingAdults = totalAdults;
+    for (let i = 0; i < numRooms && remainingAdults > 0; i++) {
+      const adultsForThisRoom = Math.min(remainingAdults, capacity.adults);
+      distribution[i].adults = adultsForThisRoom;
+      remainingAdults -= adultsForThisRoom;
+    }
+
+    // Distribute children
+    let remainingChildren = totalChildren;
+    for (let i = 0; i < numRooms && remainingChildren > 0; i++) {
+      const childrenForThisRoom = Math.min(
+        remainingChildren,
+        capacity.children,
+        // Ensure we don't exceed total capacity with adults + children
+        capacity.adults + capacity.children - distribution[i].adults
+      );
+      distribution[i].children = childrenForThisRoom;
+      remainingChildren -= childrenForThisRoom;
+    }
+
+    return distribution;
+  };
+
+  // Add this function to get unique room types
+  const getRoomTypes = () => {
+    const types = [...new Set(rooms.map(room => room.roomtype))];
+    return ['all', ...types];
+  };
+
+  // Add this function to handle price range changes
+  const handlePriceRangeChange = (event, newValue) => {
+    setPriceRange(newValue);
+  };
+
+  // Add this function to handle room type changes
+  const handleRoomTypeChange = (event) => {
+    setSelectedRoomType(event.target.value);
+  };
+
+  // Modify the useEffect to include filtering
+  useEffect(() => {
+    let filtered = [...rooms];
+
+    // Filter by room type
+    if (selectedRoomType !== 'all') {
+      filtered = filtered.filter(room => room.roomtype === selectedRoomType);
+    }
+
+    // Filter by price range
+    filtered = filtered.filter(room => 
+      room.rate >= priceRange[0] && room.rate <= priceRange[1]
+    );
+
+    setFilteredRooms(filtered);
+  }, [rooms, selectedRoomType, priceRange]);
+
+  // Add this component for the filter section
+  const FilterSection = () => (
+    <Box sx={{ 
+      padding: '20px', 
+      backgroundColor: '#f5f5f5', 
+      borderRadius: '8px',
+      margin: '20px 0',
+      boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+    }}>
+      <Typography variant="h6" gutterBottom>
+        Filter Rooms
+      </Typography>
+      
+      <Box sx={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+        {/* Room Type Filter */}
+        <FormControl sx={{ minWidth: 200 }}>
+          <InputLabel>Room Type</InputLabel>
+          <Select
+            value={selectedRoomType}
+            onChange={handleRoomTypeChange}
+            label="Room Type"
+          >
+            {getRoomTypes().map(type => (
+              <MenuItem key={type} value={type}>
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        {/* Price Range Filter */}
+        <Box sx={{ width: 300 }}>
+          <Typography gutterBottom>
+            Price Range (₹)
+          </Typography>
+          <Slider
+            value={priceRange}
+            onChange={handlePriceRangeChange}
+            valueLabelDisplay="auto"
+            min={0}
+            max={10000} // Adjust based on your price range
+            step={500}
+          />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+            <Typography variant="body2">₹{priceRange[0]}</Typography>
+            <Typography variant="body2">₹{priceRange[1]}</Typography>
+          </Box>
+        </Box>
+      </Box>
+    </Box>
+  );
+
+  return (
+    <div id='room-page'>
+      <div className='room_nav'>
+        <Header />
+      </div>
+      <Checkin searchdata={searchdata} />
+      <section className="section__container room__container">
+        <p className="section__subheader" style={{ color: 'red' }}>
+          {`You need to book ${roomNeed} rooms for ${searchdata.adults} adults and ${searchdata.children} child`}
+        </p>
+        <p className="section__subheader">OUR LIVING ROOM</p>
+        <h2 className="section__header">The Most Memorable Rest Time Starts Here.</h2>
+        
+        {/* Add the filter section */}
+        <FilterSection />
+
+        {/* Show number of results */}
+        <Typography variant="body1" sx={{ margin: '20px 0' }}>
+          Showing {filteredRooms.length} room{filteredRooms.length !== 1 ? 's' : ''}
+        </Typography>
+
+        <div className="room__grid">
+          {Object.keys(groupByRoomType(filteredRooms)).map((roomtype) => {
+            const roomsOfType = groupByRoomType(filteredRooms)[roomtype];
+            const room = roomsOfType[0];
+            return (
+              <div key={room._id} className="room__card">
+                <div className="room__card__image">
+                  <img src={(room.images.length > 0) ? `${import.meta.env.VITE_API}/uploads/${room.images[0]}` : room1} alt="room" />
+                  <div className="room__card__icons">
+                    <span><i className="ri-heart-fill"></i></span>
+                    <span><i className="ri-paint-fill"></i></span>
+                    <span><i className="ri-shield-star-line"></i></span>
+                  </div>
+                </div>
+                <div className="room__card__details">
+                  <h4>{room.roomtype}</h4>
+                  <p>{room.description}</p>
+                  <h5>Starting from <span>₹{room.rate}/night</span></h5>
+                  <button className="btn" id='details' onClick={() => handleRoomBooking(room.roomtype)}>See Details</button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {filteredRooms.length === 0 && (
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              textAlign: 'center', 
+              margin: '40px 0',
+              color: '#666'
+            }}
+          >
+            No rooms found matching your criteria
+          </Typography>
+        )}
+      </section>
+      {/* <footer className="footer" ref={footerRef} id="contact">
+        <div className="section__container footer__container">
+          <div className="footer__col">
+            <div className="logo">
+              <a href="#home"><img src={logo} alt="logo" /></a>
+            </div>
+            <p className="section__description">
+              Discover a world of comfort, luxury, and adventure as you explore
+              our curated selection of hotels, making every moment of your getaway
+              truly extraordinary.
+            </p>
+            <button className="btn">Book Now</button>
+          </div>
+          <div className="footer__col">
+            <h4>QUICK LINKS</h4>
+            <ul className="footer__links">
+              <li><a href="#">Browse Destinations</a></li>
+              <li><a href="#">Special Offers & Packages</a></li>
+              <li><a href="#">Room Types & Amenities</a></li>
+              <li><a href="#">Customer Reviews & Ratings</a></li>
+              <li><a href="#">Travel Tips & Guides</a></li>
+            </ul>
+          </div>
+          <div className="footer__col">
+            <h4>OUR SERVICES</h4>
+            <ul className="footer__links">
+              <li><a href="#">Concierge Assistance</a></li>
+              <li><a href="#">Flexible Booking Options</a></li>
+              <li><a href="#">Airport Transfers</a></li>
+              <li><a href="#">Wellness & Recreation</a></li>
+            </ul>
+          </div>
+          <div className="footer__col">
+            <h4>CONTACT US</h4>
+            <ul className="footer__links">
+              <li><a href="#">intellistay@info.com</a></li>
+            </ul>
+            <div className="footer__socials">
+              <a href="#"><img src={facebook} alt="facebook" /></a>
+              <a href="#"><img src={instagram} alt="instagram" /></a>
+              <a href="#"><img src={youtube} alt="youtube" /></a>
+            </div>
+          </div>
+        </div>
+        <div className="footer__bar">
+          Copyright © 2024 INTELLISTAY Pvt.LTD. All rights reserved.
+        </div>
+      </footer> */}
+      <div className='footer'>
+      <Footer/>
+    </div>
+    </div>
+  );
+}
+
+export default Rooms;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//////////////////////////////////////////////////
+
+
+
+
+
+
+import './RoomInfo.css';
+import axios from 'axios'; 
+import Header from '../components/Header';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { useLocation, useNavigate } from 'react-router-dom';
+import CloseIcon from '@mui/icons-material/Close';
+import {
+  faCircleArrowLeft,
+  faCircleArrowRight,
+  faLocationDot,
+} from "@fortawesome/free-solid-svg-icons";
+import { useState, useEffect, useMemo } from "react";
+import Swal from 'sweetalert2';
+import Footer from '../components/footer';
+
+const RoomInfo = () => {
+  const [slideNumber, setSlideNumber] = useState(0);
+  const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get data from location state with default values
+  const state = location.state || {};
+  const datas = state.data || {};
+  const roomdatas = state.roomdata || {};
+  const guestDistribution = state.guestDistribution || {};
+  console.log("guestDistribution", guestDistribution)
+  console.log("datas", datas)
+  console.log("roomdatas", roomdatas)
+  // Calculate date difference and rates - using useMemo to prevent recalculation
+  const dateCalculation = useMemo(() => {
+    try {
+      const checkOut = new Date(datas.checkOutDate);
+      const checkIn = new Date(datas.checkInDate);
+      
+      // Validate dates
+      if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
+        console.error('Invalid date(s)');
+        return { differenceInDays: 0, totalRate: 0 };
+      }
+
+      // Calculate difference in days
+      const differenceInTime = checkOut.getTime() - checkIn.getTime();
+      const differenceInDays = Math.ceil(differenceInTime / (1000 * 3600 * 24));
+      
+      // Validate room rate
+      const rate = parseFloat(roomdatas[0].rate) || 0;
+      
+      return {
+        differenceInDays,
+        totalRate: rate * differenceInDays
+      };
+      
+    } catch (error) {
+      console.error('Error calculating dates:', error);
+      return { differenceInDays: 0, totalRate: 0 };
+    }
+  }, [datas.checkInDate, datas.checkOutDate, roomdatas[0].rate]);
+
+  // Calculate required rooms - using useMemo to prevent recalculation
+  const roomCalculation = useMemo(() => {
+    try {
+      console.log("roomdatas innn", roomdatas[0]);
+      const { allowedAdults, allowedChildren } = roomdatas[0];
+      const requestedAdults = parseInt(datas.adults) || 0;
+      const requestedChildren = parseInt(datas.children) || 0;
+
+      // Calculate rooms needed based on adults and children
+      let roomsForAdults, roomsForChildren;
+
+      // If requested adults/children are less than or equal to allowed capacity, assign 1 room
+      if (requestedAdults <= allowedAdults && requestedChildren <= allowedChildren) {
+        roomsForAdults = 1;
+        roomsForChildren = 1;
+      } else {
+        // Otherwise calculate rooms needed
+        roomsForAdults = Math.ceil(requestedAdults / allowedAdults);
+        roomsForChildren = Math.ceil(requestedChildren / allowedChildren);
+      }
+
+      // Take the maximum of the two calculations
+      const totalRoomsRequired = Math.max(roomsForAdults, roomsForChildren);
+
+      // Calculate total rate for all rooms
+      const totalRate = totalRoomsRequired * dateCalculation.totalRate;
+
+      return {
+        totalRooms: totalRoomsRequired,
+        totalRate,
+        breakdown: {
+          adults: {
+            requested: requestedAdults,
+            allowed: allowedAdults,
+            roomsNeeded: roomsForAdults,
+            withinCapacity: requestedAdults <= allowedAdults
+          },
+          children: {
+            requested: requestedChildren,
+            allowed: allowedChildren,
+            roomsNeeded: roomsForChildren,
+            withinCapacity: requestedChildren <= allowedChildren
+          }
+        }
+      };
+    } catch (error) {
+      console.error('Error calculating rooms:', error);
+      return {
+        totalRooms: 0,
+        totalRate: 0,
+        breakdown: {
+          adults: { requested: 0, allowed: 0, roomsNeeded: 0, withinCapacity: false },
+          children: { requested: 0, allowed: 0, roomsNeeded: 0, withinCapacity: false }
+        }
+      };
+    }
+  }, [datas.adults, datas.children, roomdatas.allowedAdults, roomdatas.allowedChildren, dateCalculation.totalRate]);
+
+  const handleBook = () => {
+    const userId = localStorage.getItem('userId');
+    if (!userId) {
+      navigate('/signup');
+    } else {
+      navigate('/guestdetails', {
+        state: {
+          data: datas,
+          roomdata: roomdatas,
+          totalRate: roomCalculation.totalRate,
+          totalDays: dateCalculation.differenceInDays,
+          requiredRooms: roomCalculation.totalRooms
+        }
+      });
+    }
+  };
+
+  const photos = useMemo(() => {
+    return (roomdatas[0].images || []).map(photo => ({
+      src: `${import.meta.env.VITE_API}/uploads/${photo}`,
+    }));
+  }, [roomdatas[0].images]);
+
+  const handleOpen = (i) => {
+    setSlideNumber(i);
+    setOpen(true);
+  };
+
+  const handleMove = (direction) => {
+    const totalImages = photos.length;
+    let newSlideNumber;
+
+    if (direction === "l") {
+      newSlideNumber = slideNumber === 0 ? totalImages - 1 : slideNumber - 1;
+    } else {
+      newSlideNumber = slideNumber === totalImages - 1 ? 0 : slideNumber + 1;
+    }
+    
+    setSlideNumber(newSlideNumber);
+  };
+
+  return (
+    <div>
+      <div className='room_nav'>
+        <Header /> 
+      </div>
+      <div className="hotelContainer">
+        {open && (
+          <div className="slider">
+            <CloseIcon
+              className="close"
+              onClick={() => setOpen(false)}
+              style={{ cursor: 'pointer' }}
+            />
+            <FontAwesomeIcon
+              icon={faCircleArrowLeft}
+              className="arrow"
+              onClick={() => handleMove("l")}
+            />
+            <div className="sliderWrapper">
+              <img src={photos[slideNumber].src} alt="" className="sliderImg" />
+            </div>
+            <FontAwesomeIcon
+              icon={faCircleArrowRight}
+              className="arrow"
+              onClick={() => handleMove("r")}
+            />
+          </div>
+        )}
+        
+        <div className="hotelWrapper">
+          <button className="bookNow" onClick={handleBook}>
+            Reserve or Book Now! ₹{roomCalculation.totalRate.toLocaleString()} 
+            ({dateCalculation.differenceInDays} nights, {roomCalculation.totalRooms} {roomCalculation.totalRooms > 1 ? 'rooms' : 'room'})
+          </button>
+
+          <h1 className="hotelTitle">{roomdatas[0].roomtype}</h1>
+          <div className="hotelAddress">
+            <FontAwesomeIcon icon={faLocationDot} />
+            <span>Kochi</span>
+          </div>
+
+          <div className="hotelImages">
+            {photos.map((photo, i) => (
+              <div className="hotelImgWrapper" key={i}>
+                <img
+                  onClick={() => handleOpen(i)}
+                  src={photo.src}
+                  alt=""
+                  className="hotelImg"
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="hotelDetails" style={{ marginBottom: '100px' }}>
+            <div className="hotelDetailsTexts">
+              {/* <div className="room-capacity-info">
+                <h3>Room Capacity & Booking Details</h3>
+                <div className="capacity-details">
+                  <div className="capacity-item">
+                    <span className="label">Maximum Adults per Room:</span>
+                    <span className="value">{roomdatas.allowedAdults}</span>
+                  </div>
+                  <div className="capacity-item">
+                    <span className="label">Maximum Children per Room:</span>
+                    <span className="value">{roomdatas.allowedChildren}</span>
+                  </div>
+                  <div className="capacity-item">
+                    <span className="label">Your Request:</span>
+                    <span className="value">
+                      {datas.adults} Adults, {datas.children} Children
+                    </span>
+                  </div>
+                  <div className="capacity-item total-rooms">
+                    <span className="label">Required Rooms:</span>
+                    <span className="value">{roomCalculation.totalRooms}</span>
+                  </div>
+                  <div className="room-breakdown">
+                    <p>Room Allocation Breakdown:</p>
+                    <ul>
+                      <li>
+                        Adults: {roomCalculation.breakdown.adults.requested} persons
+                        ÷ {roomCalculation.breakdown.adults.allowed} per room
+                        = {roomCalculation.breakdown.adults.roomsNeeded} rooms needed
+                      </li>
+                      <li>
+                        Children: {roomCalculation.breakdown.children.requested} persons
+                        ÷ {roomCalculation.breakdown.children.allowed} per room
+                        = {roomCalculation.breakdown.children.roomsNeeded} rooms needed
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div> */}
+
+              <h1 className="hotelTitle">Stay in the heart of City</h1>
+              <p className="hotelDesc">{roomdatas[0].description}</p>
+              
+              {/* Add Amenities Section */}
+              <div className="amenities-section">
+                <h3>In-Room Amenities</h3>
+                <div className="amenities-grid">
+                  {roomdatas[0].amenities && typeof roomdatas[0].amenities === 'string' ? 
+                    roomdatas[0].amenities.split(',').map((amenity, index) => (
+                      amenity.trim() && (  // Only render if amenity is not empty
+                        <div key={index} className="amenity-item">
+                          <span className="amenity-icon">•</span>
+                          <span className="amenity-text">{amenity.trim()}</span>
+                        </div>
+                      )
+                    ))
+                    : 
+                    <div className="amenity-item">
+                      <span className="amenity-text">No amenities listed</span>
+                    </div>
+                  }
+                </div>
+              </div>
+
+            </div>
+
+            <div className="hotelDetailsPrice" >
+              <h1>Perfect for a {dateCalculation.differenceInDays}-night stay!</h1>
+              <span>
+                Located in the real heart of Kochi, this property has an
+                excellent location score of 9.8!
+              </span>
+              <h2>
+                <b>₹{roomCalculation.totalRate.toLocaleString()}</b> 
+                ({dateCalculation.differenceInDays} nights, {roomCalculation.totalRooms} {roomCalculation.totalRooms > 1 ? 'rooms' : 'room'})
+              </h2>
+              <button onClick={handleBook}>Reserve or Book Now!</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div>
+
+      </div>
+      <div className='footer'>
+      <Footer/>
+    </div>
+    </div>
+  );
+};
+
+export default RoomInfo;
+
+

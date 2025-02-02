@@ -11,7 +11,8 @@ import facebook from './assets/facebook.png';
 import instagram from './assets/instagram.png';
 import youtube from './assets/youtube.png';
 import useAuth from './useAuth';
-import CircularProgress from '@mui/material/CircularProgress'; // Import Material-UI CircularProgress
+import CircularProgress from '@mui/material/CircularProgress';
+import Footer from '../components/footer';
 
 
 
@@ -24,13 +25,17 @@ const ReserveRoom = () => {
   const location = useLocation();
   const state = location.state || {};
   const roomDetails = state.roomdata || {};
+  console.log("room details",roomDetails);
   const datas = state.data || {};
   console.log(datas)
   const adultDetails = state.adults || [];
   console.log(adultDetails)
   const childrenDetails = state.children || [];
-  const totalRate = state.totlrate || 0;
+  const totalRate = state.totlrates || 0;
+  console.log("total rate",totalRate);
+
   const totldays = state.totldays || 0;
+  console.log("total days",totldays);
   const guestData = state.guestData || {};
   const selectedGuestIds = guestData.selectedGuestIds || [];
   const newGuestDetails = guestData.newGuestDetails || { adults: [], children: [] };
@@ -66,18 +71,36 @@ const ReserveRoom = () => {
     formData.append('selectedGuestIds', JSON.stringify(selectedGuestIds));
     formData.append('newGuestDetails', JSON.stringify(newGuestDetails));
 
-    // Include new adult details and their proof documents
-    newGuestDetails.adults.forEach((adult, index) => {
-        formData.append(`newAdultDetails[${index}]`, JSON.stringify(adult));
-        if (adult.proofDocument) {
-            formData.append('proofDocuments', adult.proofDocument);
-        }
-    });
+    // Only append new guest details if they exist
+    if (newGuestDetails) {
+      // Handle new adult details
+      if (newGuestDetails.adults && newGuestDetails.adults.length > 0) {
+        newGuestDetails.adults.forEach((adult, index) => {
+          // Only append if it's a new guest (no _id)
+          if (!adult._id) {
+            formData.append(`newAdultDetails[${index}]`, JSON.stringify(adult));
+            if (adult.proofDocument) {
+              formData.append('proofDocuments', adult.proofDocument);
+            }
+          }
+        });
+      }
 
-    // Include new children details
-    newGuestDetails.children.forEach((child, index) => {
-        formData.append(`newChildrenDetails[${index}]`, JSON.stringify(child));
-    });
+      // Handle new children details
+      if (newGuestDetails.children && newGuestDetails.children.length > 0) {
+        newGuestDetails.children.forEach((child, index) => {
+          // Only append if it's a new guest (no _id)
+          if (!child._id) {
+            formData.append(`newChildrenDetails[${index}]`, JSON.stringify(child));
+          }
+        });
+      }
+    }
+
+    // Append selected guest IDs (existing guests)
+    // if (selectedGuestIds && selectedGuestIds.length > 0) {
+    //   formData.append('selectedGuestIds', JSON.stringify(selectedGuestIds));
+    // }
 
     try {
         const res = await axios.post(`${import.meta.env.VITE_API}/user/confirmbook`, formData, {
@@ -349,7 +372,22 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
     }
   };
   
-  
+  // Debug logs to identify the problematic data
+  console.log('Room Details:', roomDetails);
+  console.log('Adult Details:', adultDetails);
+  console.log('Children Details:', childrenDetails);
+  console.log('Guest Data:', guestData);
+
+  // Safely format address for display
+  const formatAddress = (address) => {
+    if (!address) return 'N/A';
+    if (typeof address === 'object') {
+      // If address is an object, convert it to string
+      return Object.values(address).filter(Boolean).join(', ') || 'N/A';
+    }
+    return address;
+  };
+
   return (
     <>
       <div className='resroomnav'>
@@ -368,19 +406,19 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
           </Typography>
           <Grid container spacing={2}>
             <Grid item xs={12} sm={6}>
-              <Typography><strong>Room Name:</strong> {roomDetails.roomtype}</Typography>
+              <Typography><strong>Room Name:</strong> {String(roomDetails?.roomtype || 'N/A')}</Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <Typography><strong>Room Type:</strong> {roomDetails.roomtype}</Typography>
+              <Typography><strong>Room Type:</strong> {String(roomDetails?.roomtype || 'N/A')}</Typography>
             </Grid>
             <Grid item xs={12}>
-              <Typography><strong>Description:</strong> {roomDetails.description}</Typography>
+              <Typography><strong>Description:</strong> {String(roomDetails?.description || 'No description available')}</Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <Typography><strong>Price per Night:</strong> Rs.{roomDetails.rate} </Typography>
+              <Typography><strong>Price per Night:</strong> Rs.{Number(roomDetails?.rate || 0).toLocaleString()}</Typography>
             </Grid>
             <Grid item xs={12} sm={6}>
-              <Typography><strong>Total Nights:</strong> {totldays}</Typography>
+              <Typography><strong>Total Nights:</strong> {Number(totldays || 0)}</Typography>
             </Grid>
           </Grid>
         </Paper>
@@ -395,15 +433,15 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
           <Typography variant="h6" sx={{ marginBottom: 2 }}>
             Adult Guests
           </Typography>
-          {adultDetails.length > 0 ? (
+          {Array.isArray(adultDetails) && adultDetails.length > 0 ? (
             adultDetails.map((guest, index) => (
               <Box key={index} sx={{ marginBottom: 3 }}>
-                <Typography><strong>Adult {index + 1} Name:</strong> {guest.name}</Typography>
-                <Typography><strong>Email:</strong> {guest.email}</Typography>
-                <Typography><strong>Phone:</strong> {guest.phone}</Typography>
-                <Typography><strong>Address:</strong> {guest.address}</Typography>
-                <Typography><strong>Proof of Identity:</strong> {guest.proofType}</Typography>
-                <Typography><strong>Proof Number:</strong> {guest.proofNumber}</Typography>
+                <Typography><strong>Adult {index + 1} Name:</strong> {String(guest?.name || 'N/A')}</Typography>
+                <Typography><strong>Email:</strong> {String(guest?.email || 'N/A')}</Typography>
+                <Typography><strong>Phone:</strong> {String(guest?.phone || 'N/A')}</Typography>
+                <Typography><strong>Address:</strong> {formatAddress(guest?.address)}</Typography>
+                <Typography><strong>Proof of Identity:</strong> {String(guest?.proofType || 'N/A')}</Typography>
+                <Typography><strong>Proof Number:</strong> {String(guest?.proofNumber || 'N/A')}</Typography>
                 <Divider sx={{ marginY: 2 }} />
               </Box>
             ))
@@ -415,11 +453,11 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
           <Typography variant="h6" sx={{ marginBottom: 2 }}>
             Children Guests
           </Typography>
-          {childrenDetails.length > 0 ? (
+          {Array.isArray(childrenDetails) && childrenDetails.length > 0 ? (
             childrenDetails.map((child, index) => (
               <Box key={index} sx={{ marginBottom: 3 }}>
-                <Typography><strong>Child {index + 1} Name:</strong> {child.name}</Typography>
-                <Typography><strong>DOB:</strong> {child.dob}</Typography>
+                <Typography><strong>Child {index + 1} Name:</strong> {String(child?.name || 'N/A')}</Typography>
+                <Typography><strong>DOB:</strong> {String(child?.dob || 'N/A')}</Typography>
                 <Divider sx={{ marginY: 2 }} />
               </Box>
             ))
@@ -434,7 +472,7 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
             Total Room Rate
           </Typography>
           <Typography variant="h6">
-            Rs.{totalRate}
+            Rs.{Number(totalRate || 0).toLocaleString()}
           </Typography>
         </Paper>
 
@@ -448,81 +486,31 @@ doc.line(10, currentY, 200, currentY); // Line at the bottom of the section
             id='booknow'
             onClick={handleBookNow}
           >
-            Book Now
+            {loading ? 'Processing...' : 'Book Now'}
           </Button>
         </Box>
       </Box>
-      {loading && ( // Step 3: Render loader conditionally
-                <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20px' }}>
-                    <CircularProgress /> {/* You can customize the loader here */}
-                </div>
-            )}
 
-            {/* Optionally, you can add a backdrop to cover the entire screen */}
-            {loading && (
-                <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    backgroundColor: 'rgba(255, 255, 255, 0.7)', // Semi-transparent background
-                    zIndex: 1000, // Ensure it covers other elements
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center'
-                }}>
-                    <CircularProgress />
-                </div>
-            )}
-      {/* <footer className="footer" id="contact">
-        <div className="section__container footer__container">
-          <div className="footer__col">
-            <div className="logo">
-              <a href="#home"><img src={logo} alt="logo" /></a>
-            </div>
-            <p className="section__description">
-              Discover a world of comfort, luxury, and adventure as you explore
-              our curated selection of hotels, making every moment of your getaway
-              truly extraordinary.
-            </p>
-            <button className="btn">Book Now</button>
-          </div>
-          <div className="footer__col">
-            <h4>QUICK LINKS</h4>
-            <ul className="footer__links">
-              <li><a href="#">Browse Destinations</a></li>
-              <li><a href="#">Special Offers & Packages</a></li>
-              <li><a href="#">Room Types & Amenities</a></li>
-              <li><a href="#">Customer Reviews & Ratings</a></li>
-              <li><a href="#">Travel Tips & Guides</a></li>
-            </ul>
-          </div>
-          <div className="footer__col">
-            <h4>OUR SERVICES</h4>
-            <ul className="footer__links">
-              <li><a href="#">Concierge Assistance</a></li>
-              <li><a href="#">Flexible Booking Options</a></li>
-              <li><a href="#">Airport Transfers</a></li>
-              <li><a href="#">Wellness & Recreation</a></li>
-            </ul>
-          </div>
-          <div className="footer__col">
-            <h4>CONTACT US</h4>
-            <ul className="footer__links">
-              <li><a href="#">intellistay@info.com</a></li>
-            </ul>
-            <div className="footer__socials">
-              <a href="#"><img src={facebook} alt="facebook" /></a>
-              <a href="#"><img src={instagram} alt="instagram" /></a>
-              <a href="#"><img src={youtube} alt="youtube" /></a>
-            </div>
-          </div>
+      {/* Loading Overlay */}
+      {loading && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.7)',
+          zIndex: 1000,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <CircularProgress />
         </div>
-        <div className="footer__bar">
-          Copyright © 2024 INTELLISTAY Pvt.LTD. All rights reserved.
-        </div>
-      </footer> */}
+      )}
+      <div className='footer'>
+      <Footer/>
+    </div>
     </>
   );
 };

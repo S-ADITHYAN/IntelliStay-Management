@@ -40,7 +40,7 @@ const Footer = () => {
           <h3>Quick Links</h3>
           <ul>
             <li><Link to="/">Home</Link></li>
-            <li><Link to="/menu">Menu</Link></li>
+            <li><Link to="/restaurant/menu">Menu</Link></li>
             <li><Link to="/reservations">Reservations</Link></li>
             <li><Link to="/about">About Us</Link></li>
             <li><Link to="/contact">Contact</Link></li>
@@ -53,9 +53,9 @@ const Footer = () => {
           <ul>
             <li><Link to="/table-booking">Table Booking</Link></li>
             <li><Link to="/online-order">Online Order</Link></li>
-            <li><Link to="/private-dining">Private Dining</Link></li>
+            {/* <li><Link to="/private-dining">Private Dining</Link></li>
             <li><Link to="/catering">Catering Service</Link></li>
-            <li><Link to="/events">Special Events</Link></li>
+            <li><Link to="/events">Special Events</Link></li> */}
           </ul>
         </div>
 

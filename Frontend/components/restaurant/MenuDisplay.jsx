@@ -6,6 +6,7 @@ import './MenuDisplay.css';
 import Header from '../../components/Header';
 import Swal from 'sweetalert2';
 import {jwtDecode}from 'jwt-decode';
+import Footer from '../../components/footer';
 
 const MenuDisplay = ({ addToCart }) => {
   const [menuItems, setMenuItems] = useState([]);
@@ -14,6 +15,7 @@ const MenuDisplay = ({ addToCart }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const token = localStorage.getItem('token');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -150,98 +152,111 @@ const MenuDisplay = ({ addToCart }) => {
 
   return (
     <div>
-    <div className='menunav'>
-            <Header title="Guest Information" subtitle="Fill in guest details" />
-            </div>
-    <div className="menu-display">
-      <div className="menu-banner">
-        <div className="banner-overlay">
-          <h1>Our Menu</h1>
-          <p>Discover our delicious offerings</p>
-        </div>
+      <div className='menunav'>
+        <Header title="Guest Information" subtitle="Fill in guest details" />
       </div>
-
-      <div className="menu-container">
-        <div className="search-filter-section">
-          <div className="search-bar">
-            <FaSearch />
-            <input
-              type="text"
-              placeholder="Search menu..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+      
+      {/* Login Prompt Banner - Show only when not logged in */}
+      {!token && (
+        <div className="login-prompt-banner">
+          <div className="banner-content">
+            <FaShoppingCart className="banner-icon" />
+            <p>Please <a href="/signup">login</a> to add items to your cart</p>
           </div>
+        </div>
+      )}
 
-          <div className="category-filter">
-            <button
-              className={selectedCategory === 'all' ? 'active' : ''}
-              onClick={() => setSelectedCategory('all')}
-            >
-              All
-            </button>
-            {categories.map(category => (
+      <div className="menu-display">
+        <div className="menu-banner">
+          <div className="banner-overlay">
+            <h1>Our Menu</h1>
+            <p>Discover our delicious offerings</p>
+          </div>
+        </div>
+
+        <div className="menu-container">
+          <div className="search-filter-section">
+            <div className="search-bar">
+              <FaSearch />
+              <input
+                type="text"
+                placeholder="Search menu..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div className="category-filter">
               <button
-                key={category}
-                className={selectedCategory === category ? 'active' : ''}
-                onClick={() => setSelectedCategory(category)}
+                className={selectedCategory === 'all' ? 'active' : ''}
+                onClick={() => setSelectedCategory('all')}
               >
-                {category}
+                All
               </button>
-            ))}
+              {categories.map(category => (
+                <button
+                  key={category}
+                  className={selectedCategory === category ? 'active' : ''}
+                  onClick={() => setSelectedCategory(category)}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="menu-items-grid">
+            {filteredItems.length > 0 ? (
+              filteredItems.map(item => (
+                <div key={item._id} className="menu-item">
+                  <div className="item-image-wrapper">
+                    <img 
+                      src={item.image} 
+                      alt={item.name}
+                      className="menu-image"
+                      onError={(e) => {
+                        e.target.src = '/default-food-image.jpg';
+                      }}
+                    />
+                    <div className="food-type-indicator">
+                      {item.foodtype === 'veg' ? (
+                        <div className="veg-icon">
+                          <FaLeaf style={{ color: 'green' }} />
+                        </div>
+                      ) : (
+                        <div className="non-veg-icon">
+                          <GiMeat style={{ color: 'red' }} />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="item-content">
+                    <div className="item-header">
+                      <h3>{item.name}</h3>
+                    </div>
+                    <p className="item-description">{item.description}</p>
+                    <div className="item-footer">
+                      <span className="price">₹{item.price.toFixed(2)}</span>
+                      {token && (
+                        <button 
+                          onClick={() => handleAddToCart(item)}
+                          className="add-to-cart-btn"
+                        >
+                          <FaShoppingCart /> Add
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="no-items-message">
+                <p>No menu items found. Please try a different search or category.</p>
+              </div>
+            )}
           </div>
         </div>
-
-        <div className="menu-items-grid">
-          {filteredItems.length > 0 ? (
-            filteredItems.map(item => (
-              <div key={item._id} className="menu-item">
-                <div className="item-image-wrapper">
-                  <img 
-                    src={item.image} 
-                    alt={item.name}
-                    className="menu-image"
-                    onError={(e) => {
-                      e.target.src = '/default-food-image.jpg';
-                    }}
-                  />
-                  <div className="food-type-indicator">
-                    {item.foodtype === 'veg' ? (
-                      <div className="veg-icon">
-                        <FaLeaf style={{ color: 'green' }} />
-                      </div>
-                    ) : (
-                      <div className="non-veg-icon">
-                        <GiMeat style={{ color: 'red' }} />
-                      </div>
-                    )}
-                  </div>
-                </div>
-                <div className="item-content">
-                  <div className="item-header">
-                    <h3>{item.name}</h3>
-                  </div>
-                  <p className="item-description">{item.description}</p>
-                  <div className="item-footer">
-                    <span className="price">₹{item.price.toFixed(2)}</span>
-                    <button 
-                      onClick={() => handleAddToCart(item)}
-                      className="add-to-cart-btn"
-                    >
-                      <FaShoppingCart /> Add
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))
-          ) : (
-            <div className="no-items-message">
-              <p>No menu items found. Please try a different search or category.</p>
-            </div>
-          )}
-        </div>
       </div>
-    </div>
     </div>
   );
 };

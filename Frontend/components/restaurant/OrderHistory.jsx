@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaHistory, FaUtensils, FaClock, FaMoneyBill } from 'react-icons/fa';
+import { FaHistory, FaUtensils, FaClock, FaMoneyBill, 
+  FaMotorcycle, 
+  FaTable, 
+  FaShoppingBag, 
+  FaConciergeBell  } from 'react-icons/fa';
 import './OrderHistory.css';
 import Loader from '../shared/Loader';
 import Header from '../../components/Header';
 import { jwtDecode } from 'jwt-decode';
 import Swal from 'sweetalert2';
+import Footer from '../../components/footer';
+
 
 const formatDate = (dateString) => {
   const date = new Date(dateString);
@@ -78,6 +84,26 @@ const OrderHistory = () => {
     if (filter === 'all') return true;
     return order.status === filter;
   }) : [];
+
+  const getOrderTypeIcon = (type) => {
+    switch (type?.toLowerCase()) {
+      case 'dine-in':
+        return <FaTable className="order-type-icon dine-in" />;
+      case 'takeaway':
+        return <FaShoppingBag className="order-type-icon takeaway" />;
+      case 'delivery':
+        return <FaMotorcycle className="order-type-icon delivery" />;
+      default:
+        return <FaConciergeBell className="order-type-icon" />;
+    }
+  };
+
+  const getOrderTypeLabel = (type) => {
+    if (!type) return 'N/A';
+    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+  };
+
+
 
   const handleCancelOrder = async (orderId) => {
     try {
@@ -249,11 +275,19 @@ const OrderHistory = () => {
                   <span>Order Date:</span>
                   {formatDate(order.orderDate)}
                 </div>
+                
+                <div className="detail-item order-type">
+              {getOrderTypeIcon(order.orderType)}
+              <span>Order Type:</span>
+              <span className={`type-label ${order.orderType?.toLowerCase()}`}>
+                {getOrderTypeLabel(order.orderType)}
+              </span>
+            </div>
 
                 <div className="detail-item">
                   <FaMoneyBill />
                   <span>Total Amount:</span>
-                  ${order.totalAmount.toFixed(2)}
+                  ₹{order.totalAmount.toFixed(2)}
                 </div>
               </div>
 
@@ -269,6 +303,9 @@ const OrderHistory = () => {
           ))}
         </div>
       )}
+    </div>
+    <div className='footer'>
+      <Footer/>
     </div>
     </>
   );

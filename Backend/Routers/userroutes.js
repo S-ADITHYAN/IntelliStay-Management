@@ -1,5 +1,5 @@
 const express = require("express");
-const { authlogin, authwithgoogle, authlogout, register, verify_otp, reset_password, send_otp, verify, checkrooms, rooms_details, previousGuestDetails, saved_guests, update_guest, profile, upload_photo, change_password, profile_update, my_bookings, user_booking, bookings_cancel, guests_proofupdate, feedback, confirmbook, orders_create, reservations, orders, ordersss, guests_proofupdatess, getMenuItems, getMenuItemss, getCategoriess, cart_add, get_cart_items, remove_cart_item, update_cart_quantity, createOrder, createOrderInDB, clearCart, verifyPayment, getOrderDetails, getMyOrders, cancelOrder, getAllTables, getTable, createTableReservation, getUserReservations, getConfirmedReservations, processQRCode, generateQRCode, getUserReservation } = require("../Controller/usercontroller");
+const { authlogin, authwithgoogle, authlogout, register, verify_otp, reset_password, send_otp, verify, checkrooms, rooms_details, previousGuestDetails, saved_guests, update_guest, profile, upload_photo, change_password, profile_update, my_bookings, user_booking, bookings_cancel, guests_proofupdate, feedback, confirmbook, orders_create, reservations, orders, ordersss, guests_proofupdatess, getMenuItems, getMenuItemss, getCategoriess, cart_add, get_cart_items, remove_cart_item, update_cart_quantity, createOrder, createOrderInDB, clearCart, verifyPayment, getOrderDetails, getMyOrders, cancelOrder, getAllTables, getTable, createTableReservation, getUserReservations, getConfirmedReservations, processQRCode, generateQRCode, getUserReservation, deleteGuest } = require("../Controller/usercontroller");
 const router=express.Router();
 
 
@@ -50,6 +50,7 @@ router.get("/restaurant/confirmed-reservations",getConfirmedReservations)
 router.get("/reservations/:reservationId",getUserReservation)
 router.post("/qr/generate",generateQRCode)
 router.post("/qr/process",processQRCode)
+router.delete("/delete-guest/:id",deleteGuest)
 
 
 

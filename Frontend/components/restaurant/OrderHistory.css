@@ -190,3 +190,73 @@
     height: 70px;
   }
 } 
+
+.order-type-icon {
+  font-size: 1.2rem;
+  margin-right: 8px;
+}
+
+.order-type-icon.dine-in {
+  color: #2ecc71; /* Green */
+}
+
+.order-type-icon.takeaway {
+  color: #f39c12; /* Orange */
+}
+
+.order-type-icon.delivery {
+  color: #3498db; /* Blue */
+}
+
+.detail-item.order-type {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+.type-label {
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-left: 4px;
+}
+
+.type-label.dine-in {
+  background-color: #ebfaf0;
+  color: #2ecc71;
+}
+
+.type-label.takeaway {
+  background-color: #fef5e7;
+  color: #f39c12;
+}
+
+.type-label.delivery {
+  background-color: #ebf5fb;
+  color: #3498db;
+}
+
+/* Hover effect */
+.detail-item.order-type:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: all 0.3s ease;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .detail-item.order-type {
+    padding: 6px 10px;
+  }
+  
+  .order-type-icon {
+    font-size: 1rem;
+  }
+  
+  .type-label {
+    font-size: 0.9rem;
+  }
+}

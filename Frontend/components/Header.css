@@ -48,7 +48,7 @@ nav {
   width: 100%;
   max-width: var(--max-width);
   margin: auto;
-  z-index: 9;
+  z-index: 9999;
 }
 
 .nav__bar {
@@ -58,6 +58,7 @@ nav {
   justify-content: space-between;
   gap: 2rem;
    background-color: var(--primary-color); 
+  z-index: 9999;
 }
 
 .nav__menu__btn {
@@ -149,35 +150,39 @@ nav {
 .dropdown {
     position: relative;
     display: inline-block;
-  }
-  
-  .username {
+    z-index: 10000;
+}
+
+.username {
     cursor: pointer;
-  }
-  
-  .dropdown-content {
+}
+
+.dropdown-content {
     display: none;
     position: absolute;
-    background-color: rgba(249, 249, 249, 0.7);
+    background-color: rgba(249, 249, 249, 0.9);
     min-width: 160px;
     box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-    z-index: 10000;
+    z-index: 10001;
     border-radius: 10px;
-  }
-  
-  .dropdown-content a {
+    top: 100%;
+    left: 0;
+}
+
+.dropdown-content a {
     color: black;
     padding: 12px 16px;
     text-decoration: none;
     display: block;
-  }
-  
-  .dropdown-content a:hover {
+}
+
+.dropdown-content a:hover {
     background-color: #f1f1f1;
     border-radius: 10px;
-  }
-  
-  /* Show the dropdown content when hovering over the dropdown */
-  .dropdown:hover .dropdown-content {
+}
+
+/* Show the dropdown content when hovering */
+.dropdown:hover .dropdown-content {
     display: block;
-  }
+    z-index: 10001;
+}

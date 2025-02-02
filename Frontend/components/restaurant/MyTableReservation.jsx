@@ -7,9 +7,11 @@ import { jwtDecode } from 'jwt-decode';
 import LoadingSpinner from '../LoadingSpinner';
 import Header from '../Header';
 import Footer from '../footer';
+import useAuth from '../../src/useAuth';  
 
 
 const MyTableReservation = () => {
+  useAuth();
   const [reservations, setReservations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -156,6 +158,9 @@ const MyTableReservation = () => {
           ))}
         </div>
       )}
+    </div>
+    <div className='footer'>
+      <Footer/>
     </div>
     </>
   );

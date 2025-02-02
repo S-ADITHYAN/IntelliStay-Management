@@ -6,14 +6,22 @@ import Header from '../../components/Header';
 import axios from 'axios';
 import Swal from 'sweetalert2';
 import { jwtDecode } from 'jwt-decode';
+import Footer from '../../components/footer';
+import useAuth from '../../src/useAuth';
 
 const CartManagement = () => {
+  useAuth();
   const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [specialInstructions, setSpecialInstructions] = useState({});
   const [showInstructions, setShowInstructions] = useState({});
   const [orderType, setOrderType] = useState('');
+  const [dineInPreferences, setDineInPreferences] = useState({
+    preferredTime: '',
+    tableLocation: '',
+    numberOfGuests: 1
+  });
 
   const getUserIdFromToken = () => {
     try {
@@ -64,13 +72,26 @@ const CartManagement = () => {
   // Update quantity
   const updateQuantity = async (cartItemId, newQuantity) => {
     try {
-      if (newQuantity < 1) return;
-
+      const cartItem = cartItems.find(item => item._id === cartItemId);
+      if (!cartItem) return;
+  
+      // Check if new quantity is within available limits
+      if (newQuantity < 1 || newQuantity > cartItem.menuItemId.availableQuantity) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Invalid Quantity',
+          text: newQuantity > cartItem.menuItemId.availableQuantity ? 
+            `Only ${cartItem.menuItemId.availableQuantity} items available` : 
+            'Minimum quantity is 1'
+        });
+        return;
+      }
+  
       await axios.put(
         `${import.meta.env.VITE_API}/user/restaurant/cart/update/${cartItemId}`,
         { quantity: newQuantity }
       );
-
+  
       fetchCartItems(); // Refresh cart items
     } catch (error) {
       console.error('Error updating quantity:', error);
@@ -81,6 +102,25 @@ const CartManagement = () => {
       });
     }
   };
+  // const updateQuantity = async (cartItemId, newQuantity) => {
+  //   try {
+  //     if (newQuantity < 1) return;
+
+  //     await axios.put(
+  //       `${import.meta.env.VITE_API}/user/restaurant/cart/update/${cartItemId}`,
+  //       { quantity: newQuantity }
+  //     );
+
+  //     fetchCartItems(); // Refresh cart items
+  //   } catch (error) {
+  //     console.error('Error updating quantity:', error);
+  //     Swal.fire({
+  //       icon: 'error',
+  //       title: 'Error',
+  //       text: 'Failed to update quantity'
+  //     });
+  //   }
+  // };
 
   // Remove item from cart
   const removeFromCart = async (cartItemId) => {
@@ -162,6 +202,19 @@ const CartManagement = () => {
       return;
     }
 
+    // Check dine-in preferences if order type is dine-in
+    if (orderType === 'dine-in' && 
+        (!dineInPreferences.preferredTime || 
+         !dineInPreferences.tableLocation || 
+         !dineInPreferences.numberOfGuests)) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Incomplete Dining Preferences',
+        text: 'Please select your preferred time, table location, and number of guests for dine-in'
+      });
+      return;
+    }
+
     try {
       // Load Razorpay Script
       const isLoaded = await loadRazorpayScript();
@@ -175,7 +228,9 @@ const CartManagement = () => {
         amount: calculateTotal() * 100,
         cartItems: cartItems,
         orderType: orderType,
-        userId: userId
+        userId: userId,
+        // Include dine-in preferences if applicable
+        ...(orderType === 'dine-in' && { dineInPreferences })
       });
 
       const options = {
@@ -183,7 +238,7 @@ const CartManagement = () => {
         amount: response.data.amount,
         currency: "INR",
         name: "Restaurant Name",
-        description: "Food Order Payment",
+        description: `Food Order Payment - ${orderType.toUpperCase()}`,
         order_id: response.data.id,
         handler: async function (response) {
           try {
@@ -195,23 +250,32 @@ const CartManagement = () => {
             });
 
             if (data.success) {
-              const userid = getUserIdFromToken();
+              // Create final order with all details
               await axios.post(`${import.meta.env.VITE_API}/user/restaurant/orders`, {
-                userid: userid,
+                userid: userId,
                 cartItems: cartItems,
                 paymentDetails: response,
                 totalAmount: calculateTotal(),
                 specialInstructions: specialInstructions,
-                orderType: orderType
+                orderType: orderType,
+                // Include dine-in preferences in final order
+                ...(orderType === 'dine-in' && { 
+                  dineInPreferences: {
+                    preferredTime: dineInPreferences.preferredTime,
+                    tableLocation: dineInPreferences.tableLocation,
+                    numberOfGuests: dineInPreferences.numberOfGuests
+                  }
+                })
               });
 
-              // await axios.delete(`${import.meta.env.VITE_API}/user/restaurant/clear`);
               setCartItems([]);
               
               Swal.fire({
                 icon: 'success',
                 title: 'Order Placed Successfully!',
-                text: 'Thank you for your order'
+                text: orderType === 'dine-in' 
+                  ? `Your table is reserved for ${dineInPreferences.preferredTime}` 
+                  : 'Thank you for your order'
               });
               
               navigate('/restaurant/orders');
@@ -234,7 +298,10 @@ const CartManagement = () => {
           color: "#3399cc"
         },
         notes: {
-          orderType: orderType
+          orderType: orderType,
+          ...(orderType === 'dine-in' && { 
+            dineInDetails: `Table: ${dineInPreferences.tableLocation}, Time: ${dineInPreferences.preferredTime}, Guests: ${dineInPreferences.numberOfGuests}`
+          })
         }
       };
 
@@ -257,6 +324,30 @@ const CartManagement = () => {
       ...prev,
       [itemId]: !prev[itemId]
     }));
+  };
+
+  // Add these location options
+  const tableLocations = [
+    'Window Side',
+    'Garden View',
+    'Indoor',
+    'Outdoor',
+    'Private Area',
+    'Near Bar',
+    'Family Section'
+  ];
+
+  // Generate time slots (e.g., from 11 AM to 11 PM with 30-min intervals)
+  const generateTimeSlots = () => {
+    const slots = [];
+    const start = 11; // 11 AM
+    const end = 23;   // 11 PM
+    
+    for (let hour = start; hour <= end; hour++) {
+      slots.push(`${hour}:00`);
+      slots.push(`${hour}:30`);
+    }
+    return slots;
   };
 
   if (loading) {
@@ -322,20 +413,24 @@ const CartManagement = () => {
                       <div className="quantity-section">
                         <label>Quantity:</label>
                         <div className="quantity-controls">
-                          <button 
-                            onClick={() => updateQuantity(item._id, item.quantity - 1)}
-                            className="quantity-btn"
-                            disabled={item.quantity <= 1}
-                          >
-                            <FaMinus />
-                          </button>
-                          <span className="quantity">{item.quantity || 0}</span>
-                          <button 
-                            onClick={() => updateQuantity(item._id, item.quantity + 1)}
-                            className="quantity-btn"
-                          >
-                            <FaPlus />
-                          </button>
+                        <button 
+                          onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                          className="quantity-btn"
+                          disabled={item.quantity <= 1}
+                        >
+                          <FaMinus />
+                        </button>
+
+                        <span className="quantity">{item.quantity || 0}</span>
+
+                        <button 
+                          onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                          className="quantity-btn"
+                          disabled={item.quantity >= item.menuItemId.availableQuantity} // Disable if reached available quantity
+                        >
+                          <FaPlus />
+                        </button>
+
                         </div>
                       </div>
                     </div>
@@ -403,6 +498,62 @@ const CartManagement = () => {
                   </div>
                 </div>
 
+                {/* Dine-in Preferences Section */}
+                {orderType === 'dine-in' && (
+                  <div className="dine-in-preferences">
+                    <h5>Dining Preferences</h5>
+                    
+                    <div className="preference-item">
+                      <label>Preferred Time:</label>
+                      <select 
+                        value={dineInPreferences.preferredTime}
+                        onChange={(e) => setDineInPreferences(prev => ({
+                          ...prev,
+                          preferredTime: e.target.value
+                        }))}
+                        required
+                      >
+                        <option value="">Select Time</option>
+                        {generateTimeSlots().map(time => (
+                          <option key={time} value={time}>{time}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="preference-item">
+                      <label>Table Location:</label>
+                      <select 
+                        value={dineInPreferences.tableLocation}
+                        onChange={(e) => setDineInPreferences(prev => ({
+                          ...prev,
+                          tableLocation: e.target.value
+                        }))}
+                        required
+                      >
+                        <option value="">Select Location</option>
+                        {tableLocations.map(location => (
+                          <option key={location} value={location}>{location}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="preference-item">
+                      <label>Number of Guests:</label>
+                      <input 
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={dineInPreferences.numberOfGuests}
+                        onChange={(e) => setDineInPreferences(prev => ({
+                          ...prev,
+                          numberOfGuests: parseInt(e.target.value)
+                        }))}
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="summary-row">
                   <span>Subtotal:</span>
                   <span>₹{calculateSubtotal().toFixed(2)}</span>
@@ -430,6 +581,9 @@ const CartManagement = () => {
           </div>
         )}
       </div>
+      <div className='footer'>
+      <Footer/>
+    </div>
     </>
   );
 };

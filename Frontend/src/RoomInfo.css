@@ -1,6 +1,6 @@
-
 .room_nav{
     background-color: rgb(17, 186, 212);
+    z-index: 5000;
 }
 
 .hotelContainer {
@@ -340,3 +340,365 @@
   .dropdown:hover .dropdown-content {
     display: block;
   }
+
+/* Room Capacity Section */
+.room-capacity-info {
+  background-color: #f8f9fa;
+  border-radius: 12px;
+  padding: 24px;
+  margin: 24px 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+}
+
+.room-capacity-info:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+  transform: translateY(-2px);
+}
+
+.room-capacity-info h3 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+  font-size: 1.4rem;
+  font-weight: 600;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 12px;
+}
+
+/* Capacity Details */
+.capacity-details {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.capacity-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.capacity-item:hover {
+  background-color: #f8f9fa;
+}
+
+.capacity-item .label {
+  color: #6c757d;
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.capacity-item .value {
+  color: #2c3e50;
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding: 4px 12px;
+  background-color: #e9ecef;
+  border-radius: 6px;
+}
+
+/* Total Rooms Highlight */
+.total-rooms {
+  background-color: #e3f2fd !important;
+  border: 2px solid #90caf9 !important;
+  padding: 16px !important;
+  margin-top: 16px;
+}
+
+.total-rooms .label {
+  color: #1976d2;
+  font-size: 1.1rem;
+}
+
+.total-rooms .value {
+  background-color: #1976d2;
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 1.2rem;
+}
+
+/* Room Breakdown Section */
+.room-breakdown {
+  margin-top: 24px;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.room-breakdown p {
+  color: #2c3e50;
+  font-weight: 600;
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+}
+
+.room-breakdown ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.room-breakdown li {
+  color: #6c757d;
+  margin-bottom: 12px;
+  padding: 12px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.room-breakdown li:last-child {
+  margin-bottom: 0;
+}
+
+/* Price Display */
+.price-display {
+  background-color: #fff3e0;
+  padding: 20px;
+  border-radius: 8px;
+  margin-top: 24px;
+  text-align: center;
+}
+
+.price-display .total-price {
+  font-size: 1.8rem;
+  color: #f57c00;
+  font-weight: 700;
+  margin: 10px 0;
+}
+
+.price-display .price-breakdown {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Book Now Button */
+.bookNow {
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 25px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+}
+
+.bookNow:hover {
+  background-color: #1976d2;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(33, 150, 243, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .room-capacity-info {
+    padding: 16px;
+    margin: 16px 0;
+  }
+
+  .room-capacity-info h3 {
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+  }
+
+  .capacity-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .capacity-item .label {
+    font-size: 0.9rem;
+  }
+
+  .capacity-item .value {
+    font-size: 1rem;
+    align-self: flex-end;
+  }
+
+  .total-rooms {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .room-breakdown li {
+    font-size: 0.85rem;
+    padding: 10px;
+  }
+
+  .price-display .total-price {
+    font-size: 1.5rem;
+  }
+
+  .bookNow {
+    width: 100%;
+    padding: 10px 20px;
+    font-size: 1rem;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .room-capacity-info {
+    background-color: #1a1a1a;
+    border: 1px solid #333;
+  }
+
+  .capacity-item {
+    background-color: #262626;
+    border-color: #333;
+  }
+
+  .capacity-item .label {
+    color: #ccc;
+  }
+
+  .capacity-item .value {
+    background-color: #333;
+    color: #fff;
+  }
+
+  .total-rooms {
+    background-color: #1a365d !important;
+    border-color: #2c5282 !important;
+  }
+
+  .room-breakdown {
+    background-color: #262626;
+    border-color: #333;
+  }
+
+  .room-breakdown li {
+    background-color: #1a1a1a;
+    color: #ccc;
+  }
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.room-capacity-info {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Amenities Section Styles */
+.amenities-section {
+  margin-top: 30px;
+  padding: 20px;
+  background-color: #ebf3ff;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.amenities-section h3 {
+  color: #2c3e50;
+  font-size: 1.3rem;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.amenities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 16px;
+}
+
+.amenity-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background-color: white;
+  border-radius: 8px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.amenity-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.amenity-icon {
+  color: #2196f3;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.amenity-text {
+  color: #4a5568;
+  font-size: 0.95rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .amenities-section {
+    padding: 15px;
+    margin-top: 20px;
+  }
+
+  .amenities-section h3 {
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+  }
+
+  .amenities-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+  }
+
+  .amenity-item {
+    padding: 10px;
+  }
+
+  .amenity-text {
+    font-size: 0.9rem;
+  }
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  .amenities-section {
+    background-color: #ebf3ff;
+  }
+
+  .amenities-section h3 {
+    color: #2c3e50;
+    border-bottom-color: #2d3748;
+  }
+
+  .amenity-item {
+    background-color: #2d3748;
+  }
+
+  .amenity-text {
+    color: #e2e8f0;
+  }
+
+  .amenity-icon {
+    color: #63b3ed;
+  }
+}

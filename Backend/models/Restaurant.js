@@ -8,7 +8,7 @@ const restaurantSchema = new mongoose.Schema({
   currentWaitTime: String,
   menu: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Menu',
+    ref: 'MenuItem',
     autopopulate: true
   }
 });

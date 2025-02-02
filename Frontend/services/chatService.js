@@ -47,13 +47,16 @@ const fetchHotelData = async () => {
 const generateSystemPrompt = async () => {
   try {
     const hotelData = await fetchHotelData();
-    
+    console.log("hotelData",hotelData)
     return `IntelliBot AI assistant. Here's our current information:
 
 ROOMS:
 ${hotelData.rooms.map(room => `
-- ${room.type}: ₹${room.rate}/night
-  ${room.description}
+- ${room.roomtype}: ₹${room.rate}/night,
+  ${room.description},
+  Allowed Adults: ${room.allowedAdults},
+  Allowed Children: ${room.allowedChildren},
+  Amenities: ${room.amenities},
   Status: ${room.status ? '✅ available' : '❌ Fully Booked'}
 `).join('\n')}
 
@@ -105,30 +108,18 @@ Remember to:
 };
 
 const formatResponse = (text, contextData) => {
-  // Format room information
-  if (text.includes('room') || text.includes('accommodation')) {
-    return {
-      type: 'bot',
-      content: text,
-      formattedData: contextData?.rooms?.map(room => ({
-        title: room.type,
-        points: [
-          `💰 Price: ₹${room.rate}/night`,
-          `🛏️ Features: ${room.description}`,
-          `✨ Status: ${room.status ? 'available' : 'Fully Booked'}`,
-          room.description
-        ]
-      }))
-    };
-  }
-
-  // Format restaurant information
-  if (text.includes('restaurant') || text.includes('food') || text.includes('menu')) {
+  // Format restaurant and menu information
+  if (text.includes('menu') || text.includes('food') || text.includes('restaurant')) {
     const menuByCategory = {};
-    hotelData?.restaurant?.menu?.forEach(category => {
-      menuByCategory[category.categoryName] = category.items.map(item => 
-        `${item.name} - ₹${item.price} ${item.isVegetarian ? '🌱' : '🍖'}`
-      );
+    contextData?.menu?.forEach(category => {
+      menuByCategory[category.categoryName] = category.items.map(item => ({
+        name: item.name,
+        price: item.price,
+        description: item.description,
+        isVegetarian: item.isVegetarian,
+        spiceLevel: item.spiceLevel || 'Medium',
+        preparationTime: item.preparationTime || '20-30 mins'
+      }));
     });
 
     return {
@@ -136,16 +127,49 @@ const formatResponse = (text, contextData) => {
       content: text,
       formattedData: {
         restaurantInfo: [
-          `🏪 ${hotelData?.restaurant?.name}`,
-          `⏰ Hours: ${hotelData?.restaurant?.hours}`,
-          `⌛ Current Wait: ${hotelData?.restaurant?.currentWaitTime}`,
-          `👨‍🍳 Special: ${hotelData?.restaurant?.specialOfDay}`
+          `🏪 ${contextData?.name || 'IntelliStay Restaurant'}`,
+          `⏰ Hours: ${contextData?.hours || '7:00 AM - 11:00 PM'}`,
+          `⌛ Current Wait: ${contextData?.currentWaitTime || '15'} minutes`,
+          `👨‍🍳 Special: ${contextData?.specialOfDay || 'Chef\'s Special Butter Chicken'}`
         ],
         menu: Object.entries(menuByCategory).map(([category, items]) => ({
           category,
-          items
+          items: items.map(item => ({
+            name: item.name,
+            price: item.price,
+            description: item.description,
+            badges: [
+              item.isVegetarian ? '🌱 Veg' : '🍖 Non-Veg',
+              `🌶️ ${item.spiceLevel}`,
+              `⏱️ ${item.preparationTime}`
+            ]
+          }))
         }))
-      }
+      },
+      options: [
+        { text: 'Reserve Table', icon: '🪑' },
+        { text: 'Special Offers', icon: '🎉' },
+        { text: 'Contact Restaurant', icon: '📞' }
+      ]
+    };
+  }
+
+  // Format room information
+  if (text.includes('room') || text.includes('accommodation')) {
+    return {
+      type: 'bot',
+      content: text,
+      formattedData: contextData?.rooms?.map(room => ({
+        title: room.roomtype,
+        points: [
+          `💰 Price: ₹${room.rate}/night`,
+          `🛏️ Features: ${room.description}`,
+          `✨ Status: ${room.status ? 'available' : 'Fully Booked'}`,
+          `Allowed Adults: ${room.allowedAdults}`,
+          `Allowed Children: ${room.allowedChildren}`,
+          `Amenities: ${room.amenities}`
+        ]
+      }))
     };
   }
 
@@ -154,7 +178,7 @@ const formatResponse = (text, contextData) => {
     return {
       type: 'bot',
       content: text,
-        formattedData: hotelData?.facilities?.map(facility => ({
+        formattedData: contextData?.facilities?.map(facility => ({
         title: facility.name,
         points: [
           `⏰ Hours: ${facility.operatingHours.open} - ${facility.operatingHours.close}`,
@@ -171,7 +195,7 @@ const formatResponse = (text, contextData) => {
     return {
       type: 'bot',
       content: text,
-      formattedData: hotelData?.packages?.map(pkg => ({
+      formattedData: contextData?.packages?.map(pkg => ({
         title: pkg.name,
         points: [
           `💰 Price: ₹${pkg.price.amount}`,
@@ -249,12 +273,16 @@ const getQuerySpecificData = async (userMessage) => {
   const message = userMessage.toLowerCase();
   
   try {
+    if (message.includes('menu') || message.includes('food') || message.includes('restaurant')) {
+      const restaurant = await fetchApi('/restaurant');
+      const menu = await fetchApi('/menu');
+      return {
+        ...restaurant,
+        menu: menu
+      };
+    }
     if (message.includes('room') || message.includes('book')) {
       return await fetchApi('/rooms');
-    }
-    if (message.includes('restaurant') || message.includes('food') || message.includes('menu')) {
-      const restaurant = await fetchApi('/restaurant');
-      return restaurant;
     }
     if (message.includes('facility') || message.includes('gym') || message.includes('pool')) {
       return await fetchApi('/facility');
@@ -291,11 +319,11 @@ const getDynamicOptions = async (userMessage, contextData) => {
     ];
   }
 
-  if (message.includes('restaurant') || message.includes('food')) {
+  if (message.includes('menu') || message.includes('food') || message.includes('restaurant')) {
     return [
-      { text: 'View Menu', icon: '📖' },
+      { text: 'View Full Menu', icon: '📖' },
       { text: 'Reserve Table', icon: '🪑' },
-      { text: 'Special Offers', icon: '🎉' },
+      { text: 'Today\'s Special', icon: '👨‍🍳' },
       { text: 'Contact Restaurant', icon: '📞' }
     ];
   }

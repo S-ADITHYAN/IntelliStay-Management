@@ -12,6 +12,7 @@ import instagram from './assets/instagram.png';
 import youtube from './assets/youtube.png';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FormControl, InputLabel, Select, MenuItem, Slider, Box, Typography } from '@mui/material';
+import Footer from '../components/footer';
 
 
 function Rooms() {
@@ -53,43 +54,43 @@ function Rooms() {
     checkrooms();
   }, [searchdata]);
 
-  useEffect(() => {
-    const footer = footerRef.current;
-    let lastScrollY = window.pageYOffset;
-    let footerHeight = footer.offsetHeight;
-    let viewportHeight = window.innerHeight;
-    let documentHeight = document.documentElement.scrollHeight;
+  // useEffect(() => {
+  //   // const footer = footerRef.current;
+  //   // let lastScrollY = window.pageYOffset;
+  //   // // let footerHeight = footer.offsetHeight;
+  //   // let viewportHeight = window.innerHeight;
+  //   // let documentHeight = document.documentElement.scrollHeight;
   
-    const handleScroll = () => {
-      const currentScrollY = window.pageYOffset;
-      const maxScroll = documentHeight - viewportHeight;
-      const scrollPercentage = currentScrollY / maxScroll;
-      const footerVisibleHeight = Math.min(footerHeight, Math.max(50, scrollPercentage * footerHeight));
+  //   // const handleScroll = () => {
+  //   //   const currentScrollY = window.pageYOffset;
+  //   //   const maxScroll = documentHeight - viewportHeight;
+  //   //   const scrollPercentage = currentScrollY / maxScroll;
+  //   //   const footerVisibleHeight = Math.min(footerHeight, Math.max(50, scrollPercentage * footerHeight));
   
-      if (currentScrollY < lastScrollY) {
-        // Scrolling up
-        footer.style.transform = `translateY(calc(100% - ${footerVisibleHeight}px))`;
-      } else {
-        // Scrolling down
-        footer.style.transform = 'translateY(calc(100% - 50px))';
-      }
-      lastScrollY = currentScrollY;
-    };
+  //   //   if (currentScrollY < lastScrollY) {
+  //   //     // Scrolling up
+  //   //     footer.style.transform = `translateY(calc(100% - ${footerVisibleHeight}px))`;
+  //   //   } else {
+  //   //     // Scrolling down
+  //   //     footer.style.transform = 'translateY(calc(100% - 50px))';
+  //   //   }
+  //   //   lastScrollY = currentScrollY;
+  //   // };
   
-    const handleResize = () => {
-      footerHeight = footer.offsetHeight;
-      viewportHeight = window.innerHeight;
-      documentHeight = document.documentElement.scrollHeight;
-    };
+  //   const handleResize = () => {
+  //     footerHeight = footer.offsetHeight;
+  //     viewportHeight = window.innerHeight;
+  //     documentHeight = document.documentElement.scrollHeight;
+  //   };
   
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    window.addEventListener('resize', handleResize);
+  //   window.addEventListener('scroll', handleScroll, { passive: true });
+  //   window.addEventListener('resize', handleResize);
   
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
+  //   return () => {
+  //     window.removeEventListener('scroll', handleScroll);
+  //     window.removeEventListener('resize', handleResize);
+  //   };
+  // }, []);
 
   // Function to group rooms by roomtype
   const groupByRoomType = (rooms) => {
@@ -107,6 +108,7 @@ function Rooms() {
 
   // Function to randomly select a room for booking from the available rooms of the same roomtype
   const handleRoomBooking = (roomtype) => {
+    
     const roomsOfType = groupedRooms[roomtype];
     if (roomsOfType.length > 0) {
       const randomRoom = roomsOfType[Math.floor(Math.random() * roomsOfType.length)];
@@ -258,7 +260,7 @@ function Rooms() {
           </Typography>
         )}
       </section>
-      <footer className="footer" ref={footerRef} id="contact">
+      {/* <footer className="footer" ref={footerRef} id="contact">
         <div className="section__container footer__container">
           <div className="footer__col">
             <div className="logo">
@@ -305,7 +307,10 @@ function Rooms() {
         <div className="footer__bar">
           Copyright © 2024 INTELLISTAY Pvt.LTD. All rights reserved.
         </div>
-      </footer>
+      </footer> */}
+      <div className='footer'>
+      <Footer/>
+    </div>
     </div>
   );
 }

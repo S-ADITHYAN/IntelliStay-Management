@@ -45,8 +45,45 @@ const menuItemSchema = new mongoose.Schema({
         type: String,
         enum: ['Not Spicy', 'Mild', 'Medium', 'Hot', 'Extra Hot'],
         default: 'Not Spicy'
+    },
+    quantity: {
+        type: Number,
+        default: 1
+    },
+    availableQuantity: {
+        type: Number,
+        default: function() {
+            return this.quantity; // Initially set to match quantity
+        }
+    },
+    lastResetDate: {
+        type: Date,
+        default: Date.now
     }
 }, { timestamps: true });
+
+// Add middleware to check and reset available quantity
+menuItemSchema.pre('save', async function(next) {
+    const today = new Date().setHours(0, 0, 0, 0);
+    const lastReset = new Date(this.lastResetDate).setHours(0, 0, 0, 0);
+    
+    // If it's a new day, reset availableQuantity
+    if (today > lastReset) {
+        this.availableQuantity = this.quantity;
+        this.lastResetDate = new Date();
+    }
+    next();
+});
+
+// Method to update available quantity after order
+menuItemSchema.methods.updateAvailableQuantity = async function(orderedQuantity) {
+    if (this.availableQuantity >= orderedQuantity) {
+        this.availableQuantity -= orderedQuantity;
+        await this.save();
+        return true;
+    }
+    return false;
+};
 
 // Order Schema
 const orderSchema = new mongoose.Schema({
@@ -107,6 +144,10 @@ cancellationDetails: {
       ref: 'User'
     },
     reason: String
+  },
+  tablereservation_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TableReservation'
   }
 }, { timestamps: true });
 

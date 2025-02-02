@@ -10,6 +10,7 @@ import { FaUtensils } from 'react-icons/fa';
  function Header() {
     const navigate = useNavigate();
     const [dropdownOpen, setDropdownOpen] = useState(false);
+    const token=localStorage.getItem("token");
 
     useEffect(() => {
       const menuBtn = document.getElementById("menu-btn");
@@ -171,6 +172,31 @@ import { FaUtensils } from 'react-icons/fa';
                 <FaUtensils className="nav-icon" /> Restaurant
               </a>
               <div className={`dropdown-content ${dropdownOpen ? 'show' : ''}`}>
+                 {/* Always show these items regardless of authentication */}
+              <a href="/restaurant/menu" onClick={(e) => handleDropdownClick(e, '/restaurant/menu')}>
+                View Menu
+              </a>
+              {token ? (
+                // Show these items only if user is logged in
+                <>
+                  <a href="/restaurant/cart" onClick={(e) => handleDropdownClick(e, '/restaurant/cart')}>
+                    My Cart
+                  </a>
+                  <a href="/restaurant/reservations" onClick={(e) => handleDropdownClick(e, '/restaurant/reservations')}>
+                Book Table
+              </a>
+                  <a href="/restaurant/orders" onClick={(e) => handleDropdownClick(e, '/restaurant/orders')}>
+                    My Orders
+                  </a>
+                  <a href="/restaurant/table-reservations" onClick={(e) => handleDropdownClick(e, '/restaurant/table-reservations')}>
+                    Table Reservation
+                  </a>
+                </>
+              ) : null}
+             
+              
+             </div>
+              {/* <div className={`dropdown-content ${dropdownOpen ? 'show' : ''}`}>
                 <a href="/restaurant/cart" onClick={(e) => handleDropdownClick(e, '/restaurant/cart')}>
                   My Cart
                 </a>
@@ -181,12 +207,12 @@ import { FaUtensils } from 'react-icons/fa';
                   Book Table
                 </a>
                 <a href="/restaurant/orders" onClick={(e) => handleDropdownClick(e, '/restaurant/orders')}>
-                  Order Online
+                  My Orders
                 </a>
                 <a href="/restaurant/table-reservations" onClick={(e) => handleDropdownClick(e, '/restaurant/table-reservations')}>
                   Table Reservation
                 </a>
-              </div>
+              </div> */}
             </li>
             {user ? (
                 <>

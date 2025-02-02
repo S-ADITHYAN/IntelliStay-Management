@@ -27,6 +27,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import Swal from 'sweetalert2'; // Import this at the top of your file
 import { verifyDocument } from '../utils/documentVerification';
 import WarningIcon from '@mui/icons-material/Warning';
+import Footer from '../components/footer'; 
 
 const documentOptions = [
     { label: 'Aadhar', value: 'aadhar' },
@@ -42,8 +43,11 @@ const GuestDetailsForm = () => {
     const adultsCount = datas.adults || 0; // Assuming your data has adultsCount
     const childrenCount = datas.children|| 0; 
     const roomdatas = state.roomdata || {};
-    const totlrates = state.totlrate || {};
-    const totldays = state.totldays || {}; // Assuming your data has childrenCount
+    const totlrates = state.totalRate || {};
+    console.log("totlrates",totlrates);
+    const totldays = state.totalDays || {};
+    console.log("totldays",totldays);
+     // Assuming your data has childrenCount
     const [preview, setPreview] = useState(null);
     const today = new Date();
     const fiveYearsAgo = new Date(today.setFullYear(today.getFullYear() - 18)).toISOString().split('T')[0];
@@ -160,6 +164,12 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
 
         // Validate adults
         newAdults.forEach((adult, index) => {
+            // Skip document verification for previously saved guests
+            if (!adult._id) {
+                if (!verificationStatus[`adult_${index}`] && adult.proofType && adult.proofNumber) {
+                    isValid = false;
+                }
+            }
             const errors = {};
             if (!adult.name) errors.name = 'Name is required';
             if (!adult.email) errors.email = 'Email is required';
@@ -168,12 +178,6 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
             if (!adult.proofType) errors.proofType = 'Proof type is required';
             if (!adult.proofNumber) errors.proofNumber = 'Proof number is required';
             
-            // Check document verification status for adults
-            if (adult.proofType && adult.proofNumber && !verificationStatus[`adult_${index}`]) {
-                errors.proofDocument = 'Document verification required';
-                isValid = false;
-            }
-
             newAdults[index].errors = errors;
             if (Object.keys(errors).length > 0) isValid = false;
         });
@@ -264,7 +268,8 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                     adults, 
                     children, 
                     totldays,
-                    selectedGuestIds 
+                    selectedGuestIds,
+                    totlrates 
                 } 
             });
         } else {
@@ -293,6 +298,17 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
 
     // Upload file handler
     const handleFileUpload = async (e, index, type) => {
+        // Skip verification if guest is from previous records
+        const guest = type === 'adult' ? adults[index] : children[index];
+        if (guest._id) {
+            // For previously saved guests, mark as verified automatically
+            setVerificationStatus(prev => ({
+                ...prev,
+                [`${type}_${index}`]: true
+            }));
+            return;
+        }
+
         try {
             setIsVerifying(true);
             const file = e.target.files[0];
@@ -302,17 +318,13 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
             const filePreviewUrl = URL.createObjectURL(file);
             setPreview(filePreviewUrl);
 
-            // Get the guest data
-            const guest = type === 'adult' ? adults[index] : children[index];
-
-            // Verify document
+            // Verify document only for new guests
             const verificationResult = await verifyDocument(
                 file,
                 guest.proofType,
                 guest.proofNumber
             );
 
-            // Update verification status
             setVerificationStatus(prev => ({
                 ...prev,
                 [`${type}_${index}`]: verificationResult.isValid
@@ -325,7 +337,6 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                     text: verificationResult.error,
                     confirmButtonText: 'Try Again'
                 }).then(() => {
-                    // Reset the file input
                     e.target.value = '';
                     setPreview(null);
                 });
@@ -607,32 +618,22 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                                     ))}
                                 </TextField>
                             </Grid>
-                            {guest.proofType && (
+                            {/* Only show document upload for new guests */}
+                            {!guest._id && guest.proofType && (
                                 <>
                                     <Grid item xs={12} md={6}>
                                         <TextField
                                             fullWidth
-                                            label={`${guest.proofType.charAt(0).toUpperCase() + guest.proofType.slice(1)} Number`}
-                                            variant="outlined"
+                                            label={`${guest.proofType} Number`}
                                             name="proofNumber"
                                             value={guest.proofNumber}
                                             onChange={(e) => handleChange(e, index, type)}
                                             required
-                                            error={!!guest.errors.proofNumber}
-                                            helperText={guest.errors.proofNumber}
+                                            error={!!guest.errors?.proofNumber}
+                                            helperText={guest.errors?.proofNumber}
                                         />
                                     </Grid>
                                     <Grid item xs={12} md={6}>
-                                        {preview && (
-                                            <div style={{ marginTop: '10px', marginBottom: '5px' }}>
-                                                <h4>Preview:</h4>
-                                                <img
-                                                    src={preview}
-                                                    alt="File Preview"
-                                                    style={{ maxWidth: '15%', height: 'auto' }}
-                                                />
-                                            </div>
-                                        )}
                                         <Button
                                             variant="contained"
                                             component="label"
@@ -683,12 +684,13 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                         </Button>
                     </Box>
                 )}
+                {/* Show verification status */}
                 {guest.proofType && guest.proofNumber && (
                     <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Typography variant="body2" color="text.secondary">
                             Document Status:
                         </Typography>
-                        {verificationStatus[`${type}_${index}`] ? (
+                        {guest._id || verificationStatus[`${type}_${index}`] ? (
                             <Chip
                                 label="Verified"
                                 color="success"
@@ -855,6 +857,9 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
           Copyright © 2024 INTELLISTAY Pvt.LTD. All rights reserved.
         </div>
       </footer> */}
+      <div className='footer'>
+      <Footer/>
+    </div>
         </>
     );
 };
