@@ -1,370 +1,319 @@
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
-  IconButton,
   Typography,
-  useMediaQuery,
   useTheme,
+  Grid,
+  Card,
+  CardContent,
+  IconButton,
+  CircularProgress,
+  Divider,
+  Tab,
+  Tabs,
 } from "@mui/material";
 import {
-  Header,
-  StatBox,
-  LineChart,
-  ProgressCircle,
-  BarChart,
-  GeographyChart,
-} from "../../components";
-import {
   DownloadOutlined,
-  Email,
-  PersonAdd,
-  PointOfSale,
-  Traffic,
+  TrendingUp,
+  Hotel,
+  Restaurant,
+  Person,
+  EventAvailable,
+  AttachMoney,
+  TableChart,
+  Room,
+  RestaurantMenu,
+  Assessment,
+  Schedule,
 } from "@mui/icons-material";
 import { tokens } from "../../theme";
-import { mockTransactions } from "../../data/mockData";
-import useAuth from "../../useAuth";
-import React, { useEffect, useState } from "react";
-import axios from 'axios';
-import { People } from "@mui/icons-material"; 
-import EventAvailable from "@mui/icons-material/EventAvailable"; // Import the leave icon// Import the People icon
+import Header from "../../components/Header";
+import StatBox from "../../components/StatBox";
+import LineChart from "../../components/LineChart";
+import PieChart from "../../components/PieChart";
+import BarChart from "../../components/BarChart";
+import { CSVLink } from "react-csv";
+import axios from "axios";
+import { format } from "date-fns";
+import InteractiveChart from '../../components/InteractiveChart';
+import DetailedMetrics from '../../components/DetailedMetrics';
+import HotelDashboard from './HotelDashboard';
+import RestaurantDashboard from './RestaurantDashboard';
 
-function Dashboard() {
-  useAuth();
+const Dashboard = () => {
   const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
-  const [userCount, setUserCount] = useState(0);
-  const [leaveCount, setLeaveCount] = useState(0);
-  const [leaveStaff, setLeaveStaff] = useState([]); // State to hold staff on leave
+  const defaultColors = {
+    grey: { 100: '#e0e0e0' },
+    blueAccent: { 700: '#1976d2', 800: '#1565c0' },
+    primary: { 400: '#42a5f5' },
+    greenAccent: { 600: '#43a047' }
+  };
+
+  const colors = tokens(theme.palette.mode) || defaultColors;
+
+  const [activeTab, setActiveTab] = useState(0);
+  const [revenueData, setRevenueData] = useState([{
+    id: 'revenue',
+    data: [
+      { x: new Date().toISOString(), y: 0 }
+    ]
+  }]);
+  const [stats, setStats] = useState({
+    hotelMetrics: {
+      roomStatus: { total: 0, occupied: 0, available: 0, maintenance: 0 },
+      monthlyRevenue: 0,
+      occupancyRate: 0,
+      averageRevenue: 0,
+      popularRoomTypes: [],
+      revenueData: []
+    },
+    restaurantMetrics: {
+      todayOrders: 0,
+      monthlyRevenue: 0,
+      tableUtilization: [],
+      popularDishes: [],
+      revenueData: []
+    }
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [selectedTimeRange, setSelectedTimeRange] = useState('month');
+  const [selectedMetrics, setSelectedMetrics] = useState([]);
+  const [comparisonMode, setComparisonMode] = useState(false);
+
+  const TimeRangeSelector = ({ value, onChange }) => (
+    <Box sx={{ display: 'flex', gap: 2 }}>
+      {['week', 'month', 'year'].map((range) => (
+        <Button
+          key={range}
+          variant={value === range ? 'contained' : 'outlined'}
+          onClick={() => onChange(range)}
+          sx={{
+            textTransform: 'capitalize',
+            color: value === range ? colors?.grey?.[100] : 'inherit',
+            backgroundColor: value === range ? colors?.blueAccent?.[700] : 'transparent',
+            '&:hover': {
+              backgroundColor: value === range ? colors?.blueAccent?.[800] : 'rgba(0, 0, 0, 0.04)'
+            }
+          }}
+        >
+          {range}
+        </Button>
+      ))}
+    </Box>
+  );
 
   useEffect(() => {
-    const fetchUserCount = async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_API}/admin/totalUsers`);
-        setUserCount(response.data.count);
-      } catch (error) {
-        console.error("Error fetching user count:", error);
-      }
-    };
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 300000);
+    return () => clearInterval(interval);
+  }, [selectedTimeRange]);
 
-    fetchUserCount();
+  const transformRevenueData = (rawData = []) => {
+    if (!Array.isArray(rawData)) return [];
 
-    const fetchLeaveCount = async () => {
-      try {
-        const response = await axios.get(`${import.meta.env.VITE_API}/admin/todayLeaveCount`);
-        setLeaveCount(response.data.count || 0); // Fallback to 0 if count is undefined
-        setLeaveStaff(response.data.staff || []); // Fallback to empty array if staff is undefined // Set staff on leave
-      } catch (error) {
-        console.error("Error fetching leave count:", error);
-        setError("Failed to fetch leave count."); // Set error message
-      }
-    };
+    const transformedData = rawData.map(item => ({
+      x: item.date || item._id,
+      y: Number(item.amount) || 0
+    })).filter(item => item.x && item.y !== undefined);
 
-    fetchLeaveCount();
-  }, []);
-
-  const isXlDevices = useMediaQuery("(min-width: 1260px)");
-  const isMdDevices = useMediaQuery("(min-width: 724px)");
-  const isXsDevices = useMediaQuery("(max-width: 436px)");
-  // Example dynamic values for progress and increase
-  const previousUserCount = 100; // This should be fetched or calculated based on your logic
-  const increase = userCount - previousUserCount; // Calculate increase
-  const progress = userCount / (previousUserCount + userCount); // Calculate progress as a fraction
-  const handleLeaveClick = () => {
-    // Display the staff on leave (you can implement a modal or a dialog)
-    alert(`Staff on leave today:\n${leaveStaff.map(staff => staff.staff_id).join(', ')}`);
+    return transformedData.length > 0 ? [{
+      id: 'revenue',
+      data: transformedData
+    }] : [];
   };
+
+  const fetchDashboardData = async (timeRange = selectedTimeRange) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(`${import.meta.env.VITE_API}/admin/dashboard-stats`, {
+        params: { timeRange }
+
+      });
+      console.log(response.data);
+
+      
+      if (response.data.success) {
+        setStats(response.data);
+        setRevenueData(transformRevenueData(response.data.revenueData));
+      } else {
+        throw new Error(response.data.message || 'Failed to fetch dashboard data');
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      setError(error.message || "Failed to load dashboard data");
+      // Set default data on error
+      setRevenueData(transformRevenueData([]));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateReportData = (type) => {
+    const metrics = type === 'hotel' ? stats.hotelMetrics : stats.restaurantMetrics;
+    return {
+      filename: `${type}-report-${format(new Date(), 'yyyy-MM-dd')}.csv`,
+      data: Object.entries(metrics || {}).map(([key, value]) => ({
+        metric: key,
+        value: typeof value === 'object' ? JSON.stringify(value) : value
+      })),
+      headers: [
+        { label: 'Metric', key: 'metric' },
+        { label: 'Value', key: 'value' }
+      ]
+    };
+  };
+
+  const handleTimeRangeChange = async (range) => {
+    setSelectedTimeRange(range);
+    await fetchDashboardData();
+  };
+
+  const handleComparisonToggle = () => {
+    setComparisonMode(!comparisonMode);
+  };
+
+  const getDetailedMetrics = () => {
+    return {
+      hotel: [
+        {
+          label: 'Revenue per Available Room',
+          value: `₹${(stats.hotelMetrics.monthlyRevenue / stats.hotelMetrics.roomStatus.total).toFixed(2)}`,
+          percentage: 85,
+          trend: 'up',
+          info: 'Average revenue generated per available room'
+        },
+        // Add more hotel metrics
+      ],
+      restaurant: [
+        {
+          label: 'Average Order Value',
+          value: `₹${(stats.restaurantMetrics.monthlyRevenue / stats.restaurantMetrics.todayOrders).toFixed(2)}`,
+          percentage: 72,
+          trend: 'up',
+          info: 'Average amount spent per order'
+        },
+        // Add more restaurant metrics
+      ]
+    };
+  };
+
+  if (loading) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
+        <Typography color="error" variant="h5">{error}</Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box m="20px">
-      <Box display="flex" justifyContent="space-between">
-        <Header title="DASHBOARD" subtitle="Welcome to your dashboard" />
-         {!isXsDevices && (
-          <Box>
-            {/* <Button
-              variant="contained"
+      {/* HEADER */}
+      <Box display="flex" justifyContent="space-between" alignItems="center">
+        <Header title="DASHBOARD" subtitle="Welcome to your hotel & restaurant analytics" />
+        
+        <Box>
+          <CSVLink {...generateReportData(activeTab === 0 ? 'hotel' : 'restaurant')}>
+            <Button
               sx={{
-                bgcolor: colors.blueAccent[700],
-                color: "#fcfcfc",
-                fontSize: isMdDevices ? "14px" : "10px",
+                backgroundColor: colors?.blueAccent?.[700] || defaultColors.blueAccent[700],
+                color: colors?.gray?.[100] || defaultColors.grey[100],
+                fontSize: "14px",
                 fontWeight: "bold",
-                p: "10px 20px",
-                mt: "18px",
-                transition: ".3s ease",
-                ":hover": {
-                  bgcolor: colors.blueAccent[800],
+                padding: "10px 20px",
+                "&:hover": {
+                  backgroundColor: colors?.blueAccent?.[800] || defaultColors.blueAccent[800],
                 },
               }}
-              startIcon={<DownloadOutlined />}
             >
-              DOWNLOAD REPORTS
-            </Button> */}
-          </Box>
-        )}
+              <DownloadOutlined sx={{ mr: "10px" }} />
+              Download Report
+            </Button>
+          </CSVLink>
+        </Box>
       </Box>
 
-      {/* GRID & CHARTS */}
-      <Box
-        display="grid"
-        gridTemplateColumns={
-          isXlDevices
-            ? "repeat(12, 1fr)"
-            : isMdDevices
-            ? "repeat(6, 1fr)"
-            : "repeat(3, 1fr)"
-        }
-        gridAutoRows="140px"
-        gap="20px"
-      >
-        {/* Statistic Items */}
-         <Box
-          gridColumn="span 3"
-          bgcolor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
+      {/* TABS */}
+      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+        <Tabs 
+          value={activeTab} 
+          onChange={(e, newValue) => setActiveTab(newValue)}
+          textColor="secondary"
+          indicatorColor="secondary"
         >
-          <StatBox
-            title={userCount.toString()}
-            subtitle="Total Users"
-            progress={progress.toString()}
-            increase={`+${increase}`}
-              icon={
-                <People // Change icon to People
-                  sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-                />
-              
-            }
+          <Tab icon={<Hotel />} label="Hotel" />
+          <Tab icon={<Restaurant />} label="Restaurant" />
+        </Tabs>
+      </Box>
+
+      {/* CONTENT */}
+      <Box display={activeTab === 0 ? 'block' : 'none'}>
+        <HotelDashboard 
+          stats={stats.hotelMetrics} 
+          colors={colors} 
+          revenueData={revenueData}
+        />
+      </Box>
+
+      <Box display={activeTab === 1 ? 'block' : 'none'}>
+        <RestaurantDashboard 
+          stats={stats.restaurantMetrics} 
+          colors={colors}
+          revenueData={revenueData}
+        />
+      </Box>
+
+      {/* Add TimeRange Selector */}
+      <Box sx={{ mb: 3 }}>
+        <TimeRangeSelector 
+          value={selectedTimeRange}
+          onChange={handleTimeRangeChange}
+        />
+      </Box>
+
+      {/* Add Detailed Metrics */}
+      <DetailedMetrics 
+        metrics={getDetailedMetrics()[activeTab === 0 ? 'hotel' : 'restaurant']}
+        title={activeTab === 0 ? 'Hotel Analytics' : 'Restaurant Analytics'}
+        type={activeTab === 0 ? 'hotel' : 'restaurant'}
+      />
+
+      {/* Add Interactive Charts */}
+      <Grid container spacing={3}>
+        <Grid item xs={12} md={8}>
+          <LineChart 
+            data={transformRevenueData(
+              activeTab === 0 
+                ? stats.hotelMetrics?.revenueData || []
+                : stats.restaurantMetrics?.revenueData || []
+            )}
+            isDashboard={true}
           />
-        </Box> 
-        <Box
-          gridColumn="span 3"
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-          onClick={handleLeaveClick}
-          style={{ cursor: 'pointer' }}
-        >
-          <StatBox
-            title={leaveCount.toString()}
-            subtitle="Staff leave on today" 
-            // progress="0.50"
-            // increase="+21%"
-            icon={
-              <EventAvailable // Change icon to EventAvailable (leave icon)
-              sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-            />
-            }
-          />
-         </Box>
-        {/*<Box
-          gridColumn="span 3"
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
-          <StatBox
-            title="32,441"
-            subtitle="New Clients"
-            progress="0.30"
-            increase="+5%"
-            icon={
-              <PersonAdd
-                sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-              />
-            }
-          />
-        </Box>
-        <Box
-          gridColumn="span 3"
-          backgroundColor={colors.primary[400]}
-          display="flex"
-          alignItems="center"
-          justifyContent="center"
-        >
-          <StatBox
-            title="1,325,134"
-            subtitle="Traffic Received"
-            progress="0.80"
-            increase="+43%"
-            icon={
-              <Traffic
-                sx={{ color: colors.greenAccent[600], fontSize: "26px" }}
-              />
-            }
-          /> */}
-        </Box>
-
-        {/* ---------------- Row 2 ---------------- */}
-
-        {/* Line Chart */}
-        {/* <Box
-          gridColumn={
-            isXlDevices ? "span 8" : isMdDevices ? "span 6" : "span 3"
-          }
-          gridRow="span 2"
-          bgcolor={colors.primary[400]}
-        >
-          <Box
-            mt="25px"
-            px="30px"
-            display="flex"
-            justifyContent="space-between"
-          >
-            <Box>
-              <Typography
-                variant="h5"
-                fontWeight="600"
-                color={colors.gray[100]}
-              >
-                Revenue Generated
-              </Typography>
-              <Typography
-                variant="h5"
-                fontWeight="bold"
-                color={colors.greenAccent[500]}
-              >
-                $59,342.32
-              </Typography>
-            </Box>
-            <IconButton>
-              <DownloadOutlined
-                sx={{ fontSize: "26px", color: colors.greenAccent[500] }}
-              />
-            </IconButton>
-          </Box>
-          <Box height="250px" mt="-20px">
-            <LineChart isDashboard={true} />
-          </Box>
-        </Box> */}
-
-        {/* Transaction Data */}
-        {/* <Box
-          gridColumn={isXlDevices ? "span 4" : "span 3"}
-          gridRow="span 2"
-          bgcolor={colors.primary[400]}
-          overflow="auto"
-        >
-          <Box borderBottom={`4px solid ${colors.primary[500]}`} p="15px">
-            <Typography color={colors.gray[100]} variant="h5" fontWeight="600">
-              Recent Transactions
-            </Typography>
-          </Box>
-
-          {mockTransactions.map((transaction, index) => (
-            <Box
-              key={`${transaction.txId}-${index}`}
-              display="flex"
-              alignItems="center"
-              justifyContent="space-between"
-              borderBottom={`4px solid ${colors.primary[500]}`}
-              p="15px"
-            >
-              <Box>
-                <Typography
-                  color={colors.greenAccent[500]}
-                  variant="h5"
-                  fontWeight="600"
-                >
-                  {transaction.txId}
-                </Typography>
-                <Typography color={colors.gray[100]}>
-                  {transaction.user}
-                </Typography>
-              </Box>
-              <Typography color={colors.gray[100]}>
-                {transaction.date}
-              </Typography>
-              <Box
-                bgcolor={colors.greenAccent[500]}
-                p="5px 10px"
-                borderRadius="4px"
-              >
-                ${transaction.cost}
-              </Box>
-            </Box>
-          ))}
-        </Box> */}
-
-        {/* Revenue Details */}
-        {/* <Box
-          gridColumn={isXlDevices ? "span 4" : "span 3"}
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-          p="30px"
-        >
-          <Typography variant="h5" fontWeight="600">
-            Campaign
-          </Typography>
-          <Box
-            display="flex"
-            flexDirection="column"
-            alignItems="center"
-            mt="25px"
-          >
-            <ProgressCircle size="125" />
-            <Typography
-              textAlign="center"
-              variant="h5"
-              color={colors.greenAccent[500]}
-              sx={{ mt: "15px" }}
-            >
-              $48,352 revenue generated
-            </Typography>
-            <Typography textAlign="center">
-              Includes extra misc expenditures and costs
-            </Typography>
-          </Box>
-        </Box> */}
-
-        {/* Bar Chart */}
-        {/* <Box
-          gridColumn={isXlDevices ? "span 4" : "span 3"}
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-        >
-          <Typography
-            variant="h5"
-            fontWeight="600"
-            sx={{ p: "30px 30px 0 30px" }}
-          >
-            Sales Quantity
-          </Typography>
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            height="250px"
-            mt="-20px"
-          >
-            <BarChart isDashboard={true} />
-          </Box>
-        </Box> */}
-
-        {/* Geography Chart */}
-        {/* <Box
-          gridColumn={isXlDevices ? "span 4" : "span 3"}
-          gridRow="span 2"
-          backgroundColor={colors.primary[400]}
-          padding="30px"
-        >
-          <Typography variant="h5" fontWeight="600" mb="15px">
-            Geography Based Traffic
-          </Typography>
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="center"
-            height="200px"
-          >
-            <GeographyChart isDashboard={true} />
-          </Box>
-        </Box> 
-      </Box>*/} 
-    </Box> 
+        </Grid>
+        {/* Add more interactive charts */}
+      </Grid>
+    </Box>
   );
-}
+};
 
 export default Dashboard;

@@ -35,6 +35,7 @@
     "papaparse": "^5.4.1",
     "react": "^18.2.0",
     "react-calendar": "^5.1.0",
+    "react-csv": "^2.2.2",
     "react-dom": "^18.2.0",
     "react-icons": "^5.4.0",
     "react-pro-sidebar": "^1.1.0",

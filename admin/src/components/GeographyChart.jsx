@@ -1,4 +1,4 @@
-import { useTheme } from "@mui/material";
+import { useTheme, Box } from "@mui/material";
 import { ResponsiveChoropleth } from "@nivo/geo";
 import { geoFeatures } from "../data/mockGeoFeatures";
 import { tokens } from "../theme";
@@ -6,7 +6,17 @@ import { mockGeographyData as data } from "../data/mockData";
 
 const GeographyChart = ({ isDashboard = false }) => {
   const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
+  const colors = tokens(theme.palette.mode) || {
+    gray: { 100: '#f5f5f5' }
+  };
+
+  if (!data || !geoFeatures) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+        No data available
+      </Box>
+    );
+  }
 
   return (
     <ResponsiveChoropleth
@@ -46,7 +56,6 @@ const GeographyChart = ({ isDashboard = false }) => {
       label="properties.name"
       valueFormat=".2s"
       projectionType="mercator"
-      fillColor={(feature) => feature.properties.fillColor || "#dddddd"}
       projectionScale={isDashboard ? 40 : 150}
       projectionTranslation={isDashboard ? [0.49, 0.6] : [0.5, 0.5]}
       projectionRotation={[0, 0, 0]}
@@ -65,7 +74,7 @@ const GeographyChart = ({ isDashboard = false }) => {
                 itemWidth: 94,
                 itemHeight: 18,
                 itemDirection: "left-to-right",
-                itemTextColor: colors.gray[100],
+                itemTextColor: colors.grey[100],
                 itemOpacity: 0.85,
                 symbolSize: 18,
                 effects: [
@@ -81,10 +90,9 @@ const GeographyChart = ({ isDashboard = false }) => {
             ]
           : undefined
       }
-      // Add these props to solve the warnings
-      // match={{ id: "id" }} // Modify according to your data structure
-      // value={(feature) => feature.properties.value} // Ensure your data has a `value` property
-      // colors="nivo" // Or define your custom color array
+      match="properties.name"
+      value="value"
+      colors="spectral"
     />
   );
 };

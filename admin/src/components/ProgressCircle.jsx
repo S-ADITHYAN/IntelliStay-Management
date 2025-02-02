@@ -4,8 +4,14 @@ import { tokens } from "../theme";
 
 const ProgressCircle = ({ progress = "0.75", size = "40" }) => {
   const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
-  const angle = progress * 360;
+  const colors = tokens(theme.palette.mode) || {
+    primary: { 400: '#1976d2' },
+    blueAccent: { 500: '#2196f3' },
+    greenAccent: { 500: '#4caf50' }
+  };
+
+  const angle = Number(progress) * 360;
+
   return (
     <Box
       sx={{

@@ -194,7 +194,9 @@ import { FaUtensils } from 'react-icons/fa';
                   <li className="dropdown">
                         <a href="" className="username">Hi, {user}</a>
                             <div className="dropdown-content">
+                              <a href="/qrscanner">QR Scanner</a>
                                   <a href="/myprofile">Profile</a>
+                                  <a href="/guide">Guide</a>
                                    <a href="/my-bookings" id='my-bookings'>My Bookings</a>
                                    <a href="/saved-guests">Saved Guests</a>
                                    <a href="" onClick={handleLogout}>Logout</a>

@@ -1,5 +1,5 @@
 const express = require("express");
-const { Adminlogin, staffdetails, asjobdetails, feedbacks, roomdetails, handleMaintenance, handleAvailable, updateroom, lastRoomNumber, addroom, uploadBulkData, addMultipleroommss, resdetails, handleCancellation, user__booking, user_bookings_cancel, user_guests_proofupdate, user_guests_proofupdatess, user_bookings_cancelss, handleCancellationss, resdetailsss, addMultipleroommssss, leave_applicationss, leave_applications_accept, leave_applications_reject, today, checkJobs, assign, staffregister, uploadBulkStaffData, totalUsers, todayLeaveCount, attendance_today, attendance_mark, AddMenuItem, Addmenuitem, getMenuItems, addtable, gettables, updatetable, deletetable, deleteMenuItem, updatemenuitem, getRestaurantOrders, updateOrderStatus, getReservations, updateReservationStatus } = require("../Controller/admincontroller");
+const { Adminlogin, staffdetails, asjobdetails, feedbacks, roomdetails, handleMaintenance, handleAvailable, updateroom, lastRoomNumber, addroom, uploadBulkData, addMultipleroommss, resdetails, handleCancellation, user__booking, user_bookings_cancel, user_guests_proofupdate, user_guests_proofupdatess, user_bookings_cancelss, handleCancellationss, resdetailsss, addMultipleroommssss, leave_applicationss, leave_applications_accept, leave_applications_reject, today, checkJobs, assign, staffregister, uploadBulkStaffData, totalUsers, todayLeaveCount, attendance_today, attendance_mark, AddMenuItem, Addmenuitem, getMenuItems, addtable, gettables, updatetable, deletetable, deleteMenuItem, updatemenuitem, getRestaurantOrders, updateOrderStatus, getReservations, updateReservationStatus, getDashboardStats } = require("../Controller/admincontroller");
 const router=express.Router();
 
 
@@ -44,5 +44,6 @@ router.get('/restaurant/orders',getRestaurantOrders)
 router.put('/restaurant/orders/status/:orderId',updateOrderStatus)
 router.get('/restaurant/reservations',getReservations)
 router.put('/restaurant/reservations/status/:reservationId',updateReservationStatus)
+router.get('/dashboard-stats',getDashboardStats)
 
 module.exports=router

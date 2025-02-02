@@ -5,7 +5,11 @@ import ProgressCircle from "./ProgressCircle";
 
 const StatBox = ({ title, subtitle, icon, progress, increase }) => {
   const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
+  const colors = tokens(theme.palette.mode) || {
+    gray: { 100: '#f5f5f5' },
+    greenAccent: { 500: '#4caf50', 600: '#43a047' }
+  };
+
   return (
     <Box width="100%" mx="30px">
       <Box display="flex" justifyContent="space-between">

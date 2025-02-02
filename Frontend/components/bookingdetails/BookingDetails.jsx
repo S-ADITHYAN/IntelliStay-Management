@@ -16,6 +16,8 @@ import PendingIcon from '@mui/icons-material/Pending'; // Import Pending icon
 import Rating from '@mui/material/Rating';
 import StarIcon from '@mui/icons-material/Star';
 import { TextField } from '@mui/material';
+import QRGenerator from '../../src/components/QRSystem/QRGenerator';
+import { Alert } from '@mui/material';
 
 
 const BookingDetails = () => {
@@ -686,6 +688,83 @@ const BookingDetails = () => {
     </Modal>
 
       </Box>
+
+      {/* QR Code Generator Section */}
+      <Grid item xs={12}>
+        <Paper elevation={3} style={{ 
+          padding: "20px", 
+          backgroundColor: "#93C572", 
+          color: "#111",
+          marginTop: "20px" 
+        }}>
+          <Typography variant="h5" style={{ 
+            fontWeight: "bold", 
+            textAlign: "center", 
+            marginBottom: "20px" 
+          }}>
+            Self Check-In/Out
+          </Typography>
+
+          {/* Only show QR generator if reservation is confirmed or checked in */}
+          {reservation && (reservation.status === 'booked' || reservation.status === 'checked_in') ? (
+            <Box sx={{ 
+              backgroundColor: '#fff', 
+              padding: 2, 
+              borderRadius: 2,
+              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            }}>
+              <QRGenerator 
+                reservationId={reservation._id} 
+              />
+            </Box>
+          ) : (
+            <Alert severity="info" style={{ backgroundColor: '#fff' }}>
+              QR Code generation is only available for confirmed or checked-in reservations.
+            </Alert>
+          )}
+
+          {/* Instructions for guests */}
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="body1" style={{ 
+              backgroundColor: '#fff',
+              padding: '15px',
+              borderRadius: '8px',
+              marginTop: '10px'
+            }}>
+              <strong>How to use:</strong>
+              <ol style={{ marginTop: '10px' }}>
+                <li>Click "Generate QR Code" when you're ready to check in/out</li>
+                <li>Save or take a screenshot of the QR code</li>
+                <li>Visit our self-service kiosk in the hotel lobby</li>
+                <li>Scan the QR code at the kiosk</li>
+                <li>
+                  {reservation?.status === 'checked_in' 
+                    ? 'Complete your check-out process' 
+                    : 'Collect your room key from the dispenser'}
+                </li>
+              </ol>
+            </Typography>
+          </Box>
+
+          {/* Important Notes */}
+          <Alert 
+            severity="warning" 
+            style={{ 
+              marginTop: '15px',
+              backgroundColor: '#fff' 
+            }}
+          >
+            <Typography variant="body2">
+              <strong>Important:</strong>
+              <ul style={{ marginTop: '5px', marginBottom: '0' }}>
+                <li>QR codes are valid for 5 minutes after generation</li>
+                <li>Generate a new code if the current one expires</li>
+                <li>Keep your QR code private and secure</li>
+              </ul>
+            </Typography>
+          </Alert>
+        </Paper>
+      </Grid>
     </div>
   );
 };

@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import { useTheme } from "@emotion/react";
+import { useTheme } from "@mui/material";
 import { tokens } from "../theme";
 import {
   Accordion,
@@ -8,11 +8,16 @@ import {
   Typography,
 } from "@mui/material";
 import { ExpandMore } from "@mui/icons-material";
+
 const AccordionItem = ({ question, details }) => {
   const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
+  const colors = tokens(theme.palette.mode) || {
+    primary: { 400: '#1976d2' },
+    greenAccent: { 500: '#4caf50' }
+  };
+
   return (
-    <Accordion defaultExpanded sx={{ bgcolor: `${colors.primary[400]}` }}>
+    <Accordion defaultExpanded sx={{ bgcolor: colors.primary[400] }}>
       <AccordionSummary expandIcon={<ExpandMore />}>
         <Typography color={colors.greenAccent[500]} variant="h5">
           {question}

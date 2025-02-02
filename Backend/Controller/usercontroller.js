@@ -30,6 +30,10 @@ const Razorpay = require('razorpay');
 const TableReservationModel=require('../models/TableReservation')
 
 
+const QRCode = require('../models/QRCode');
+
+
+
 
 exports.authlogin=async (req, res) => {
     const { emailsign, passwordsign } = req.body;
@@ -1371,7 +1375,7 @@ exports.verifyPayment = async (req, res) => {
 
     // Verify signature
     const sign = razorpay_order_id + "|" + razorpay_payment_id;
-    const expectedSign = crypto
+    const expectedSign = razorpay
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(sign)
       .digest("hex");
@@ -1832,6 +1836,303 @@ exports.getConfirmedReservations = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error fetching confirmed reservations',
+      error: error.message
+    });
+  }
+};
+
+
+
+// Encryption key and IV should be stored securely (e.g., environment variables)
+const ENCRYPTION_KEY = process.env.QR_ENCRYPTION_KEY;
+const IV = process.env.QR_IV;
+
+const encryptData = (data) => {
+  const cipher = crypto.createCipher('aes-256-cbc', ENCRYPTION_KEY);
+  let encrypted = cipher.update(data, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  return encrypted;
+};
+
+const decryptData = (encryptedData) => {
+  const decipher = crypto.createDecipher('aes-256-cbc', ENCRYPTION_KEY);
+  let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+  decrypted += decipher.final('utf8');
+  return decrypted;
+};
+
+// Generate QR Code
+exports.generateQRCode = async (req, res) => {
+  try {
+    const { reservationId } = req.body;
+    
+    // Find the reservation first
+    const reservation = await ReservationModel.findById(reservationId);
+    if (!reservation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Reservation not found'
+      });
+    }
+
+    // Determine if this is check-in or check-out
+    let type;
+    if (!reservation.check_in_time) {
+      type = 'checkin';
+    } else if (!reservation.check_out_time && reservation.status === 'checked_in') {
+      type = 'checkout';
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: reservation.check_out_time ? 
+          'Already checked out' : 
+          'Must check in first'
+      });
+    }
+
+    const timestamp = new Date().toISOString();
+    
+    // Create the data object
+    const qrData = {
+      reservationId,
+      timestamp,
+      type
+    };
+
+    // Generate hash for verification
+    const hash = crypto.createHash('sha256')
+      .update(`${reservationId}${timestamp}${process.env.QR_SALT}`)
+      .digest('hex');
+
+    // Add hash to QR data
+    qrData.hash = hash;
+
+    // Encrypt the entire data object
+    const encryptedData = encryptData(JSON.stringify(qrData));
+
+    // Save QR code to database
+    const qrCode = new QRCode({
+      data: encryptedData,
+      reservationId,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes expiry
+      type
+    });
+    await qrCode.save();
+
+    res.json({
+      success: true,
+      qrCode: encryptedData,
+      type // Include type in response for UI feedback
+    });
+
+  } catch (error) {
+    console.error('QR Generation Error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to generate QR code' 
+    });
+  }
+};
+
+// Decrypt and verify QR code
+exports.processQRCode = async (req, res) => {
+  try {
+    const { qrData } = req.body;
+
+    // Decrypt QR data
+    let decryptedData;
+    try {
+      const decryptedString = decryptData(qrData);
+      decryptedData = JSON.parse(decryptedString);
+    } catch (error) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid QR code format' 
+      });
+    }
+
+    // Verify the data structure
+    if (!decryptedData.reservationId || !decryptedData.timestamp || !decryptedData.hash || !decryptedData.type) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid QR code data structure' 
+      });
+    }
+
+    // Generate hash for verification
+    const expectedHash = crypto.createHash('sha256')
+      .update(`${decryptedData.reservationId}${decryptedData.timestamp}${process.env.QR_SALT}`)
+      .digest('hex');
+
+    // Verify hash
+    if (expectedHash !== decryptedData.hash) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid QR code signature' 
+      });
+    }
+
+    // Check if QR code exists and hasn't expired
+    const qrCode = await QRCode.findOne({
+      data: qrData,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!qrCode) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'QR code has expired or is invalid' 
+      });
+    }
+
+    // Process check-in/out
+    const reservation = await ReservationModel.findById(decryptedData.reservationId);
+    if (!reservation) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Reservation not found' 
+      });
+    }
+
+    // Validate status transitions
+    if (decryptedData.type === 'checkin') {
+      if (reservation.check_in_time || reservation.status === 'checked_in') {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Already checked in' 
+        });
+      }
+      reservation.status = 'checked_in';
+      reservation.check_in_time = new Date();
+    } else if (decryptedData.type === 'checkout') {
+      if (!reservation.check_in_time) {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Must check in first' 
+        });
+      }
+      if (reservation.check_out_time || reservation.status === 'checked_out') {
+        return res.status(400).json({ 
+          success: false,
+          message: 'Already checked out' 
+        });
+      }
+      reservation.status = 'checked_out';
+      reservation.check_out_time = new Date();
+    }
+
+    // Save changes
+    await reservation.save();
+    await qrCode.deleteOne(); // Remove used QR code
+
+    res.json({
+      success: true,
+      message: `Successfully ${decryptedData.type === 'checkin' ? 'checked in' : 'checked out'}`,
+      status: reservation.status,
+      checkInTime: reservation.check_in_time,
+      checkOutTime: reservation.check_out_time
+    });
+
+  } catch (error) {
+    console.error('QR Processing Error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Failed to process QR code',
+      error: error.message 
+    });
+  }
+};
+
+// Utility functions for encryption/decryption
+
+
+
+exports.getUserReservation = async (req, res, next) => {
+  try {
+    const { reservationId } = req.params;
+    const user_id = req.headers['user_id']; // Get user_id from headers
+
+    console.log('Searching with:', { reservationId, user_id }); // Debug log
+
+    // Validate inputs
+    if (!reservationId || !user_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required parameters'
+      });
+    }
+
+    // Find reservation with populated fields
+    const reservation = await ReservationModel.findOne({
+      _id: reservationId,
+      user_id: user_id // Now we can use the user_id from headers
+    })
+    .populate({
+      path: 'room_id',
+      select: 'roomno roomtype rate description',
+      model: 'room'
+    })
+    .populate({
+      path: 'user_id',
+      select: 'displayName email',
+      model: 'GoogleRegisters'
+    })
+    .populate({
+      path: 'guestids',
+      select: 'name email phone',
+      model: 'RoomGuest'
+    })
+    .lean();
+
+    console.log('Found reservation:', reservation); // Debug log
+
+    if (!reservation) {
+      return res.status(404).json({
+        success: false,
+        message: 'Reservation not found or unauthorized'
+      });
+    }
+
+    // Format the response data
+    const formattedReservation = {
+      reservationId: reservation._id,
+      status: reservation.status,
+      roomDetails: {
+        roomNumber: reservation.room_id?.roomno,
+        roomType: reservation.room_id?.roomtype,
+        rate: reservation.room_id?.rate,
+        description: reservation.room_id?.description
+      },
+      userDetails: {
+        name: reservation.user_id?.displayName,
+        email: reservation.user_id?.email
+      },
+      dates: {
+        checkIn: reservation.check_in,
+        checkOut: reservation.check_out,
+        bookingDate: reservation.booking_date,
+        checkInTime: reservation.check_in_time,
+        checkOutTime: reservation.check_out_time,
+        cancelDate: reservation.cancel_date
+      },
+      guests: reservation.guestids || [],
+      payment: {
+        totalAmount: reservation.total_amount,
+        totalDays: reservation.totaldays
+      },
+      isVerified: reservation.is_verified
+    };
+
+    res.status(200).json({
+      success: true,
+      data: formattedReservation
+    });
+
+  } catch (error) {
+    console.error('Error in getUserReservation:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch reservation details',
       error: error.message
     });
   }
