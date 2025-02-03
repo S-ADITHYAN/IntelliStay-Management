@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 
+//qrcodeSchema
 const QRCodeSchema = new mongoose.Schema({
   reservationId: {
     type: mongoose.Schema.Types.ObjectId,
