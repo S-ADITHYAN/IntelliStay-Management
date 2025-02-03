@@ -24,6 +24,8 @@ const BillModel=require('../models/BillModel')
 const FeedbackModel=require('../models/FeedbackModel')
 const cloudinary = require('../config/cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { MenuItem, Table, Order, TableReservation } = require('../models/RestaurantModel');
+const TableReservationModel=require('../models/TableReservation')
 
 
 
@@ -394,6 +396,25 @@ const transporterr = nodemailer.createTransport({
           resource_type: 'auto'
         }
       });
+
+      const menuImageStorage = new CloudinaryStorage({
+        cloudinary: cloudinary,
+        params: {
+          folder: 'menu_images',
+          allowed_formats: ['jpg', 'jpeg', 'png'],
+          transformation: [
+            { width: 1200, height: 800, crop: 'limit' },
+            { quality: 'auto' }
+          ]
+        }
+      });
+
+
+      const uploadmenuImages = multer({ 
+        storage: menuImageStorage,
+        limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+      });
+
 
       // Initialize multer with Cloudinary storage
       const uploadProfilePhoto = multer({ storage: profileStorage });
@@ -917,3 +938,652 @@ exports.deleteLeave= async (req, res) => {
       res.status(500).json({ message: "Server error" });
     }
   };
+
+
+  // Menu Item Management
+exports.Addmenuitem = [
+  uploadmenuImages.single('image'), // Handle file upload
+  async (req, res) => {
+      try {
+        // await console.log('hello');
+        //   await console.log('Request body:', JSON.stringify(req.body));
+        //   await console.log('File:', req.file);
+
+          const {
+              name,
+              description,
+              price,
+              category,
+              preparationTime,
+              specialTags,
+              spicyLevel,
+              isAvailable
+          } = req.body;
+
+          // Validate required fields
+          if (!name || !description || !price || !category) {
+              return res.status(400).json({
+                  error: 'Missing required fields: name, description, price, and category are required'
+              });
+          }
+
+          // Parse special tags if provided
+          let parsedSpecialTags = [];
+          try {
+              parsedSpecialTags = specialTags ? JSON.parse(specialTags) : [];
+          } catch (e) {
+              return res.status(400).json({
+                  error: 'Invalid format for specialTags. Must be a JSON array.'
+              });
+          }
+
+          // Get image URL if file uploaded
+          const imageUrl = req.file ? req.file.path : null;
+
+          // Create new menu item
+          const menuItem = new MenuItem({
+              name: name.trim(),
+              description: description.trim(),
+              price: parseFloat(price),
+              category: category.trim(),
+              image: imageUrl,
+              preparationTime: preparationTime ? parseInt(preparationTime) : 30,
+              specialTags: parsedSpecialTags,
+              spicyLevel: spicyLevel || 'Not Spicy',
+              isAvailable: isAvailable === 'true'
+          });
+
+          // Save the menu item to the database
+          const savedMenuItem = await menuItem.save();
+          console.log('Saved menu item:', savedMenuItem);
+
+          return res.status(201).json({
+              message: 'Menu item added successfully',
+              menuItem: savedMenuItem
+          });
+      } catch (error) {
+          await console.error('Error adding menu item:', error.stack || error.message);
+          return res.status(500).json({
+              error: 'Internal server error while adding menu item',
+          });
+      }
+  }
+];
+
+//delete menu item
+exports.deleteMenuItem = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        // Check if menu item exists
+        const menuItem = await MenuItem.findById(id);
+        
+        if (!menuItem) {
+            return res.status(404).json({
+                success: false,
+                message: 'Menu item not found'
+            });
+        }
+
+        // Check for active orders containing this menu item
+        const activeOrders = await Order.find({
+            'items.menuItem': id,
+            status: { 
+                $in: ['pending', 'confirmed', 'preparing', 'ready'] 
+            }
+        }).select('orderNumber status items.quantity');
+
+        if (activeOrders.length > 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Cannot delete menu item with active orders',
+                details: {
+                    activeOrdersCount: activeOrders.length,
+                    orderNumbers: activeOrders.map(order => order.orderNumber),
+                    suggestion: 'Please wait until all active orders are completed or mark the item as unavailable instead'
+                }
+            });
+        }
+
+        // Check for completed orders in the last 30 days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const recentOrders = await Order.find({
+            'items.menuItem': id,
+            status: 'completed',
+            createdAt: { $gte: thirtyDaysAgo }
+        }).countDocuments();
+
+        // If there are recent orders, mark as inactive instead of deleting
+        if (recentOrders > 0) {
+            const updatedMenuItem = await MenuItem.findByIdAndUpdate(
+                id,
+                { 
+                    isAvailable: false,
+                    isArchived: true,
+                    archivedAt: new Date(),
+                    archiveReason: 'Marked for deletion but preserved for order history'
+                },
+                { new: true }
+            );
+
+            return res.status(200).json({
+                success: true,
+                message: 'Menu item archived successfully due to recent order history',
+                data: updatedMenuItem,
+                note: 'Item has been archived instead of deleted to preserve order history'
+            });
+        }
+
+        // If no recent orders, proceed with deletion
+        // Delete image from cloudinary if exists
+        if (menuItem.image) {
+            try {
+                const publicId = menuItem.image.split('/').pop().split('.')[0];
+                await cloudinary.uploader.destroy(publicId);
+            } catch (cloudinaryError) {
+                console.error('Error deleting image from cloudinary:', cloudinaryError);
+            }
+        }
+
+        // Delete the menu item
+        await MenuItem.findByIdAndDelete(id);
+
+        res.status(200).json({
+            success: true,
+            message: 'Menu item deleted successfully',
+            data: menuItem
+        });
+
+    } catch (error) {
+        console.error('Error in menu item deletion:', error);
+        
+        if (error.name === 'CastError') {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid menu item ID format'
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: 'Error deleting menu item',
+            error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+    }
+};
+
+//update menu item
+exports.updatemenuitem = [
+  uploadmenuImages.single('image'), 
+  async (req, res) => {
+      try {
+          const { id } = req.params;
+          console.log('Request Body:', req.body);
+          
+          // Check if menu item exists
+          const existingItem = await MenuItem.findById(id);
+          if (!existingItem) {
+              return res.status(404).json({
+                  success: false,
+                  message: 'Menu item not found'
+              });
+          }
+
+          // Validate price
+          const price = parseFloat(req.body.price);
+          if (isNaN(price) || price <= 0) {
+              return res.status(400).json({
+                  success: false,
+                  message: 'Invalid price value. Price must be a positive number.'
+              });
+          }
+
+          // Validate preparation time
+          const prepTime = parseInt(req.body.preparationTime);
+          if (isNaN(prepTime) || prepTime < 0) {
+              return res.status(400).json({
+                  success: false,
+                  message: 'Invalid preparation time. Must be a non-negative number.'
+              });
+          }
+
+          // Prepare update data
+          const updateData = {
+              name: req.body.name?.trim(),
+              description: req.body.description?.trim(),
+              price: price,
+              category: req.body.category?.trim(),
+              preparationTime: prepTime,
+              specialTags: req.body.specialTags ? JSON.parse(req.body.specialTags) : [],
+              spicyLevel: req.body.spicyLevel,
+              isAvailable: req.body.isAvailable === 'true',
+              updatedAt: new Date()
+          };
+
+          // Handle image update if new image is uploaded
+          if (req.file) {
+              try {
+                  // Delete old image from cloudinary if exists
+                  const oldImagePublicId = existingItem.image?.split('/').pop().split('.')[0];
+                  if (oldImagePublicId) {
+                      await cloudinary.uploader.destroy(oldImagePublicId);
+                  }
+
+                  // Upload new image
+                  const result = await cloudinary.uploader.upload(req.file.path, {
+                      folder: 'menu-items',
+                      width: 1200,
+                      height: 800,
+                      crop: "limit",
+                      quality: "auto"
+                  });
+
+                  // Store only the secure URL in the image field
+                  updateData.image = result.secure_url;
+              } catch (cloudinaryError) {
+                  console.error('Cloudinary error:', cloudinaryError);
+                  return res.status(500).json({
+                      success: false,
+                      message: 'Error processing image upload'
+                  });
+              }
+          }
+
+          console.log('Update Data:', updateData); // Debug log
+
+          // Update the menu item
+          const updatedItem = await MenuItem.findByIdAndUpdate(
+              id,
+              updateData,
+              { 
+                  new: true,
+                  runValidators: true 
+              }
+          );
+
+          if (!updatedItem) {
+              return res.status(404).json({
+                  success: false,
+                  message: 'Menu item not found after update'
+              });
+          }
+
+          res.status(200).json({
+              success: true,
+              message: 'Menu item updated successfully',
+              data: updatedItem
+          });
+
+      } catch (error) {
+          console.error('Error updating menu item:', error);
+
+          if (error.name === 'SyntaxError') {
+              return res.status(400).json({
+                  success: false,
+                  message: 'Invalid data format for specialTags'
+              });
+          }
+
+          if (error.name === 'ValidationError') {
+              return res.status(400).json({
+                  success: false,
+                  message: 'Validation Error',
+                  errors: Object.values(error.errors).map(err => err.message)
+              });
+          }
+
+          if (error.name === 'CastError') {
+              return res.status(400).json({
+                  success: false,
+                  message: `Invalid data format for field: ${error.path}`,
+                  details: error.message
+              });
+          }
+
+          res.status(500).json({
+              success: false,
+              message: 'Error updating menu item',
+              error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+          });
+      }
+  }
+];
+
+
+
+exports.getMenuItems = async (req, res) => {try {
+  const menuItems = await MenuItem.find({})
+      .sort({ category: 1, name: 1 }); // Sort by category, then by name
+  res.json(menuItems);
+} catch (error) {
+  console.error('Error fetching menu items:', error);
+  res.status(500).json({ 
+      message: 'Failed to fetch menu items',
+      error: error.message 
+  });
+}
+};
+
+
+exports.addtable= async (req, res) => {
+  try {
+    // Check if table number already exists
+    const existingTable = await Table.findOne({ tableNumber: req.body.tableNumber });
+    if (existingTable) {
+        return res.status(400).json({
+            success: false,
+            message: 'Table number already exists'
+        });
+    }
+
+    // Create new table
+    const newTable = new Table({
+        tableNumber: req.body.tableNumber,
+        capacity: req.body.capacity,
+        location: req.body.location,
+        status: req.body.status
+    });
+
+    // Save table to database
+    const savedTable = await newTable.save();
+
+    res.status(201).json({
+        success: true,
+        message: 'Table created successfully',
+        data: savedTable
+    });
+
+} catch (error) {
+    console.error('Error creating table:', error);
+    res.status(500).json({
+        success: false,
+        message: 'Error creating table',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+}
+};
+
+exports.gettables= async (req, res) => {
+  try {
+    // Fetch all tables and sort by table number
+    const tables = await Table.find({})
+        .sort({ tableNumber: 1 })
+        .select('-__v'); // Exclude version key
+
+    // Return success response
+    res.status(200).json({
+        success: true,
+        count: tables.length,
+        data: tables
+    });
+
+} catch (error) {
+    console.error('Error fetching tables:', error);
+    res.status(500).json({
+        success: false,
+        message: 'Error fetching tables',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+}
+};
+
+exports.updatetable= async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { tableNumber, capacity, location, status } = req.body;
+
+    // Check if table exists
+    const existingTable = await Table.findById(id);
+    if (!existingTable) {
+        return res.status(404).json({
+            success: false,
+            message: 'Table not found'
+        });
+    }
+
+    // Check if new table number already exists (excluding current table)
+    if (tableNumber !== existingTable.tableNumber) {
+        const duplicateTable = await Table.findOne({ 
+            tableNumber, 
+            _id: { $ne: id } 
+        });
+        
+        if (duplicateTable) {
+            return res.status(400).json({
+                success: false,
+                message: 'Table number already exists'
+            });
+        }
+    }
+
+    // Update table
+    const updatedTable = await Table.findByIdAndUpdate(
+        id,
+        {
+            tableNumber,
+            capacity,
+            location,
+            status
+        },
+        {
+            new: true, // Return updated document
+            runValidators: true // Run model validators
+        }
+    );
+
+    res.status(200).json({
+        success: true,
+        message: 'Table updated successfully',
+        data: updatedTable
+    });
+
+} catch (error) {
+    console.error('Error updating table:', error);
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+        return res.status(400).json({
+            success: false,
+            message: 'Validation Error',
+            errors: Object.values(error.errors).map(err => err.message)
+        });
+    }
+
+    res.status(500).json({
+        success: false,
+        message: 'Error updating table',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+}
+};
+
+exports.deletetable= async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Check if table exists
+    const table = await Table.findById(id);
+    
+    if (!table) {
+        return res.status(404).json({
+            success: false,
+            message: 'Table not found'
+        });
+    }
+
+    // Check if table can be deleted (optional: add your business logic here)
+    if (table.status === 'Reserved' || table.status === 'Occupied') {
+        return res.status(400).json({
+            success: false,
+            message: 'Cannot delete table that is currently reserved or occupied'
+        });
+    }
+
+    // Delete the table
+    await Table.findByIdAndDelete(id);
+
+    res.status(200).json({
+        success: true,
+        message: 'Table deleted successfully',
+        data: table
+    });
+
+} catch (error) {
+    console.error('Error deleting table:', error);
+    
+    if (error.name === 'CastError') {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid table ID format'
+        });
+    }
+
+    res.status(500).json({
+        success: false,
+        message: 'Error deleting table',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+}
+};
+
+
+exports.getRestaurantOrders = async (req, res) => {
+  try {
+    const orders = await Order.find({})
+        .sort({ orderDate: -1 }) // Sort by newest first
+        .populate('user', 'displayName email') // Updated to match your user model fields
+        .populate('items.menuItem', 'name price');
+
+    if (!orders) {
+        return res.status(404).json({ message: 'No orders found' });
+    }
+
+    return res.status(200).json(orders);
+} catch (error) {
+    console.error('Error fetching restaurant orders:', error);
+    return res.status(500).json({ 
+        message: 'Error fetching restaurant orders',
+        error: error.message 
+    });
+}
+};
+
+
+exports.updateOrderStatus = async (req, res) => {
+  try {
+      const { orderId } = req.params;
+      const { status } = req.body;
+
+      // Validate status
+      const validStatuses = ['pending', 'preparing', 'ready', 'delivered', 'cancelled'];
+      if (!validStatuses.includes(status)) {
+          return res.status(400).json({
+              message: 'Invalid status provided'
+          });
+      }
+
+      // Find and update the order
+      const order = await Order.findById(orderId);
+
+      if (!order) {
+          return res.status(404).json({
+              message: 'Order not found'
+          });
+      }
+
+      // Update status
+      order.status = status;
+      await order.save();
+
+      // Return updated order
+      const updatedOrder = await Order.findById(orderId)
+          .populate('user', 'displayName email')
+          .populate('items.menuItem', 'name price');
+
+      return res.status(200).json({
+          message: 'Order status updated successfully',
+          order: updatedOrder
+      });
+
+  } catch (error) {
+      console.error('Error updating order status:', error);
+      return res.status(500).json({
+          message: 'Error updating order status',
+          error: error.message
+      });
+  }
+};
+
+exports.getReservations = async (req, res) => {
+  try {
+      const { startDate, endDate } = req.query;
+
+      // Validate dates
+      if (!startDate || !endDate) {
+          return res.status(400).json({
+              message: 'Start date and end date are required'
+          });
+      }
+
+      // Find reservations within date range
+      const reservations = await TableReservationModel.find({
+          reservationDate: {
+              $gte: new Date(startDate),
+              $lt: new Date(endDate)
+          }
+      })
+      .sort({ reservationDate: 1 })
+      .populate('user', 'displayName email phoneNumber');
+
+      return res.status(200).json(reservations);
+
+  } catch (error) {
+      console.error('Error fetching reservations:', error);
+      return res.status(500).json({
+          message: 'Error fetching reservations',
+          error: error.message
+      });
+  }
+};
+
+exports.updateReservationStatus = async (req, res) => {
+  try {
+      const { reservationId } = req.params;
+      const { status } = req.body;
+
+      // Validate status
+      const validStatuses = ['pending', 'confirmed', 'cancelled', 'completed'];
+      if (!validStatuses.includes(status)) {
+          return res.status(400).json({
+              message: 'Invalid status provided'
+          });
+      }
+
+      const reservation = await TableReservationModel.findByIdAndUpdate(
+          reservationId,
+          { status },
+          { new: true }
+      ).populate('user', 'displayName email phoneNumber');
+
+      if (!reservation) {
+          return res.status(404).json({
+              message: 'Reservation not found'
+          });
+      }
+
+      return res.status(200).json({
+          message: 'Reservation status updated successfully',
+          reservation
+      });
+
+  } catch (error) {
+      console.error('Error updating reservation status:', error);
+      return res.status(500).json({
+          message: 'Error updating reservation status',
+          error: error.message
+      });
+  }
+};
+

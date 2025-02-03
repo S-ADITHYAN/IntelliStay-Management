@@ -1,0 +1,128 @@
+.restaurant-admin {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+  
+  .admin-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+  
+  .admin-header h1 {
+    color: #333;
+    margin-bottom: 0.5rem;
+    font-size: 2.5rem;
+  }
+  
+  .admin-header p {
+    color: #666;
+    font-size: 1.1rem;
+  }
+  
+  .management-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    padding: 1rem;
+  }
+  
+  .card-link {
+    text-decoration: none;
+    color: inherit;
+  }
+  
+  .management-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    border-left: 4px solid var(--card-color);
+  }
+  
+  .management-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .card-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+  }
+  
+  .card-icon svg {
+    color: white;
+    font-size: 1.8rem;
+  }
+  
+  .card-content h2 {
+    color: #333;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+  }
+  
+  .card-content p {
+    color: #666;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+  
+  .card-arrow {
+    position: absolute;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    font-size: 1.5rem;
+    color: var(--card-color);
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: all 0.3s ease;
+  }
+  
+  .management-card:hover .card-arrow {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  
+  @media (max-width: 768px) {
+    .restaurant-admin {
+      padding: 1rem;
+    }
+  
+    .admin-header h1 {
+      font-size: 2rem;
+    }
+  
+    .management-cards {
+      grid-template-columns: 1fr;
+    }
+  }
+
+.admin-title {
+  color: var(--text-primary);
+}
+
+.admin-subtitle {
+  color: var(--text-secondary);
+}
+
+/* For light mode (default) */
+:root {
+  --text-primary: #333333;
+  --text-secondary: #666666;
+}
+
+/* For dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #ffffff;
+    --text-secondary: #cccccc;
+  }
+}

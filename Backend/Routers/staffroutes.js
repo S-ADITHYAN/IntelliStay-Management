@@ -1,5 +1,5 @@
 const express = require("express");
-const { stafflogin, send_otp, staff_verify, staff_reset_password, applyleave, reservations_todays_reservations, reservations_verify, reservations_checkin, reservations_todays_checkouts, reservations_checkout, staff_confirmbook, staff_profile, staff_profile_get, staff_change_password, staff_upload_photo, resdetails, handleCancellation, staff_rooms_available, staff_rooms_types, pickJob, completeJob, jobdetail, asjobdetails, leaveDetails, leaveDetail, deleteLeave, staff_profile_put, profile_put } = require("../Controller/staffcontroller");
+const { stafflogin, send_otp, staff_verify, staff_reset_password, applyleave, reservations_todays_reservations, reservations_verify, reservations_checkin, reservations_todays_checkouts, reservations_checkout, staff_confirmbook, staff_profile, staff_profile_get, staff_change_password, staff_upload_photo, resdetails, handleCancellation, staff_rooms_available, staff_rooms_types, pickJob, completeJob, jobdetail, asjobdetails, leaveDetails, leaveDetail, deleteLeave, staff_profile_put, profile_put, Addmenuitem, getMenuItems, addtable, gettables, updatetable, deletetable, deleteMenuItem, updatemenuitem, getRestaurantOrders, updateOrderStatus, getReservations, updateReservationStatus } = require("../Controller/staffcontroller");
 const router=express.Router();
 
 
@@ -15,10 +15,10 @@ router.put("/reservations/checkin",reservations_checkin)
 router.get("/reservations/todays-checkouts",reservations_todays_checkouts)
 router.put("/reservations/checkout/:reservationId",reservations_checkout)
 router.post("/staff/confirmbook",staff_confirmbook)
-router.get("/staff/profile/:id",staff_profile_get)
-router.put("/staff/profile/:id",profile_put)
-router.put("/staff/change-password/:id",staff_change_password)
-router.post("/staff/upload-photo/:id",staff_upload_photo)
+router.get("/profile/:id",staff_profile_get)
+router.put("/profile/:id",profile_put)
+router.put("/change-password/:id",staff_change_password)
+router.post("/upload-photo/:id",staff_upload_photo)
 router.post("/resdetails",resdetails)
 router.post("/handleCancellation",handleCancellation)
 router.get("/staff/rooms/available",staff_rooms_available)
@@ -30,7 +30,19 @@ router.post("/asjobdetails",asjobdetails)
 router.post("leaveDetails/:userId",leaveDetails)
 router.get("/leaveDetail/:leaveId",leaveDetail)
 router.delete("/deleteLeave/:leaveId",deleteLeave)
-
+router.post('/menu',Addmenuitem)
+router.get('/getmenuitems',getMenuItems)
+router.post('/restaurant/tables',addtable)
+router.get('/restaurant/tables',gettables)
+router.put('/restaurant/tables/:id',updatetable)
+router.delete('/restaurant/tables/:id',deletetable)
+router.delete('/menu/:id',deleteMenuItem)
+router.put('/menu/:id',updatemenuitem)
+router.get('/restaurant/orders',getRestaurantOrders)
+router.put('/restaurant/orders/status/:orderId',updateOrderStatus)
+router.get('/restaurant/reservations',getReservations)
+router.put('/restaurant/reservations/status/:reservationId',updateReservationStatus)
+// router.get('/dashboard-stats',getDashboardStats)
 
 
 

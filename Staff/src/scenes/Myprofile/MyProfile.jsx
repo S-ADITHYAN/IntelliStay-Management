@@ -56,6 +56,7 @@ const MyProfile = () => {
     try {
       const response = await axios.get(`${import.meta.env.VITE_API}/staff/profile/${userId}`);
       const data = response.data;
+      console.log(data);
       setProfileData({
         displayName: data.displayName,
         email: data.email,
@@ -222,7 +223,7 @@ const MyProfile = () => {
       <Box display="flex" flexDirection="column" alignItems="center" mb={4} position="relative">
         <Avatar
           alt={profileData.displayName}
-          src={`${import.meta.env.VITE_API}/profilepicture/${profileData.image}`}
+          src={profileData.image}
           sx={{
             width: 150,
             height: 150,

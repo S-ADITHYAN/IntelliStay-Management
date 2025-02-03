@@ -48,7 +48,7 @@ const StaffSideBar = () => {
     }
   }, []); // Runs once after the component is mounted
 
-  console.log(userData);
+  console.log("userData",userData);
 
   return (
     <Sidebar
@@ -121,9 +121,7 @@ const StaffSideBar = () => {
         >
           <Avatar
             alt={ (userData)? userData.displayName:"avatar"}
-            src={`${import.meta.env.VITE_API}/profilepicture/${
-              userData?.image || avatar
-            }`}
+            src={(userData)? userData.image : avatar}
             sx={{ width: "100px", height: "100px" }}
           />
           <Box sx={{ textAlign: "center" }}>
@@ -227,6 +225,16 @@ const StaffSideBar = () => {
             </>
           )}
 
+          {userData?.role === "restaurantstaff" && (
+            <>
+              <Item
+                title="Restaurant"
+                path="/dashboard/restaurant"
+                colors={colors}
+                icon={<PersonOutlined />}
+              />
+            </>
+          )}
           {/* Add more role-based conditions as needed */}
         </Menu>
       </Box>

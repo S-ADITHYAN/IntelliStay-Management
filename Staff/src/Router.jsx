@@ -17,6 +17,11 @@ import {
   GuestDetails,
   ConfirmRoom,
   Team,
+  RestaurantDashboard,
+  MenuManagement,
+  OrderManagement,
+  ReservationManagement,
+  TableManagement,
   Invoices,
   Viewstaff,
   Viewassignedjobs,
@@ -44,6 +49,11 @@ const AppRouter = () => {
           <Route path="/dashboard/viewjobs" element={<Viewjobs />} />
           <Route path="/dashboard/applyleave" element={<Applyleave />} />
           <Route path="/dashboard/viewleavestatus" element={<ViewLeaveStatus />} />
+          <Route path="/dashboard/restaurant" element={<RestaurantDashboard />} />
+          <Route path="/dashboard/restaurant/menu" element={<MenuManagement />} />
+          <Route path="/dashboard/restaurant/orders" element={<OrderManagement />} />
+          <Route path="/dashboard/restaurant/reservations" element={<ReservationManagement />} />
+          <Route path="/dashboard/restaurant/tables" element={<TableManagement />} />
           <Route path="/dashboard/roomadd" element={<Roomadd />} />
           <Route path="/dashboard/reservations" element={<Reservation />} />
           <Route path="/dashboard/showrooms" element={<Showroom />} />

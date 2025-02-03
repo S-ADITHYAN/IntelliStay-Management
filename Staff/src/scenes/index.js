@@ -27,6 +27,11 @@ import ReserveRoom from "./ReserveRoom";
 import GuestDetails from "./guestdetails";
 import ConfirmRoom from "./confirmroom";
 import ReservationDetails from "./reservationdetails";
+import RestaurantDashboard from "./restaurant/RestaurantDashboard";
+import TableManagement from "./TableManagement/TableManagement";
+import ReservationManagement from "./RestaurantReservation/ReservationManagement";
+import MenuManagement from "./MenuManagement/MenuManagement"; 
+import OrderManagement from "./OrderManagement/OrderManagement";
 
 export {
   Navbar,
@@ -40,6 +45,11 @@ export {
   Team,
   Roomadd,
   Showroom,
+  RestaurantDashboard,
+  TableManagement,
+  ReservationManagement,
+  MenuManagement,
+  OrderManagement,
   Reservation,
   GuestDetails,
   Invoices,
