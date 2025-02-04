@@ -13,6 +13,8 @@ import { useNavigate } from 'react-router-dom';
 import './MenuManagement.css';
 import { useTheme } from '@mui/material';
 import { tokens } from "../../theme";
+import { RiLeafFill } from 'react-icons/ri';
+import { GiMeat } from 'react-icons/gi';
 
 const PREDEFINED_CATEGORIES = [
   'Appetizers',
@@ -57,7 +59,9 @@ const MenuManagement = () => {
     preparationTime: '',
     specialTags: [],
     spicyLevel: '',
-    isAvailable: true
+    isAvailable: true,
+    foodType: 'veg',
+    quantity: 1
   });
 
   useEffect(() => {
@@ -77,7 +81,7 @@ const MenuManagement = () => {
 
   const fetchCategories = async () => {
     try {
-      const response = await axios.get(`${import.meta.env.VITE_API}/restaurant/categories`);
+      const response = await axios.get(`${import.meta.env.VITE_API}/admin/restaurant/categories`);
       // Merge predefined categories with fetched categories and remove duplicates
       const allCategories = [...new Set([...PREDEFINED_CATEGORIES, ...(Array.isArray(response.data) ? response.data : [])])];
       setCategories(allCategories);
@@ -114,6 +118,8 @@ const MenuManagement = () => {
   formDatas.append('specialTags', JSON.stringify(formData.specialTags));
   formDatas.append('spicyLevel', formData.spicyLevel);
   formDatas.append('isAvailable', formData.isAvailable);
+  formDatas.append('foodType', formData.foodType);
+  formDatas.append('quantity', formData.quantity);
 
   // Only append image if a new one is selected
   if (formData.image instanceof File) {
@@ -191,7 +197,9 @@ const MenuManagement = () => {
       preparationTime: item.preparationTime,
       specialTags: item.specialTags,
       spicyLevel: item.spicyLevel,
-      isAvailable: item.isAvailable
+      isAvailable: item.isAvailable,
+      foodType: item.foodType || 'Veg',
+      quantity: item.quantity || 1
     });
     setShowForm(true);
   };
@@ -321,7 +329,9 @@ const MenuManagement = () => {
       preparationTime: '',
       specialTags: [],
       spicyLevel: '',
-      isAvailable: true
+      isAvailable: true,
+      foodType: 'Veg',
+      quantity: 1
     });
   };
 
@@ -425,7 +435,7 @@ const MenuManagement = () => {
           >
             <FaPlus /> Add Item
           </button>
-          <div className="upload-btn-wrapper">
+          {/* <div className="upload-btn-wrapper">
             <button 
               className="upload-btn" 
               style={{ 
@@ -436,7 +446,7 @@ const MenuManagement = () => {
               <FaUpload /> Bulk Upload
             </button>
             <input type="file" accept=".csv,.xlsx" onChange={handleBulkUpload} />
-          </div>
+          </div> */}
         </div>
       </div>
 
@@ -485,6 +495,27 @@ const MenuManagement = () => {
                   }}
                 >
                   {item.isAvailable ? 'Available' : 'Unavailable'}
+                </span>
+                <span 
+                  className={`food-type ${item.foodtype?.toLowerCase()}`}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '8px 8px',
+                    borderRadius: '4px',
+                    fontSize: '1rem',
+                    marginRight: '8px',
+                    color: baseColors.text
+                  }}
+                >
+                  
+                  {item.foodtype === 'Veg' ? (
+                    <RiLeafFill style={{ color: '#2e7d32' }} />
+                  ) : (
+                    <GiMeat style={{ color: '#d32f2f' }} />
+                  )}
+                  {item.foodtype}
                 </span>
               </div>
               <div className="item-actions">
@@ -659,6 +690,41 @@ const MenuManagement = () => {
                       {tag}
                     </label>
                   ))}
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label style={{color:baseColors.text}}>Food Type</label>
+                  <select
+                    value={formData.foodType}
+                    onChange={(e) => setFormData({...formData, foodType: e.target.value})}
+                    required
+                    style={{ 
+                      backgroundColor: baseColors.surface,
+                      color: baseColors.text,
+                      borderColor: baseColors.border
+                    }}
+                  >
+                    <option value="veg">Veg</option>
+                    <option value="non-veg">Non-Veg</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label style={{color: baseColors.text}}>Quantity</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={formData.quantity}
+                    onChange={(e) => setFormData({...formData, quantity: Math.max(1, parseInt(e.target.value))})}
+                    required
+                    style={{ 
+                      backgroundColor: baseColors.surface,
+                      color: baseColors.text,
+                      borderColor: baseColors.border
+                    }}
+                  />
                 </div>
               </div>
 

@@ -214,7 +214,7 @@ const OrderManagement = () => {
         </head>
         <body>
           <div class="header">
-            <h2>Order #${order._id}</h2>
+            <h2>Order #${order._id.slice(-6)}</h2>
             <p>Date: ${new Date(order.orderDate).toLocaleString()}</p>
           </div>
           <div class="order-details">
@@ -316,7 +316,7 @@ const OrderManagement = () => {
           {filteredOrders.map(order => (
             <div key={order._id} className={`order-card ${order.status}`}>
               <div className="order-header">
-                <h3 style={{color: colors.primary?.[300] || '#000000'}}>Order #{order._id}</h3>
+                <h3 style={{color: colors.primary?.[300] || '#000000'}}>Order #{order._id.slice(-6)}</h3>
                 <span className={`status-badge ${order.status}`}>
                   {order.status}
                 </span>

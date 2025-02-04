@@ -220,7 +220,7 @@ import { FaUtensils } from 'react-icons/fa';
                   <li className="dropdown">
                         <a href="" className="username">Hi, {user}</a>
                             <div className="dropdown-content">
-                              <a href="/qrscanner">QR Scanner</a>
+                              <a href="/qrscanner">Self Check-In/Check-Out</a>
                                   <a href="/myprofile">Profile</a>
                                   <a href="/guide">Guide</a>
                                    <a href="/my-bookings" id='my-bookings'>My Bookings</a>

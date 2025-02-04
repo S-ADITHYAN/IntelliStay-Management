@@ -957,13 +957,15 @@ exports.Addmenuitem = [
               preparationTime,
               specialTags,
               spicyLevel,
-              isAvailable
+              isAvailable,
+              foodType,
+              quantity
           } = req.body;
 
           // Validate required fields
-          if (!name || !description || !price || !category) {
+          if (!name || !description || !price || !category || !foodType || !quantity) {
               return res.status(400).json({
-                  error: 'Missing required fields: name, description, price, and category are required'
+                  error: 'Missing required fields: name, description, price, category, foodType, and quantity are required'
               });
           }
 
@@ -990,7 +992,9 @@ exports.Addmenuitem = [
               preparationTime: preparationTime ? parseInt(preparationTime) : 30,
               specialTags: parsedSpecialTags,
               spicyLevel: spicyLevel || 'Not Spicy',
-              isAvailable: isAvailable === 'true'
+              isAvailable: isAvailable === 'true',
+              foodtype: foodType,
+              quantity: quantity
           });
 
           // Save the menu item to the database
@@ -1159,6 +1163,8 @@ exports.updatemenuitem = [
               specialTags: req.body.specialTags ? JSON.parse(req.body.specialTags) : [],
               spicyLevel: req.body.spicyLevel,
               isAvailable: req.body.isAvailable === 'true',
+              foodtype: req.body.foodType,
+              quantity: req.body.quantity,
               updatedAt: new Date()
           };
 

@@ -337,3 +337,11 @@ select:focus {
     background-color: rgba(255, 255, 255, 0.05);
   }
 } 
+
+.food-type {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  background-color: #ffffff;
+}
