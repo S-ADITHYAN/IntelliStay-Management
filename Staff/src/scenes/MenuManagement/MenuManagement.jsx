@@ -153,6 +153,7 @@ const MenuManagement = () => {
           });
       } else {
           // Add new item
+          console.log(formDatas)
           response = await axios.post(
               `${import.meta.env.VITE_API}/staff/menu`,
               formDatas,
@@ -509,12 +510,12 @@ const MenuManagement = () => {
                     color: baseColors.text
                   }}
                 >
-                  {item.foodtype === 'veg' ? (
+                  {item.foodtype === 'Veg' ? (
                     <RiLeafFill style={{ color: '#2e7d32' }} />
                   ) : (
                     <GiMeat style={{ color: '#d32f2f' }} />
                   )}
-                  {item.foodType}
+                  {item.foodtype}
                 </span>
               </div>
               <div className="item-actions">
@@ -554,8 +555,20 @@ const MenuManagement = () => {
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(e) => {
+                    // Only allow letters and spaces, remove other characters
+                    const value = e.target.value.replace(/[^A-Za-z\s]/g, '');
+                    setFormData({...formData, name: value});
+                  }}
+                  onKeyPress={(e) => {
+                    // Prevent entering numbers and special characters
+                    if (!/[A-Za-z\s]/.test(e.key)) {
+                      e.preventDefault();
+                    }
+                  }}
                   required
+                  pattern="[A-Za-z\s]+"
+                  title="Please enter only letters and spaces"
                   style={{ 
                     backgroundColor: baseColors.surface,
                     color: baseColors.text,
@@ -705,8 +718,8 @@ const MenuManagement = () => {
                       borderColor: baseColors.border
                     }}
                   >
-                    <option value="veg">Veg</option>
-                    <option value="non-veg">Non-Veg</option>
+                    <option value="Veg">Veg</option>
+                    <option value="Non-Veg">Non-Veg</option>
                   </select>
                 </div>
 

@@ -306,8 +306,57 @@ input:invalid[focus = 'true' ] ~ span{
   pointer-events: all;
 }
 
+.face-login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+}
 
+.prompt-message {
+  background-color: #4481eb;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  text-align: center;
+  animation: pulse 2s infinite;
+}
 
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.video-container {
+  position: relative;
+  width: 300px;
+  height: 225px;
+  border-radius: 10px;
+  overflow: hidden;
+  background-color: #f0f0f0;
+}
+
+.face-login-button {
+  background: linear-gradient(45deg, #4481eb, #04befe);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 20px;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.face-login-button:hover {
+  transform: translateY(-2px);
+}
+
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
 
 @media (max-width: 870px) {
   .container {
@@ -445,4 +494,123 @@ input:invalid[focus = 'true' ] ~ span{
     }
 
     
+}
+
+.face-login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.prompt-message {
+  margin: 10px 0;
+  padding: 10px;
+  background-color: rgba(68, 129, 235, 0.1);
+  border-radius: 5px;
+  color: #4481eb;
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.btn.solid:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.face-login-assistance {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.assistance-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+}
+
+.assistance-content h3 {
+  margin-bottom: 1rem;
+  color: #4481eb;
+}
+
+.assistance-navigation {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 2rem;
+}
+
+.assistance-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ccc;
+  cursor: pointer;
+}
+
+.dot.active {
+  background: #4481eb;
+}
+
+.help-button {
+  background: none;
+  border: none;
+  color: #4481eb;
+  cursor: pointer;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.help-button:hover {
+  text-decoration: underline;
+}
+
+.verification-progress {
+  margin: 15px 0;
+  text-align: center;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 4px;
+  background: #eee;
+  border-radius: 2px;
+  margin-bottom: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #4481eb;
+  transition: width 0.3s ease;
+}
+
+.progress-step {
+  font-size: 0.9rem;
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }

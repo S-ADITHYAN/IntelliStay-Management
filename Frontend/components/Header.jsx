@@ -6,11 +6,14 @@ import axios from 'axios';
 import ScrollReveal from 'scrollreveal'; 
 import { jwtDecode } from "jwt-decode";
 import { FaUtensils } from 'react-icons/fa';
+import { BsCardImage } from 'react-icons/bs';
+import Swal from 'sweetalert2';
 
  function Header() {
     const navigate = useNavigate();
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const token=localStorage.getItem("token");
+    const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
       const menuBtn = document.getElementById("menu-btn");
@@ -142,6 +145,117 @@ import { FaUtensils } from 'react-icons/fa';
       setDropdownOpen(false);
     };
 
+    // Add image search handler
+    const handleImageSearch = async (e) => {
+      try {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Invalid File',
+            text: 'Please select an image file'
+          });
+          return;
+        }
+
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          Swal.fire({
+            icon: 'error',
+            title: 'File Too Large',
+            text: 'Please select an image under 5MB'
+          });
+          return;
+        }
+
+        setIsProcessing(true);
+
+        // Show loading
+        const loadingSwal = Swal.fire({
+          title: 'Analyzing Image',
+          html: 'Looking for matching rooms...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        const formDatass = new FormData();
+        formDatass.append('image', file);
+      console.log("formData",formDatass.get('image'))
+        const response = await axios.post(
+          `${import.meta.env.VITE_API}/user/rooms/search-by-image`,
+          formDatass,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          }
+        );
+
+        loadingSwal.close();
+
+        if (response.data.success) {
+          const { roomType, matchedRooms } = response.data;
+
+          if (matchedRooms.length > 0) {
+            Swal.fire({
+              title: `Found ${matchedRooms.length} ${roomType} Rooms`,
+              html: `
+                <div class="image-search-results">
+                  ${matchedRooms.map(room => `
+                    <div class="room-result-card">
+                      <img src="${room.images[0]}" alt="${room.title}">
+                      <div class="room-info">
+                        <h3>${room.title}</h3>
+                        <p class="room-price">₹${room.price} per night</p>
+                        <p class="room-description">${room.description.substring(0, 100)}...</p>
+                      </div>
+                      <button 
+                        onclick="window.location.href='/room/${room._id}'"
+                        class="view-room-btn"
+                      >
+                        View Details
+                      </button>
+                    </div>
+                  `).join('')}
+                </div>
+              `,
+              width: '800px',
+              showConfirmButton: true,
+              confirmButtonText: 'Close',
+              showCloseButton: true,
+              customClass: {
+                container: 'image-search-container',
+                popup: 'image-search-popup',
+                content: 'image-search-content'
+              }
+            });
+          } else {
+            Swal.fire({
+              icon: 'info',
+              title: 'Room Type Detected',
+              text: `We detected a ${roomType} room in your image, but we don't have any matching rooms currently available.`,
+              footer: 'Try searching for a different room type'
+            });
+          }
+        }
+
+      } catch (error) {
+        console.error('Image search error:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Search Failed',
+          text: error.response?.data?.message || 'Failed to process image'
+        });
+      } finally {
+        setIsProcessing(false);
+      }
+    };
+
   return (
     <div>
       
@@ -239,6 +353,26 @@ import { FaUtensils } from 'react-icons/fa';
             {/*<li><a href="#" onClick={handleLogout}>Logout</a></li>
             <li><a href="#"></a>{user}</li>
             */}
+            <li className="image-search-li">
+              <a 
+                href="#" 
+                className="image-search-btn"
+                onClick={() => document.getElementById('roomImageSearch').click()}
+                title="Search rooms by image"
+              >
+                <BsCardImage className="nav-icon" />
+                <span>Search by Image</span>
+              </a>
+              <input
+                type="file"
+                id="roomImageSearch"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleImageSearch}
+                onClick={(e) => e.target.value = null}
+                disabled={isProcessing}
+              />
+            </li>
           </ul>
         <button className="btn nav__btn" onClick={() => navigate('/rooms')}>Book Now</button> 
         </nav>

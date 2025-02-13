@@ -4,7 +4,11 @@ import { FaHistory, FaUtensils, FaClock, FaMoneyBill,
   FaMotorcycle, 
   FaTable, 
   FaShoppingBag, 
-  FaConciergeBell  } from 'react-icons/fa';
+  FaConciergeBell, 
+  FaChair, 
+  FaCalendarAlt, 
+  FaUsers, 
+  FaInfoCircle } from 'react-icons/fa';
 import './OrderHistory.css';
 import Loader from '../shared/Loader';
 import Header from '../../components/Header';
@@ -58,6 +62,7 @@ const OrderHistory = () => {
       setLoading(true);
       const userId = getUserIdFromToken();
       const response = await axios.get(`${import.meta.env.VITE_API}/user/restaurant/my-orders/${userId}`);
+      console.log("response",response.data.data)
       setOrders(Array.isArray(response.data.data) ? response.data.data : []);
       
     } catch (error) {
@@ -270,6 +275,86 @@ const OrderHistory = () => {
                   </div>
                 </div>
 
+                {order.tablereservation_id && (
+                  <div className="detail-item reservation-section">
+                    <div className="section-header">
+                      <FaChair />
+                      <span>Table Reservation Details:</span>
+                    </div>
+                    <div className="reservation-details">
+                      <div className="reservation-info">
+                        <FaChair className="icon" />
+                        <span>Table: {order.tablereservation_id.tableNumber}</span>
+                      </div>
+                      <div className="reservation-info">
+                        <FaCalendarAlt className="icon" />
+                        <span>Date: {new Date(order.tablereservation_id.reservationDate).toLocaleDateString()}</span>
+                      </div>
+                      <div className="reservation-info">
+                        <FaClock className="icon" />
+                        <span>Time: {order.tablereservation_id.time}</span>
+                      </div>
+                      <div className="reservation-info">
+                        <FaUsers className="icon" />
+                        <span>Guests: {order.tablereservation_id.numberOfGuests}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {order.orderType === 'delivery' && order.deliveryDetails && (
+                <div className="detail-item delivery-section">
+                  <div className="section-header">
+                    <FaMotorcycle />
+                    <span>Delivery Details:</span>
+                  </div>
+                  <div className="delivery-details-list">
+                    <div className="delivery-info-item">
+                      <div className="info-label">
+                        <FaChair className="icon" />
+                        <span>Room Number:</span>
+                      </div>
+                      <div className="info-value">
+                        {order.deliveryDetails.roomNumber}
+                      </div>
+                    </div>
+
+                    <div className="delivery-info-item">
+                      <div className="info-label">
+                        <FaCalendarAlt className="icon" />
+                        <span>Booking ID:</span>
+                      </div>
+                      <div className="info-value truncate-text" title={order.deliveryDetails.reservationId}>
+                        {order.deliveryDetails.reservationId}
+                      </div>
+                    </div>
+
+                    {order.deliveryDetails.estimatedDeliveryTime && (
+                      <div className="delivery-info-item">
+                        <div className="info-label">
+                          <FaClock className="icon" />
+                          <span>Estimated:</span>
+                        </div>
+                        <div className="info-value delivery-time" title={formatDate(order.deliveryDetails.estimatedDeliveryTime)}>
+                          {formatDate(order.deliveryDetails.estimatedDeliveryTime)}
+                        </div>
+                      </div>
+                    )}
+
+                    {order.deliveryDetails.deliveryInstructions && (
+                      <div className="delivery-info-item">
+                        <div className="info-label">
+                          <FaInfoCircle className="icon" />
+                          <span>Instructions:</span>
+                        </div>
+                        <div className="info-value wrap-text">
+                          {order.deliveryDetails.deliveryInstructions}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
                 <div className="detail-item">
                   <FaClock />
                   <span>Order Date:</span>
@@ -277,17 +362,17 @@ const OrderHistory = () => {
                 </div>
                 
                 <div className="detail-item order-type">
-              {getOrderTypeIcon(order.orderType)}
-              <span>Order Type:</span>
-              <span className={`type-label ${order.orderType?.toLowerCase()}`}>
-                {getOrderTypeLabel(order.orderType)}
-              </span>
-            </div>
+                  {getOrderTypeIcon(order.orderType)}
+                  <span>Order Type:</span>
+                  <span className={`type-label ${order.orderType?.toLowerCase()}`}>
+                    {getOrderTypeLabel(order.orderType)}
+                  </span>
+                </div>
 
                 <div className="detail-item">
                   <FaMoneyBill />
                   <span>Total Amount:</span>
-                  ₹{order.totalAmount.toFixed(2)}
+                  ₹{order.totalAmount}
                 </div>
               </div>
 

@@ -8,6 +8,21 @@ export default defineConfig({
   server:{
     // host: 'IntelliStay',
     port: 5173
+  },
+  assetsInclude: ['**/*.shard1', '**/*.json'],
+  build: {
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name.endsWith('.shard1')) {
+            return 'assets/models/[name][extname]';
+          }
+          return 'assets/[name]-[hash][extname]';
+        }
+      }
+    }
+  },
+  optimizeDeps: {
+    exclude: ['public/models/*']
   }
-  
 })

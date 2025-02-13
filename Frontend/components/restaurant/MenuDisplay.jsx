@@ -458,7 +458,7 @@ const MenuDisplay = ({ addToCart }) => {
                       }}
                     />
                     <div className="food-type-indicator">
-                      {item.foodtype === 'veg' ? (
+                      {item.foodtype === 'Veg' ? (
                         <div className="veg-icon">
                           <FaLeaf style={{ color: 'green' }} />
                         </div>

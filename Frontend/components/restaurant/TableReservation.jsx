@@ -214,12 +214,36 @@ const TableReservation = () => {
       );
       
       const locationMatch = selectedLocation === 'all' || table.location === selectedLocation;
-      const capacityMatch = selectedCapacity === 'all' || 
-                           (table.capacity && table.capacity >= parseInt(selectedCapacity));
       
-      // Only show tables that are not reserved and match other criteria
+      // New capacity matching logic
+      const exactCapacityMatch = table.capacity === guests;
+      const nextBestCapacityMatch = table.capacity > guests && 
+                                   table.capacity <= guests + 2; // Allow up to 2 extra seats
+      
+      const capacityMatch = exactCapacityMatch || nextBestCapacityMatch;
+      
+      // Only show tables that are not reserved and match criteria
       return !isReserved && locationMatch && capacityMatch && table.isAvailable;
+    }).sort((a, b) => {
+      // Sort by closest capacity match
+      const aDiff = Math.abs(a.capacity - guests);
+      const bDiff = Math.abs(b.capacity - guests);
+      return aDiff - bDiff;
     });
+  };
+
+  // Add a function to show capacity warning
+  const showCapacityWarning = (tableCapacity) => {
+    if (tableCapacity > guests) {
+      return (
+        <div className="capacity-warning">
+          <small style={{ color: '#666', fontSize: '0.85em' }}>
+            This table has {tableCapacity - guests} extra seat(s) but is the next best available option
+          </small>
+        </div>
+      );
+    }
+    return null;
   };
 
   const getTableIcon = (capacity) => {
@@ -381,6 +405,7 @@ const TableReservation = () => {
               <p>
                 <FaUsers />
                 Capacity: {table.capacity} persons
+                {showCapacityWarning(table.capacity)}
               </p>
               <p>
                 <FaMapMarkerAlt />
@@ -415,7 +440,10 @@ const TableReservation = () => {
 
       {!loading && !error && getFilteredTables().length === 0 && (
         <div className="no-tables">
-          <p>No tables available for the selected criteria</p>
+          <p>No tables available for {guests} guests</p>
+          <small>
+            Try adjusting the number of guests or selecting a different time/date
+          </small>
         </div>
       )}
     </div>

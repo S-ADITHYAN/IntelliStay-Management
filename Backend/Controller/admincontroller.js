@@ -297,73 +297,78 @@ exports.addroom = [
 
 // Menu Item Management
 exports.Addmenuitem = [
-  uploadmenuImages.single('image'), // Handle file upload
-  async (req, res) => {
-      try {
-        // await console.log('hello');
-        //   await console.log('Request body:', JSON.stringify(req.body));
-        //   await console.log('File:', req.file);
-
-          const {
-              name,
-              description,
-              price,
-              category,
-              preparationTime,
-              specialTags,
-              spicyLevel,
-              isAvailable
-          } = req.body;
-
-          // Validate required fields
-          if (!name || !description || !price || !category) {
-              return res.status(400).json({
-                  error: 'Missing required fields: name, description, price, and category are required'
-              });
-          }
-
-          // Parse special tags if provided
-          let parsedSpecialTags = [];
-          try {
-              parsedSpecialTags = specialTags ? JSON.parse(specialTags) : [];
-          } catch (e) {
-              return res.status(400).json({
-                  error: 'Invalid format for specialTags. Must be a JSON array.'
-              });
-          }
-
-          // Get image URL if file uploaded
-          const imageUrl = req.file ? req.file.path : null;
-
-          // Create new menu item
-          const menuItem = new MenuItem({
-              name: name.trim(),
-              description: description.trim(),
-              price: parseFloat(price),
-              category: category.trim(),
-              image: imageUrl,
-              preparationTime: preparationTime ? parseInt(preparationTime) : 30,
-              specialTags: parsedSpecialTags,
-              spicyLevel: spicyLevel || 'Not Spicy',
-              isAvailable: isAvailable === 'true'
-          });
-
-          // Save the menu item to the database
-          const savedMenuItem = await menuItem.save();
-          console.log('Saved menu item:', savedMenuItem);
-
-          return res.status(201).json({
-              message: 'Menu item added successfully',
-              menuItem: savedMenuItem
-          });
-      } catch (error) {
-          await console.error('Error adding menu item:', error.stack || error.message);
-          return res.status(500).json({
-              error: 'Internal server error while adding menu item',
-          });
-      }
-  }
-];
+    uploadmenuImages.single('image'), // Handle file upload
+    async (req, res) => {
+        try {
+          // await console.log('hello');
+          //   await console.log('Request body:', JSON.stringify(req.body));
+          //   await console.log('File:', req.file);
+  
+            const {
+                name,
+                description,
+                price,
+                category,
+                preparationTime,
+                specialTags,
+                spicyLevel,
+                isAvailable,
+                foodType,
+                quantity
+            } = req.body;
+              
+            // Validate required fields
+            if (!name || !description || !price || !category || !foodType || !quantity) {
+                return res.status(400).json({
+                    error: 'Missing required fields: name, description, price, category, foodType, and quantity are required'
+                });
+            }
+  
+            // Parse special tags if provided
+            let parsedSpecialTags = [];
+            try {
+                parsedSpecialTags = specialTags ? JSON.parse(specialTags) : [];
+            } catch (e) {
+                return res.status(400).json({
+                    error: 'Invalid format for specialTags. Must be a JSON array.'
+                });
+            }
+  
+            // Get image URL if file uploaded
+            const imageUrl = req.file ? req.file.path : null;
+  
+            // Create new menu item
+            const menuItem = new MenuItem({
+                name: name.trim(),
+                description: description.trim(),
+                price: parseFloat(price),
+                category: category.trim(),
+                image: imageUrl,
+                preparationTime: preparationTime ? parseInt(preparationTime) : 30,
+                specialTags: parsedSpecialTags,
+                spicyLevel: spicyLevel || 'Not Spicy',
+                isAvailable: isAvailable === 'true',
+                foodtype: foodType,
+                quantity: quantity
+            });
+  
+            // Save the menu item to the database
+            const savedMenuItem = await menuItem.save();
+            console.log('Saved menu item:', savedMenuItem);
+  
+            return res.status(201).json({
+                message: 'Menu item added successfully',
+                menuItem: savedMenuItem
+            });
+        } catch (error) {
+            await console.error('Error adding menu item:', error.stack || error.message);
+            return res.status(500).json({
+                error: 'Internal server error while adding menu item',
+            });
+        }
+    }
+  ];
+  
 
 //delete menu item
 exports.deleteMenuItem = async (req, res) => {

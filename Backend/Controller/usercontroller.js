@@ -28,6 +28,11 @@ const { MenuItem, Table,TableReservation,Order } = require('../models/Restaurant
 const Cart=require('../models/Cart')
 const Razorpay = require('razorpay');
 const TableReservationModel=require('../models/TableReservation')
+const FaceAuthModel=require('../Models/FaceAuth')
+
+const vision = require('@google-cloud/vision');
+
+
 
 
 const QRCode = require('../models/QRCode');
@@ -1155,55 +1160,92 @@ exports.getCategoriess = async (req, res) => {
 
 //cart add
 
-exports.cart_add=async (req, res) => {
+exports.cart_add = async (req, res) => {
   try {
     const {
-        itemTitle,
-        image,
-        rating,
-        price,
-        quantity,
-        menuItemId,
-        availableQuantity,
-        userId,
-        specialInstructions
+      itemTitle,
+      image,
+      rating,
+      price,
+      quantity,
+      menuItemId,
+      availableQuantity,
+      userId,
+      specialInstructions
     } = req.body;
 
-    const subTotal = price * quantity;
+    // Check if item already exists in user's cart
+    const existingCartItem = await Cart.findOne({
+      userId,
+      menuItemId
+    });
 
-    // Create new cart item
+    if (existingCartItem) {
+      // Calculate new quantity and subtotal
+      const newQuantity = existingCartItem.quantity + quantity;
+      
+      // Validate against available quantity
+      if (newQuantity > availableQuantity) {
+        return res.status(400).json({
+          success: false,
+          message: `Only ${availableQuantity} items available in stock`
+        });
+      }
+
+      // Update existing cart item
+      const updatedCartItem = await Cart.findByIdAndUpdate(
+        existingCartItem._id,
+        {
+          $set: {
+            quantity: newQuantity,
+            subTotal: price * newQuantity,
+            specialInstructions: specialInstructions ? specialInstructions.trim() : existingCartItem.specialInstructions
+          }
+        },
+        { new: true }
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: 'Cart quantity updated successfully',
+        data: updatedCartItem
+      });
+    }
+
+    // If item doesn't exist, create new cart item
+    const subTotal = price * quantity;
     const cartItem = new Cart({
-        quantity,
-        subTotal,
-        menuItemId,
-        availableQuantity,
-        userId,
-        specialInstructions: specialInstructions ? specialInstructions.trim() : ''
+      quantity,
+      subTotal,
+      menuItemId,
+      availableQuantity,
+      userId,
+      specialInstructions: specialInstructions ? specialInstructions.trim() : ''
     });
 
     const savedCartItem = await cartItem.save();
 
-        if (savedCartItem) {
-            res.status(201).json({
-                success: true,
-                message: 'Item added to cart successfully',
-                data: savedCartItem
-            });
-        } else {
-            res.status(400).json({
-                success: false,
-                message: 'Invalid cart data'
-            });
-        }
-}catch (error) {
-  console.error('Cart addition error:', error);
-  res.status(500).json({
+    if (savedCartItem) {
+      res.status(201).json({
+        success: true,
+        message: 'Item added to cart successfully',
+        data: savedCartItem
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid cart data'
+      });
+    }
+  } catch (error) {
+    console.error('Cart addition error:', error);
+    res.status(500).json({
       success: false,
       message: 'Error adding item to cart',
       error: error.message
-  });
-}
-}
+    });
+  }
+};
 
 // Get Cart Items
 exports.get_cart_items = async (req, res) => {
@@ -1487,42 +1529,83 @@ exports.createOrderInDB = async (req, res) => {
       totalAmount,
       specialInstructions,
       orderType,
-      dineInPreferences
+      dineInPreferences,
+      dineInDetails,
+      deliveryDetails
     } = req.body;
+    console.log("deliveryDetails",deliveryDetails)
+    let tableReservationId;
+    let deliveryInfo;
 
-    let tableReservationId = null; // To store the reservation ID
-
-    // Check table availability for dine-in orders
+    // Handle different order types
     if (orderType === 'dine-in') {
-      try {
-        const table = await checkTableAvailability(
-          dineInPreferences.tableLocation,
-          dineInPreferences.preferredTime
-        );
+      // Existing dine-in logic
+      if (dineInDetails && dineInDetails.reservationId) {
+        tableReservationId = dineInDetails.reservationId;
+      } else {
+        try {
+          const table = await checkTableAvailability(
+            dineInDetails.tableLocation,
+            dineInDetails.preferredTime
+          );
 
-        // Create table reservation
-        const tableReservation = new TableReservationModel({
-          user: userid,
-          table_id: table._id,
-          tableNumber: table.tableNumber,
-          reservationDate: new Date(),
-          time: dineInPreferences.preferredTime,
-          numberOfGuests: dineInPreferences.numberOfGuests,
-          status: 'confirmed'
-        });
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const tableReservation = new TableReservationModel({
+            user: userid,
+            table_id: table._id,
+            tableNumber: table.tableNumber,
+            reservationDate: today,
+            time: dineInDetails.preferredTime,
+            numberOfGuests: dineInDetails.numberOfGuests,
+            status: 'confirmed'
+          });
 
-        const savedReservation = await tableReservation.save();
-        tableReservationId = savedReservation._id; // Store the reservation ID
-
-      } catch (error) {
+          const savedReservation = await tableReservation.save();
+          tableReservationId = savedReservation._id;
+        } catch (error) {
+          return res.status(400).json({
+            success: false,
+            message: error.message
+          });
+        }
+      }
+    } else if (orderType === 'delivery') {
+      // Validate delivery details
+      if (!deliveryDetails || !deliveryDetails.roomNumber) {
         return res.status(400).json({
           success: false,
-          message: error.message
+          message: 'Room number is required for delivery orders'
         });
       }
+
+      // Verify if user has an active room booking
+      // const activeBooking = await ReservationModel.findOne({
+      //   userId: userid,
+      //   roomNumber: deliveryDetails.roomNumber,
+      //   checkInDate: { $lte: new Date() },
+      //   checkOutDate: { $gte: new Date() },
+      //   status: 'confirmed'
+      // });
+
+      // if (!activeBooking) {
+      //   return res.status(400).json({
+      //     success: false,
+      //     message: 'No active booking found for the specified room'
+      //   });
+      // }
+
+      // Set delivery information
+      deliveryInfo = {
+        roomNumber: deliveryDetails.roomNumber,
+        reservationId: deliveryDetails.reservationId,
+        room_id: deliveryDetails.room_id,
+        deliveryInstructions: deliveryDetails.instructions || '',
+        estimatedDeliveryTime: new Date(Date.now() + 30 * 60000) // 30 minutes from now
+      };
     }
 
-    // Create order document with table reservation reference
+    // Create order document
     const order = new Order({
       user: userid,
       items: cartItems.map(item => ({
@@ -1541,7 +1624,10 @@ exports.createOrderInDB = async (req, res) => {
       status: 'pending',
       ...(orderType === 'dine-in' && { 
         dineInPreferences,
-        tablereservation_id: tableReservationId // Add reservation reference
+        tablereservation_id: tableReservationId
+      }),
+      ...(orderType === 'delivery' && {
+        deliveryDetails: deliveryInfo
       })
     });
 
@@ -1574,162 +1660,6 @@ exports.createOrderInDB = async (req, res) => {
     });
   }
 };
-// exports.createOrderInDB = async (req, res) => {
-//   try {
-//     const {
-//       userid,
-//       cartItems,
-//       paymentDetails,
-//       totalAmount,
-//       specialInstructions,
-//       orderType,
-//       dineInPreferences
-//     } = req.body;
-
-//     // Check table availability for dine-in orders
-//     if (orderType === 'dine-in') {
-//       try {
-//         const table = await checkTableAvailability(
-//           dineInPreferences.tableLocation,
-//           dineInPreferences.preferredTime
-//         );
-
-//         // Create table reservation
-//         const tableReservation = new TableReservationModel({
-//           user: userid,
-//           table_id: table._id,
-//           tableNumber: table.tableNumber,
-//           reservationDate: new Date(),
-//           time: dineInPreferences.preferredTime,
-//           numberOfGuests: dineInPreferences.numberOfGuests,
-//           status: 'confirmed'
-//         });
-
-//         await tableReservation.save();
-
-//       } catch (error) {
-//         return res.status(400).json({
-//           success: false,
-//           message: error.message
-//         });
-//       }
-//     }
-
-//     // Create order document
-//     const order = new Order({
-//       user: userid,
-//       items: cartItems.map(item => ({
-//         menuItem: item.menuItemId._id,
-//         quantity: item.quantity,
-//         price: item.menuItemId.price,
-//         specialInstructions: specialInstructions[item._id] || ''
-//       })),
-//       totalAmount,
-//       orderType,
-//       paymentDetails: {
-//         razorpay_payment_id: paymentDetails.razorpay_payment_id,
-//         razorpay_order_id: paymentDetails.razorpay_order_id,
-//         razorpay_signature: paymentDetails.razorpay_signature
-//       },
-//       status: 'pending',
-//       ...(orderType === 'dine-in' && { dineInPreferences })
-//     });
-
-//     await order.save();
-
-//     await Promise.all(cartItems.map(item => 
-//             MenuItem.findByIdAndUpdate(
-//               item.menuItemId._id,
-//               { $inc: { availableQuantity: -item.quantity } },
-//               { new: true }
-//             )
-//           ));
-
-
-//     // Clear user's cart
-//     await Cart.deleteMany({ userId: userid });
-
-//     res.status(201).json({
-//       success: true,
-//       message: 'Order created successfully',
-//       order: order
-//     });
-
-//   } catch (error) {
-//     console.error('Create order in DB error:', error);
-//     res.status(500).json({
-//       success: false,
-//       message: 'Error creating order in database',
-//       error: error.message
-//     });
-//   }
-// };
-// exports.createOrderInDB = async (req, res) => {
-//   try {
-//     const {
-//       userid,
-//       cartItems,
-//       paymentDetails,
-//       totalAmount,
-//       specialInstructions,
-//       orderType,
-//       dineInPreferences
-//     } = req.body;
-//     console.log("dineInPreferences",dineInPreferences)
-//     console.log("cartItems",cartItems)
-
-//     if(orderType === 'dine-in'){
-//       const table = await Table.findOne({ location: dineInPreferences.tableLocation,i });
-//       if (!table) {
-//         return res.status(404).json({ success: false, message: 'Table not found' });
-//       }
-//     }
-//     // Create order document
-//     const order = new Order({
-//       user: userid,
-//       items: cartItems.map(item => ({
-//         menuItem: item.menuItemId._id,
-//         quantity: item.quantity,
-//         price: item.menuItemId.price,
-//         specialInstructions: specialInstructions[item._id] || ''
-//       })),
-//       totalAmount,
-//       orderType,
-//       paymentDetails: {
-//         razorpay_payment_id: paymentDetails.razorpay_payment_id,
-//         razorpay_order_id: paymentDetails.razorpay_order_id,
-//         razorpay_signature: paymentDetails.razorpay_signature
-//       },
-//       status: 'pending'
-//     });
-
-//     await order.save();
-
-//     await Promise.all(cartItems.map(item => 
-//       MenuItem.findByIdAndUpdate(
-//         item.menuItemId._id,
-//         { $inc: { availableQuantity: -item.quantity } },
-//         { new: true }
-//       )
-//     ));
-//     // Clear user's cart
-//     await Cart.deleteMany({ userId: userid });
-
-//     res.status(201).json({
-//       success: true,
-//       message: 'Order created successfully',
-//       order: order
-//     });
-
-//   } catch (error) {
-//     console.error('Create order in DB error:', error);
-//     res.status(500).json({
-//       success: false,
-//       message: 'Error creating order in database',
-//       error: error.message
-//     });
-//   }
-// };
 
 // Clear Cart
 exports.clearCart = async (req, res) => {
@@ -1762,7 +1692,13 @@ exports.getMyOrders = async (req, res) => {
         path: 'items.menuItem',
         select: 'name price description foodtype category image'
       })
+      .populate({
+        path: 'tablereservation_id',
+        select: 'tableNumber reservationDate time numberOfGuests status'
+      })
+      // .select('deliveryDetails')
       .sort({ orderDate: -1 }); // Sort by newest first
+
 
     if (!orders) {
       return res.status(404).json({
@@ -2469,5 +2405,567 @@ exports.deleteGuest = async (req, res) => {
           message: 'Error deleting guest',
           error: error.message
       });
+  }
+};
+
+//face recoginition
+exports.saveFace = async (req, res) => {
+  try {
+    const {
+      userId,
+      faceDescriptor,
+      livenessScore,
+      depthMap,
+      image
+    } = req.body;
+
+    // Validate minimum required data
+    if (!userId || !faceDescriptor || !livenessScore || !depthMap) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required face data'
+      });
+    }
+
+    // Validate liveness score
+    if (livenessScore < 0.8) {
+      return res.status(400).json({
+        success: false,
+        message: 'Liveness check failed. Please try again with a real face.'
+      });
+    }
+
+    // Create or update face data
+    const faceData = await FaceAuthModel.findOneAndUpdate(
+      { userId },
+      {
+        faceDescriptor,
+        livenessScore,
+        depthMap,
+        image,
+
+        lastUpdated: new Date(),
+        securityMetrics: {
+          spoofingChecks: true,
+          livenessVerified: true,
+          depthVerified: true,
+          lastVerification: new Date()
+        }
+      },
+      { 
+        new: true,
+        upsert: true,
+        runValidators: true
+      }
+    );
+
+    // Update user's face authentication status
+    await GoogleRegisterModel.findByIdAndUpdate(userId, {
+      hasFaceEnabled: true,
+      faceAuthUpdatedAt: new Date()
+    });
+
+
+    res.status(200).json({
+      success: true,
+      message: 'Face data saved successfully',
+      data: {
+        hasFaceEnabled: true,
+        lastUpdated: faceData.lastUpdated
+      }
+    });
+
+  } catch (error) {
+    console.error('Save face error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error saving face data',
+      error: error.message
+    });
+  }
+};
+
+// Get face auth status
+exports.getFaceAuthStatus = async (req, res) => {
+  try {
+    const user = await GoogleRegisterModel.findById(req.params.userId);
+    res.json({ hasFaceEnabled: user.hasFaceEnabled });
+
+  } catch (error) {
+    res.status(500).json({ message: 'Error getting face auth status' });
+  }
+};
+
+// Disable face login
+exports.disableFace = async (req, res) => {
+  try {
+    await GoogleRegisterModel.findByIdAndUpdate(req.params.userId, {
+      faceDescriptor: null,
+
+
+      hasFaceEnabled: false
+    });
+    res.json({ message: 'Face login disabled successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error disabling face login' });
+  }
+};
+
+// Verify face for login
+exports.verifyFace = async (req, res) => {
+  try {
+    const { email, faceDescriptor, image } = req.body;
+
+    // Enhanced input validation
+    if (!email || !faceDescriptor) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required verification data'
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format'
+      });
+    }
+
+    // Validate face descriptor format and values
+    if (!Array.isArray(faceDescriptor) || 
+        faceDescriptor.length !== 128 || 
+        !faceDescriptor.every(val => typeof val === 'number' && !isNaN(val))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid face descriptor format'
+      });
+    }
+
+    // Find user and check if face login is enabled
+    const user = await GoogleRegisterModel.findOne({ email });
+    if (!user || !user.hasFaceEnabled) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found or Face ID not enabled'
+      });
+    }
+
+    // Get face auth details and validate
+    const faceAuth = await FaceAuthModel.findOne({ userId: user._id });
+    if (!faceAuth || !faceAuth.faceDescriptor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Face authentication data not found'
+      });
+    }
+
+    // Check for brute force attempts
+    if (faceAuth.securityMetrics?.failedAttempts >= 5) {
+      const cooldownPeriod = 30 * 1000; // 30 seconds
+      const lastAttempt = new Date(faceAuth.securityMetrics.lastFailedAttempt);
+      
+      if (Date.now() - lastAttempt < cooldownPeriod) {
+        return res.status(429).json({
+          success: false,
+          message: 'Too many failed attempts. Please try again after 30 seconds.',
+          remainingTime: cooldownPeriod - (Date.now() - lastAttempt)
+        });
+      }
+      // Reset failed attempts after cooldown
+      faceAuth.securityMetrics.failedAttempts = 0;
+    }
+
+    // Enhanced face descriptor comparison
+    const storedDescriptor = Array.isArray(faceAuth.faceDescriptor) 
+      ? faceAuth.faceDescriptor 
+      : JSON.parse(faceAuth.faceDescriptor);
+
+    // Calculate multiple similarity metrics
+    const euclideanDistance = calculateEuclideanDistance(storedDescriptor, faceDescriptor);
+    const cosineSimilarity = calculateCosineSimilarity(storedDescriptor, faceDescriptor);
+    
+    // Stricter thresholds
+    const euclideanThreshold = 0.4; // Lower threshold for stricter matching
+    const cosineThreshold = 0.85; // Higher threshold for better similarity
+
+    console.log('Verification metrics:', {
+      euclideanDistance,
+      cosineSimilarity
+    });
+
+    // Both conditions must be met for verification
+    if (euclideanDistance > euclideanThreshold || cosineSimilarity < cosineThreshold) {
+      // Track failed attempt
+      faceAuth.securityMetrics = faceAuth.securityMetrics || {};
+      faceAuth.securityMetrics.failedAttempts = (faceAuth.securityMetrics.failedAttempts || 0) + 1;
+      faceAuth.securityMetrics.lastFailedAttempt = new Date();
+      await faceAuth.save();
+
+      return res.status(401).json({
+        success: false,
+        message: 'Face verification failed. Please ensure proper lighting and face alignment.'
+      });
+    }
+
+    // Success - update metrics and generate token
+    faceAuth.securityMetrics = {
+      ...faceAuth.securityMetrics,
+      failedAttempts: 0,
+      lastSuccessfulLogin: new Date(),
+      loginCount: (faceAuth.securityMetrics?.loginCount || 0) + 1
+    };
+    await faceAuth.save();
+
+    const token = jwt.sign(
+      { 
+        _id: user._id, 
+        email: user.email,
+        displayName: user.displayName,
+        loginMethod: 'face'
+      },
+      process.env.JWT_SECRET_KEY,
+      { 
+        expiresIn: '12h', // Shorter expiration for face login
+        algorithm: 'HS256'
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Face verification successful',
+      token,
+      email: user.email,
+      _id: user._id,
+      displayName: user.displayName
+    });
+
+  } catch (error) {
+    console.error('Face verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during face verification'
+    });
+  }
+};
+
+// Helper functions for face comparison
+const calculateEuclideanDistance = (desc1, desc2) => {
+  return Math.sqrt(
+    desc1.reduce((sum, val, i) => sum + Math.pow(val - desc2[i], 2), 0)
+  );
+};
+
+const calculateCosineSimilarity = (desc1, desc2) => {
+  const dotProduct = desc1.reduce((sum, val, i) => sum + val * desc2[i], 0);
+  const magnitude1 = Math.sqrt(desc1.reduce((sum, val) => sum + val * val, 0));
+  const magnitude2 = Math.sqrt(desc2.reduce((sum, val) => sum + val * val, 0));
+  return dotProduct / (magnitude1 * magnitude2);
+};
+
+const verifyFaceDescriptor = async (storedDescriptor, newDescriptor, securityMetrics, storedDepthMap) => {
+  const stored = new Float32Array(storedDescriptor);
+  const new_desc = new Float32Array(newDescriptor);
+
+  // Multiple similarity checks
+  const euclideanDist = calculateEuclideanDistance(stored, new_desc);
+  const cosineSim = calculateCosineSimilarity(stored, new_desc);
+  const manhattanDist = calculateManhattanDistance(stored, new_desc);
+  
+  // Add depth map comparison
+  const depthScore = compareDepthMaps(storedDepthMap, securityMetrics.depthMap);
+
+  // Weighted verification score
+  const verificationScore = calculateVerificationScore({
+    euclideanDist,
+    cosineSim,
+    manhattanDist,
+    depthScore,
+    securityMetrics
+  });
+
+  const threshold = 0.85;
+  return {
+    success: verificationScore >= threshold,
+    score: verificationScore,
+    message: verificationScore >= threshold 
+      ? 'Verification successful'
+      : `Face verification failed. Please ensure proper lighting and face alignment. (Score: ${verificationScore.toFixed(2)})`
+  };
+};
+
+const calculateVerificationScore = ({ euclideanDist, cosineSim, manhattanDist, depthScore, securityMetrics }) => {
+  const weights = {
+    euclidean: 0.25,
+    cosine: 0.25,
+    manhattan: 0.15,
+    depth: 0.15,
+    security: 0.20
+  };
+
+  return (
+    (1 - euclideanDist) * weights.euclidean +
+    cosineSim * weights.cosine +
+    (1 - manhattanDist) * weights.manhattan +
+    depthScore * weights.depth +
+    securityMetrics.spoofingScore * weights.security
+  );
+};
+
+const compareDepthMaps = (storedMap, newMap) => {
+  if (!storedMap || !newMap) return 0;
+  
+  let totalDiff = 0;
+  const points = Math.min(storedMap.length, newMap.length);
+  
+  for (let i = 0; i < points; i++) {
+    const stored = storedMap[i];
+    const new_point = newMap[i];
+    const diff = Math.abs(stored.z - new_point.z);
+    totalDiff += diff;
+  }
+  
+  return 1 - (totalDiff / points);
+};
+
+const calculateLivenessScore = (frames, livenessData) => {
+  const scores = {
+    blinkNaturalness: calculateBlinkNaturalness(frames),
+    movementSmoothing: calculateMovementSmoothing(frames),
+    depthConsistency: validateDepthMap(livenessData.depthMap),
+    textureAnalysis: analyzeTexturePatterns(frames),
+    lightingQuality: assessLightingConditions(livenessData.lightingConditions)
+  };
+
+  return Object.values(scores).reduce((a, b) => a + b, 0) / Object.keys(scores).length;
+};
+
+const validateFrameCollection = (frames) => {
+  if (!Array.isArray(frames) || frames.length < 5) return false;
+
+  let hasValidBlink = false;
+  let hasValidMovement = false;
+
+  frames.forEach(frame => {
+    if (frame.metrics.eyeAspectRatio < 0.25) hasValidBlink = true;
+    if (Math.abs(frame.metrics.headPose.yaw) > 10) hasValidMovement = true;
+  });
+
+  return hasValidBlink && hasValidMovement;
+};
+
+// Liveness detection helper functions
+function isLivenessValid(livenessData) {
+  const {
+    blinkCount,
+    headMovements,
+    depthVariance,
+    textureVariance,
+    lightingConditions
+  } = livenessData;
+
+  // Check for minimum blink count
+  if (blinkCount < 2) return false;
+
+  // Verify natural head movements
+  if (!hasNaturalHeadMovements(headMovements)) return false;
+
+  // Check depth variations (real faces have more depth variance)
+  if (depthVariance < 0.2) return false;
+
+  // Check texture patterns (screens have different patterns)
+  if (!hasNaturalTexturePattern(textureVariance)) return false;
+
+  // Verify lighting conditions
+  if (!hasNaturalLighting(lightingConditions)) return false;
+
+  return true;
+}
+
+function hasNaturalHeadMovements(movements) {
+  // Check for smooth, natural movement patterns
+  return movements.length >= 3 && 
+         movements.every(m => m.acceleration < 1.5 && m.acceleration > 0.2);
+}
+
+function hasNaturalTexturePattern(variance) {
+  // Real faces have more texture variance than flat images
+  return variance > 0.3;
+}
+
+function hasNaturalLighting(conditions) {
+  const { highlights, shadows, uniformity } = conditions;
+  
+  // Check for natural lighting patterns
+  return highlights < 250 && shadows > 5 && uniformity < 0.9;
+}
+
+
+exports.getUpcomingReservations = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Get current date at midnight
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Find all upcoming reservations for the user
+    const reservations = await TableReservationModel.find({
+      user: userId,
+      reservationDate: { $gte: today }, // Only get reservations from today onwards
+      status: { $in: ['confirmed', 'pending'] } // Only get active reservations
+    })
+    .sort({ reservationDate: 1, time: 1 }) // Sort by date and time
+    .select('reservationDate time tableNumber numberOfGuests status specialRequests') // Select only needed fields
+    .lean(); // Convert to plain JavaScript objects
+
+
+    console.log("reservations",reservations)
+    // Format the reservations
+    const formattedReservations = reservations.map(reservation => ({
+      _id: reservation._id,
+      reservationDate: reservation.reservationDate,
+      time: reservation.time,
+      tableNumber: reservation.tableNumber,
+      numberOfGuests: reservation.numberOfGuests,
+      status: reservation.status,
+      specialRequests: reservation.specialRequests || ''
+
+    }));
+
+    res.json({
+      success: true,
+      data: {
+        reservations: formattedReservations
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching reservations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch reservations',
+      error: error.message
+    });
+  }
+};
+
+
+exports.getUserBookedRooms = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    console.log("userId",userId)
+    // Get current date at midnight
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Find active room bookings for the user
+    const bookings = await ReservationModel.find({
+      user_id: userId,
+      check_in: { $lte: today },
+      check_out: { $gte: today },
+      status: 'booked'
+    })
+    .populate({
+      path: 'room_id',
+      select: 'roomno',
+      model: 'room'
+    })
+    
+    .lean();
+
+    console.log("bookings",bookings)
+    res.status(200).json({
+      success: true,
+      data: bookings
+    });
+
+  } catch (error) {
+    console.error('Error fetching booked rooms:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching booked rooms',
+      error: error.message
+    });
+  }
+};
+
+
+
+exports.searchByImage = async (req, res) => {
+  try {
+    // await console.log(req)
+    if (!req.file ) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image provided'
+
+      });
+    }
+
+    const imageFile = req.files.image;
+    
+    // Initialize Google Cloud Vision client
+    const client = new vision.ImageAnnotatorClient({
+      keyFilename: 'path/to/your/google-cloud-credentials.json'
+    });
+
+    // Analyze image
+    const [result] = await client.labelDetection(imageFile.data);
+    const labels = result.labelAnnotations;
+
+    // Define room type keywords
+    const roomTypes = {
+      'luxury': ['luxury', 'elegant', 'upscale', 'premium', 'suite'],
+      'standard': ['standard', 'basic', 'regular', 'normal', 'simple'],
+      'deluxe': ['deluxe', 'comfort', 'superior', 'quality'],
+      'family': ['family', 'spacious', 'large', 'group']
+    };
+
+    // Determine room type from labels
+    let detectedType = 'standard'; // default
+    let highestScore = 0;
+
+    for (const [type, keywords] of Object.entries(roomTypes)) {
+      const score = labels.reduce((sum, label) => {
+        if (keywords.some(keyword => 
+          label.description.toLowerCase().includes(keyword)
+        )) {
+          return sum + label.score;
+        }
+        return sum;
+      }, 0);
+
+      if (score > highestScore) {
+        highestScore = score;
+        detectedType = type;
+      }
+    }
+
+    // Find matching rooms
+    const matchedRooms = await RoomModel.find({
+      roomtype: new RegExp(detectedType, 'i'),
+      status: 'available'
+    }).limit(5);
+
+    console.log("matchedRooms",matchedRooms)
+    console.log("detectedType",detectedType)
+    console.log("highestScore",highestScore)
+    res.status(200).json({
+      success: true,
+      roomType: detectedType,
+      matchedRooms,
+      confidence: highestScore
+    });
+
+
+  } catch (error) {
+    console.error('Image search error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error processing image',
+      error: error.message
+    });
   }
 };

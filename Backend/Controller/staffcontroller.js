@@ -961,7 +961,7 @@ exports.Addmenuitem = [
               foodType,
               quantity
           } = req.body;
-
+            
           // Validate required fields
           if (!name || !description || !price || !category || !foodType || !quantity) {
               return res.status(400).json({

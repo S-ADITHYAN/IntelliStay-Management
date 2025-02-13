@@ -113,7 +113,7 @@ const MyTableReservation = () => {
           {filteredReservations.map((reservation) => (
             <div key={reservation._id} className="reservation-card">
               <div className="card-header">
-                <span className="reservation-id">#{reservation.reservationId}</span>
+                <span className="reservation-id">#{reservation._id.slice(-6)}</span>
                 <span className={`status ${getStatusColor(reservation.status)}`}>
                   {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
                 </span>

@@ -1,3 +1,32 @@
 .myprofile_nav{
     background-color: rgb(17, 186, 212);
 }
+
+/* Add these styles to handle dialog z-index */
+.swal-dialog-container {
+  position: relative;
+  z-index: 9999;
+}
+
+/* Style for Sweetalert popups */
+:root {
+  --swal2-z-index: 9999;
+}
+
+.swal2-container {
+  z-index: var(--swal2-z-index) !important;
+}
+
+.swal2-popup {
+  position: relative;
+  z-index: calc(var(--swal2-z-index) + 1) !important;
+}
+
+/* Ensure webcam dialog stays below Swal */
+.MuiDialog-root {
+  z-index: 1000;
+}
+
+.MuiBackdrop-root {
+  z-index: 1000;
+}

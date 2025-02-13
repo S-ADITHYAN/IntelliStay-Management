@@ -141,15 +141,31 @@ cancellationDetails: {
     cancelledAt: Date,
     cancelledBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
+      ref: 'GoogleRegisters'
     },
     reason: String
   },
   tablereservation_id: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'TableReservation'
+  },
+  deliveryDetails: {
+    roomNumber: String,
+    reservationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'reservation'
+    },
+    room_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'room'
+    },
+    deliveryInstructions: String,
+    estimatedDeliveryTime: Date
   }
 }, { timestamps: true });
+
+
+
 
 // Table Schema
 const tableSchema = new mongoose.Schema({

@@ -197,10 +197,13 @@
 
 .table-details p {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0;
-  color: #666;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.table-details svg {
+  margin-right: 8px;
 }
 
 .special-requests {
@@ -655,4 +658,44 @@
 
 .react-datepicker__day--weekend.react-datepicker__day--disabled {
   color: #ffcdd2 !important;
+}
+
+/* Add these new styles */
+.capacity-warning {
+  margin-top: 4px;
+  padding: 4px 8px;
+  background-color: rgba(255, 152, 0, 0.1);
+  border-radius: 4px;
+}
+
+.table-card {
+  position: relative;
+}
+
+.table-card.exact-match {
+  border: 2px solid #4CAF50;
+}
+
+.table-card.next-best {
+  border: 2px solid #FFA726;
+}
+
+.capacity-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.capacity-badge.exact {
+  background-color: #E8F5E9;
+  color: #2E7D32;
+}
+
+.capacity-badge.next-best {
+  background-color: #FFF3E0;
+  color: #EF6C00;
 } 

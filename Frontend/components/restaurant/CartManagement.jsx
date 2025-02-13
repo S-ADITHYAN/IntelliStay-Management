@@ -22,6 +22,14 @@ const CartManagement = () => {
     tableLocation: '',
     numberOfGuests: 1
   });
+  const [tableReservations, setTableReservations] = useState([]);
+  const [selectedReservation, setSelectedReservation] = useState(null);
+  const [isLoadingReservations, setIsLoadingReservations] = useState(false);
+  const [bookedRooms, setBookedRooms] = useState([]);
+  const [selectedRoom, setSelectedRoom] = useState('');
+  const [selectedRoomId, setSelectedRoomId] = useState('');
+  const [selectedRoomReservationId, setSelectedRoomReservationId] = useState('');
+  const [isLoadingRooms, setIsLoadingRooms] = useState(false);
 
   const getUserIdFromToken = () => {
     try {
@@ -182,6 +190,61 @@ const CartManagement = () => {
     });
   };
 
+  // Add this useEffect to fetch booked rooms when delivery is selected
+  useEffect(() => {
+    const fetchBookedRooms = async () => {
+      if (orderType === 'delivery') {
+        try {
+          setIsLoadingRooms(true);
+          const userId = getUserIdFromToken();
+          const response = await axios.get(
+            `${import.meta.env.VITE_API}/user/booked-rooms/${userId}`
+          );
+          
+          setBookedRooms(response.data.data);
+          console.log("Booked rooms:", response.data.data);
+        } catch (error) {
+          console.error('Error fetching booked rooms:', error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load booked rooms'
+          });
+        } finally {
+          setIsLoadingRooms(false);
+        }
+      }
+    };
+
+    fetchBookedRooms();
+  }, [orderType]);
+
+  // Add room selection handler
+  const handleRoomSelection = (e) => {
+    const roomNumber = e.target.value;
+    const selectedBooking = bookedRooms.find(
+      booking => booking.room_id.roomno === roomNumber
+    );
+
+
+    if (selectedBooking) {
+      setSelectedRoom(roomNumber);
+
+      setSelectedRoomId(selectedBooking.room_id._id); 
+      console.log("selectedRoomId",selectedBooking.room_id._id)// Room booking ID
+      setSelectedRoomReservationId(selectedBooking._id);
+      console.log("selectedRoomReservationId",selectedBooking._id)
+
+
+
+    } else {
+      setSelectedRoom('');
+      setSelectedRoomId('');
+      setSelectedRoomReservationId('');
+    }
+
+  };
+
   // Modify your handleCheckout function
   const handleCheckout = async () => {
     if (cartItems.length === 0) {
@@ -202,15 +265,23 @@ const CartManagement = () => {
       return;
     }
 
-    // Check dine-in preferences if order type is dine-in
-    if (orderType === 'dine-in' && 
+    if (orderType === 'dine-in' && !selectedReservation && 
         (!dineInPreferences.preferredTime || 
          !dineInPreferences.tableLocation || 
          !dineInPreferences.numberOfGuests)) {
       Swal.fire({
         icon: 'warning',
         title: 'Incomplete Dining Preferences',
-        text: 'Please select your preferred time, table location, and number of guests for dine-in'
+        text: 'Please select a reservation or fill in your dining preferences'
+      });
+      return;
+    }
+
+    if (orderType === 'delivery' && !selectedRoom) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Room Selection Required',
+        text: 'Please select your room number for delivery'
       });
       return;
     }
@@ -224,14 +295,36 @@ const CartManagement = () => {
 
       // Create order on backend
       const userId = getUserIdFromToken();
-      const response = await axios.post(`${import.meta.env.VITE_API}/user/restaurant/create-order`, {
+      const orderData = {
         amount: calculateTotal() * 100,
         cartItems: cartItems,
         orderType: orderType,
         userId: userId,
-        // Include dine-in preferences if applicable
-        ...(orderType === 'dine-in' && { dineInPreferences })
-      });
+        ...(orderType === 'dine-in' && {
+          dineInDetails: selectedReservation 
+            ? {
+                reservationId: selectedReservation._id,
+                date: selectedReservation.date,
+                time: selectedReservation.time,
+                tableNumber: selectedReservation.tableNumber,
+                numberOfGuests: selectedReservation.numberOfGuests
+              }
+            : dineInPreferences
+        }),
+        ...(orderType === 'delivery' && {
+          
+          deliveryDetails: {
+            roomNumber: selectedRoom,
+            room_id: selectedRoomId,
+            reservationId: selectedRoomReservationId
+          }
+        })
+      };
+
+      const response = await axios.post(
+        `${import.meta.env.VITE_API}/user/restaurant/create-order`,
+        orderData
+      );
 
       const options = {
         key: import.meta.env.VITE_RAZORPAY_KEY_ID,
@@ -250,6 +343,7 @@ const CartManagement = () => {
             });
 
             if (data.success) {
+              console.log("data",dineInPreferences)
               // Create final order with all details
               await axios.post(`${import.meta.env.VITE_API}/user/restaurant/orders`, {
                 userid: userId,
@@ -260,12 +354,24 @@ const CartManagement = () => {
                 orderType: orderType,
                 // Include dine-in preferences in final order
                 ...(orderType === 'dine-in' && { 
-                  dineInPreferences: {
-                    preferredTime: dineInPreferences.preferredTime,
-                    tableLocation: dineInPreferences.tableLocation,
-                    numberOfGuests: dineInPreferences.numberOfGuests
+                  dineInDetails: selectedReservation 
+                    ? {
+                        reservationId: selectedReservation._id,
+                        date: selectedReservation.date,
+                        time: selectedReservation.time,
+                        tableNumber: selectedReservation.tableNumber,
+                        numberOfGuests: selectedReservation.numberOfGuests
+                      }
+                    : dineInPreferences
+                }),
+                ...(orderType === 'delivery' && {
+                  deliveryDetails: {
+                    roomNumber: selectedRoom,
+                    room_id: selectedRoomId,
+                    reservationId: selectedRoomReservationId
                   }
                 })
+
               });
 
               setCartItems([]);
@@ -274,7 +380,7 @@ const CartManagement = () => {
                 icon: 'success',
                 title: 'Order Placed Successfully!',
                 text: orderType === 'dine-in' 
-                  ? `Your table is reserved for ${dineInPreferences.preferredTime}` 
+                  ? `Your table is reserved for ${selectedReservation ? selectedReservation.time : dineInPreferences.preferredTime}` 
                   : 'Thank you for your order'
               });
               
@@ -300,7 +406,12 @@ const CartManagement = () => {
         notes: {
           orderType: orderType,
           ...(orderType === 'dine-in' && { 
-            dineInDetails: `Table: ${dineInPreferences.tableLocation}, Time: ${dineInPreferences.preferredTime}, Guests: ${dineInPreferences.numberOfGuests}`
+            dineInDetails: selectedReservation 
+              ? `Table: ${selectedReservation.tableNumber}, Time: ${selectedReservation.time}, Guests: ${selectedReservation.numberOfGuests}`
+              : `Table: ${dineInPreferences.tableLocation}, Time: ${dineInPreferences.preferredTime}, Guests: ${dineInPreferences.numberOfGuests}`
+          }),
+          ...(orderType === 'delivery' && {
+            deliveryDetails: `Room: ${selectedRoom}`
           })
         }
       };
@@ -349,6 +460,42 @@ const CartManagement = () => {
     }
     return slots;
   };
+
+  // Add this useEffect to fetch reservations when dine-in is selected
+  useEffect(() => {
+    const fetchReservations = async () => {
+      if (orderType === 'dine-in') {
+        try {
+          setIsLoadingReservations(true);
+          const userId = getUserIdFromToken();
+          const response = await axios.get(
+            `${import.meta.env.VITE_API}/user/restaurant/reservations/${userId}`
+          );
+          
+          // Filter out past reservations
+          const now = new Date();
+          const upcomingReservations = response.data.data.reservations.filter(res => {
+            const reservationDate = new Date(res.reservationDate);
+            return reservationDate >= now;
+          });
+          
+
+          setTableReservations(upcomingReservations);
+        } catch (error) {
+          console.error('Error fetching reservations:', error);
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load table reservations'
+          });
+        } finally {
+          setIsLoadingReservations(false);
+        }
+      }
+    };
+
+    fetchReservations();
+  }, [orderType]);
 
   if (loading) {
     return (
@@ -498,59 +645,142 @@ const CartManagement = () => {
                   </div>
                 </div>
 
-                {/* Dine-in Preferences Section */}
                 {orderType === 'dine-in' && (
-                  <div className="dine-in-preferences">
-                    <h5>Dining Preferences</h5>
-                    
-                    <div className="preference-item">
-                      <label>Preferred Time:</label>
-                      <select 
-                        value={dineInPreferences.preferredTime}
-                        onChange={(e) => setDineInPreferences(prev => ({
-                          ...prev,
-                          preferredTime: e.target.value
-                        }))}
-                        required
-                      >
-                        <option value="">Select Time</option>
-                        {generateTimeSlots().map(time => (
-                          <option key={time} value={time}>{time}</option>
-                        ))}
-                      </select>
-                    </div>
+                  <div className="dine-in-section">
+                    <h5>Your Reservations</h5>
+                    {isLoadingReservations ? (
+                      <div className="loading-spinner">Loading reservations...</div>
+                    ) : tableReservations.length > 0 ? (
+                      <div className="reservations-list">
+                        {tableReservations.map((reservation) => (
+                          <div 
+                            key={reservation._id}
+                            className={`reservation-card ${selectedReservation?._id === reservation._id ? 'selected' : ''}`}
+                            onClick={() => setSelectedReservation(reservation)}
+                          >
+                            <div className="reservation-header">
+                              <span className="reservation-date">
+                                {new Date(reservation.reservationDate).toLocaleDateString()}
+                              </span>
+                              <span className="reservation-time">{reservation.time}</span>
+                            </div>
 
-                    <div className="preference-item">
-                      <label>Table Location:</label>
-                      <select 
-                        value={dineInPreferences.tableLocation}
-                        onChange={(e) => setDineInPreferences(prev => ({
-                          ...prev,
-                          tableLocation: e.target.value
-                        }))}
-                        required
-                      >
-                        <option value="">Select Location</option>
-                        {tableLocations.map(location => (
-                          <option key={location} value={location}>{location}</option>
+                            <div className="reservation-details">
+                              <span>Table {reservation.tableNumber}</span>
+                              <span>{reservation.numberOfGuests} Guests</span>
+                            </div>
+                            {selectedReservation?._id === reservation._id && (
+                              <div className="selected-indicator">
+                                <i className="fas fa-check-circle"></i> Selected
+                              </div>
+                            )}
+                          </div>
                         ))}
-                      </select>
-                    </div>
+                      </div>
+                    ) : (
+                      <div className="no-reservations">
+                        <p>No upcoming reservations found</p>
+                        <button 
+                          onClick={() => navigate('/restaurant/reservations')}
+                          className="make-reservation-btn"
+                        >
+                          Make a Reservation
+                        </button>
+                      </div>
+                    )}
 
-                    <div className="preference-item">
-                      <label>Number of Guests:</label>
-                      <input 
-                        type="number"
-                        min="1"
-                        max="10"
-                        value={dineInPreferences.numberOfGuests}
-                        onChange={(e) => setDineInPreferences(prev => ({
-                          ...prev,
-                          numberOfGuests: parseInt(e.target.value)
-                        }))}
-                        required
-                      />
-                    </div>
+                    {!selectedReservation && (
+                      <div className="manual-preferences">
+                        <h6>Or Enter Dining Preferences</h6>
+                        <div className="preference-inputs">
+                          <div className="input-group">
+                            <label>Preferred Time</label>
+                            <select
+                              value={dineInPreferences.preferredTime}
+                              onChange={(e) => setDineInPreferences(prev => ({
+                                ...prev,
+                                preferredTime: e.target.value
+                              }))}
+                            >
+                              <option value="">Select Time</option>
+                              {generateTimeSlots().map(time => (
+                                <option key={time} value={time}>{time}</option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div className="input-group">
+                            <label>Number of Guests</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="10"
+                              value={dineInPreferences.numberOfGuests}
+                              onChange={(e) => setDineInPreferences(prev => ({
+                                ...prev,
+                                numberOfGuests: Math.max(1, parseInt(e.target.value) || 1)
+                              }))}
+                            />
+                          </div>
+
+                          <div className="input-group">
+                            <label>Table Location</label>
+                            <select
+                              value={dineInPreferences.tableLocation}
+                              onChange={(e) => setDineInPreferences(prev => ({
+                                ...prev,
+                                tableLocation: e.target.value
+                              }))}
+                            >
+                              <option value="">Select Location</option>
+                              {['Window Side', 'Garden View', 'Indoor', 'Outdoor', 'Private Area'].map(location => (
+                                <option key={location} value={location}>{location}</option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {orderType === 'delivery' && (
+                  <div className="delivery-section">
+                    <h5>Select Delivery Room</h5>
+                    {isLoadingRooms ? (
+                      <div className="loading-spinner">Loading rooms...</div>
+                    ) : bookedRooms.length > 0 ? (
+                      <div className="room-selection">
+                        <select
+                          value={selectedRoom}
+                          onChange={handleRoomSelection}
+                          className="room-select"
+                        >
+                          <option value="">Select Room</option>
+                          {bookedRooms.map((booking) => (
+                            <option 
+                              key={booking._id} 
+                              value={booking.room_id.roomno}
+                            >
+                              Room {booking.room_id.roomno} 
+                              (Booking until {new Date(booking.check_out).toLocaleDateString()})
+
+                            </option>
+                          ))}
+                        </select>
+                        {selectedRoom && (
+                          <div className="selected-room-info">
+                            <p>Selected Room: {selectedRoom}</p>
+                            <p>Booking ID: {selectedRoomId}</p>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="no-rooms">
+                        <p>No active room bookings found</p>
+                        <p>Please book a room first or choose another order type</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
