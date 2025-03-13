@@ -1,89 +1,75 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   Box,
-  Button,
-  Typography,
-  useTheme,
   Grid,
   Card,
   CardContent,
+  Typography,
   IconButton,
-  CircularProgress,
+  Tooltip,
   Divider,
+  Button,
   Tab,
   Tabs,
-} from "@mui/material";
+  CircularProgress,
+} from '@mui/material';
 import {
-  DownloadOutlined,
-  TrendingUp,
   Hotel,
-  Restaurant,
-  Person,
-  EventAvailable,
   AttachMoney,
-  TableChart,
-  Room,
-  RestaurantMenu,
+  Person,
+  Restaurant,
+  CleaningServices,
+  Event,
+  Build,
+  Group,
+  RoomService,
   Assessment,
-  Schedule,
-} from "@mui/icons-material";
-import { tokens } from "../../theme";
-import Header from "../../components/Header";
-import StatBox from "../../components/StatBox";
-import LineChart from "../../components/LineChart";
-import PieChart from "../../components/PieChart";
-import BarChart from "../../components/BarChart";
-import { CSVLink } from "react-csv";
-import axios from "axios";
-import { format } from "date-fns";
-import InteractiveChart from '../../components/InteractiveChart';
-import DetailedMetrics from '../../components/DetailedMetrics';
+  DownloadOutlined,
+} from '@mui/icons-material';
+import StatBox from '../../components/StatBox';
+import LineChart from '../../components/LineChart';
+import PieChart from '../../components/PieChart';
+import BarChart from '../../components/BarChart';
+import Header from '../../components/Header';
 import HotelDashboard from './HotelDashboard';
 import RestaurantDashboard from './RestaurantDashboard';
+import { CSVLink } from 'react-csv';
+import axios from 'axios';
 
 const Dashboard = () => {
-  const theme = useTheme();
-  const defaultColors = {
-    grey: { 100: '#e0e0e0' },
-    blueAccent: { 700: '#1976d2', 800: '#1565c0' },
-    primary: { 400: '#42a5f5' },
-    greenAccent: { 600: '#43a047' }
-  };
-
-  const colors = tokens(theme.palette.mode) || defaultColors;
-
   const [activeTab, setActiveTab] = useState(0);
-  const [revenueData, setRevenueData] = useState([{
-    id: 'revenue',
-    data: [
-      { x: new Date().toISOString(), y: 0 }
-    ]
-  }]);
-  const [stats, setStats] = useState({
-    hotelMetrics: {
-      roomStatus: { total: 0, occupied: 0, available: 0, maintenance: 0 },
-      monthlyRevenue: 0,
-      occupancyRate: 0,
-      averageRevenue: 0,
-      popularRoomTypes: [],
-      revenueData: []
-    },
-    restaurantMetrics: {
-      todayOrders: 0,
-      monthlyRevenue: 0,
-      tableUtilization: [],
-      popularDishes: [],
-      revenueData: []
-    }
-  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedTimeRange, setSelectedTimeRange] = useState('month');
-  const [selectedMetrics, setSelectedMetrics] = useState([]);
-  const [comparisonMode, setComparisonMode] = useState(false);
+  const [dashboardData, setDashboardData] = useState({
+    hotelMetrics: {
+      roomStats: {},
+      financialStats: {},
+      staffStats: {},
+      maintenanceStats: {},
+      guestStats: {},
+    },
+    restaurantMetrics: {}
+  });
 
+  // Theme colors
+  const colors = {
+    grey: {
+      100: '#e0e0e0',
+      200: '#c2c2c2'
+    },
+    blueAccent: {
+      700: '#1976d2',
+      800: '#1565c0'
+    },
+    secondary: {
+      main: '#9c27b0'
+    }
+  };
+
+  // Time range selector component
   const TimeRangeSelector = ({ value, onChange }) => (
-    <Box sx={{ display: 'flex', gap: 2 }}>
+    <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
       {['week', 'month', 'year'].map((range) => (
         <Button
           key={range}
@@ -91,10 +77,10 @@ const Dashboard = () => {
           onClick={() => onChange(range)}
           sx={{
             textTransform: 'capitalize',
-            color: value === range ? colors?.grey?.[100] : 'inherit',
-            backgroundColor: value === range ? colors?.blueAccent?.[700] : 'transparent',
+            color: value === range ? colors.grey[100] : 'inherit',
+            backgroundColor: value === range ? colors.blueAccent[700] : 'transparent',
             '&:hover': {
-              backgroundColor: value === range ? colors?.blueAccent?.[800] : 'rgba(0, 0, 0, 0.04)'
+              backgroundColor: value === range ? colors.blueAccent[800] : 'rgba(0, 0, 0, 0.04)'
             }
           }}
         >
@@ -104,58 +90,12 @@ const Dashboard = () => {
     </Box>
   );
 
-  useEffect(() => {
-    fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 300000);
-    return () => clearInterval(interval);
-  }, [selectedTimeRange]);
-
-  const transformRevenueData = (rawData = []) => {
-    if (!Array.isArray(rawData)) return [];
-
-    const transformedData = rawData.map(item => ({
-      x: item.date || item._id,
-      y: Number(item.amount) || 0
-    })).filter(item => item.x && item.y !== undefined);
-
-    return transformedData.length > 0 ? [{
-      id: 'revenue',
-      data: transformedData
-    }] : [];
-  };
-
-  const fetchDashboardData = async (timeRange = selectedTimeRange) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await axios.get(`${import.meta.env.VITE_API}/admin/dashboard-stats`, {
-        params: { timeRange }
-
-      });
-      console.log(response.data);
-
-      
-      if (response.data.success) {
-        setStats(response.data);
-        setRevenueData(transformRevenueData(response.data.revenueData));
-      } else {
-        throw new Error(response.data.message || 'Failed to fetch dashboard data');
-      }
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      setError(error.message || "Failed to load dashboard data");
-      // Set default data on error
-      setRevenueData(transformRevenueData([]));
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Generate CSV report data
   const generateReportData = (type) => {
-    const metrics = type === 'hotel' ? stats.hotelMetrics : stats.restaurantMetrics;
+    const metrics = type === 'hotel' ? dashboardData.hotelMetrics : dashboardData.restaurantMetrics;
     return {
-      filename: `${type}-report-${format(new Date(), 'yyyy-MM-dd')}.csv`,
-      data: Object.entries(metrics || {}).map(([key, value]) => ({
+      filename: `${type}-report-${new Date().toISOString().split('T')[0]}.csv`,
+      data: Object.entries(metrics).map(([key, value]) => ({
         metric: key,
         value: typeof value === 'object' ? JSON.stringify(value) : value
       })),
@@ -166,48 +106,48 @@ const Dashboard = () => {
     };
   };
 
-  const handleTimeRangeChange = async (range) => {
-    setSelectedTimeRange(range);
-    await fetchDashboardData();
+  // Fetch dashboard data
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await axios.get(`${import.meta.env.VITE_API}/api/admin/dashboard-stats`, {
+        params: { timeRange: selectedTimeRange },
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (response.data) {
+        setDashboardData({
+          hotelMetrics: {
+            roomStats: response.data.roomStats || {},
+            financialStats: response.data.financialStats || {},
+            staffStats: response.data.staffStats || {},
+            maintenanceStats: response.data.maintenanceStats || {},
+            guestStats: response.data.guestStats || {}
+          },
+          restaurantMetrics: response.data.restaurantStats || {}
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      setError(error.response?.data?.message || "Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleComparisonToggle = () => {
-    setComparisonMode(!comparisonMode);
-  };
-
-  const getDetailedMetrics = () => {
-    return {
-      hotel: [
-        {
-          label: 'Revenue per Available Room',
-          value: `₹${(stats.hotelMetrics.monthlyRevenue / stats.hotelMetrics.roomStatus.total).toFixed(2)}`,
-          percentage: 85,
-          trend: 'up',
-          info: 'Average revenue generated per available room'
-        },
-        // Add more hotel metrics
-      ],
-      restaurant: [
-        {
-          label: 'Average Order Value',
-          value: `₹${(stats.restaurantMetrics.monthlyRevenue / stats.restaurantMetrics.todayOrders).toFixed(2)}`,
-          percentage: 72,
-          trend: 'up',
-          info: 'Average amount spent per order'
-        },
-        // Add more restaurant metrics
-      ]
-    };
-  };
+  useEffect(() => {
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 300000);
+    return () => clearInterval(interval);
+  }, [selectedTimeRange]);
 
   if (loading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
         <CircularProgress />
       </Box>
     );
@@ -215,12 +155,7 @@ const Dashboard = () => {
 
   if (error) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="100vh">
         <Typography color="error" variant="h5">{error}</Typography>
       </Box>
     );
@@ -236,13 +171,13 @@ const Dashboard = () => {
           <CSVLink {...generateReportData(activeTab === 0 ? 'hotel' : 'restaurant')}>
             <Button
               sx={{
-                backgroundColor: colors?.blueAccent?.[700] || defaultColors.blueAccent[700],
-                color: colors?.gray?.[100] || defaultColors.grey[100],
+                backgroundColor: colors.blueAccent[700],
+                color: colors.grey[100],
                 fontSize: "14px",
                 fontWeight: "bold",
                 padding: "10px 20px",
                 "&:hover": {
-                  backgroundColor: colors?.blueAccent?.[800] || defaultColors.blueAccent[800],
+                  backgroundColor: colors.blueAccent[800],
                 },
               }}
             >
@@ -260,60 +195,50 @@ const Dashboard = () => {
           onChange={(e, newValue) => setActiveTab(newValue)}
           textColor="secondary"
           indicatorColor="secondary"
+          sx={{
+            '& .MuiTab-root': {
+              color: colors.grey[200],
+              '&.Mui-selected': {
+                color: colors.secondary.main
+              }
+            }
+          }}
         >
           <Tab icon={<Hotel />} label="Hotel" />
           <Tab icon={<Restaurant />} label="Restaurant" />
         </Tabs>
       </Box>
 
-      {/* CONTENT */}
-      <Box display={activeTab === 0 ? 'block' : 'none'}>
-        <HotelDashboard 
-          stats={stats.hotelMetrics} 
-          colors={colors} 
-          revenueData={revenueData}
-        />
-      </Box>
-
-      <Box display={activeTab === 1 ? 'block' : 'none'}>
-        <RestaurantDashboard 
-          stats={stats.restaurantMetrics} 
-          colors={colors}
-          revenueData={revenueData}
-        />
-      </Box>
-
-      {/* Add TimeRange Selector */}
-      <Box sx={{ mb: 3 }}>
-        <TimeRangeSelector 
-          value={selectedTimeRange}
-          onChange={handleTimeRangeChange}
-        />
-      </Box>
-
-      {/* Add Detailed Metrics */}
-      <DetailedMetrics 
-        metrics={getDetailedMetrics()[activeTab === 0 ? 'hotel' : 'restaurant']}
-        title={activeTab === 0 ? 'Hotel Analytics' : 'Restaurant Analytics'}
-        type={activeTab === 0 ? 'hotel' : 'restaurant'}
+      {/* TIME RANGE SELECTOR */}
+      <TimeRangeSelector 
+        value={selectedTimeRange}
+        onChange={setSelectedTimeRange}
       />
 
-      {/* Add Interactive Charts */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
-          <LineChart 
-            data={transformRevenueData(
-              activeTab === 0 
-                ? stats.hotelMetrics?.revenueData || []
-                : stats.restaurantMetrics?.revenueData || []
-            )}
-            isDashboard={true}
+      {/* DASHBOARD CONTENT */}
+      <Box mt={3}>
+        {activeTab === 0 ? (
+          <HotelDashboard 
+            data={dashboardData.hotelMetrics}
+            timeRange={selectedTimeRange}
           />
-        </Grid>
-        {/* Add more interactive charts */}
-      </Grid>
+        ) : (
+          <RestaurantDashboard 
+            data={dashboardData.restaurantMetrics}
+            timeRange={selectedTimeRange}
+          />
+        )}
+      </Box>
     </Box>
   );
+};
+
+// Helper function to format currency
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR'
+  }).format(amount || 0);
 };
 
 export default Dashboard;

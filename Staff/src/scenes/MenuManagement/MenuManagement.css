@@ -27,18 +27,19 @@
 .menu-actions {
   display: flex;
   gap: 1rem;
+  align-items: center;
 }
 
 .menu-actions button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 8px;
-  border: none;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  gap: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .add-btn {
@@ -190,36 +191,25 @@ select:focus {
 
 .item-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .item-actions button {
-  flex: 1;
-  padding: 0.5rem;
+  padding: 8px 16px;
+  border-radius: 4px;
   border: none;
-  border-radius: 6px;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.25rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: white;
-}
-
-.item-actions button:first-child {
-  background-color: var(--edit-color, #FFC107);
-  color: #000;
-}
-
-.item-actions button:last-child {
-  background-color: var(--delete-color, #f44336);
-  color: white;
+  gap: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
 
 .item-actions button:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.1);
+  opacity: 0.9;
+  transform: translateY(-1px);
 }
 
 /* Modal Styles */
@@ -369,3 +359,31 @@ select:focus {
 .food-type.non-veg::before {
   background-color: #f44336;
 } */
+
+/* Add these styles to your existing CSS */
+.ar-view-wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  background-color: #000;
+}
+
+.item-actions button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.item-actions button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}

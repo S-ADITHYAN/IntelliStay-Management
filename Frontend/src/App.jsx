@@ -18,6 +18,7 @@ import RestaurantRoutes from "./routes/RestaurantRoutes.jsx";
 import Login from './Login.jsx';
 import Guide from "./components/Guide/Guide.jsx";
 import QRScanner from "../src/components/QRSystem/QRScanner.jsx";
+
 function App(){
 
       return(
@@ -41,6 +42,7 @@ function App(){
             <Route path="/restaurent_login" element={<Login />} /> 
             <Route path="/guide" element={<Guide />} />
             <Route path="/qrscanner" element={<QRScanner />} />
+            
             </Routes>
          </BrowserRouter> 
       )

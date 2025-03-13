@@ -1,12 +1,4 @@
-import axios from 'axios';
-
-const geminiInstance = axios.create({
-  baseURL: 'https://generativelanguage.googleapis.com/v1beta',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: false
-});
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const cleanAndParseJSON = (text) => {
   try {
@@ -25,7 +17,6 @@ const cleanAndParseJSON = (text) => {
     return JSON.parse(cleanText);
   } catch (error) {
     console.error('JSON parsing error:', error);
-    // Return a structured error response
     return {
       error: true,
       message: 'Failed to parse response',
@@ -36,28 +27,123 @@ const cleanAndParseJSON = (text) => {
 
 export const generateContent = async (prompt, apiKey) => {
   try {
-    const response = await geminiInstance.post(
-      '/models/gemini-pro:generateContent',
-      {
-        contents: [{
-          parts: [{
-            text: prompt + "\nPlease ensure the response is in valid JSON format."
-          }]
-        }]
-      },
-      {
-        headers: {
-          'x-goog-api-key': apiKey
-        }
-      }
-    );
+    // Initialize the API
+    const genAI = new GoogleGenerativeAI(apiKey);
     
-    const rawText = response.data.candidates[0].content.parts[0].text;
-    return cleanAndParseJSON(rawText);
+    try {
+      // Try with gemini-1.5-pro-latest first
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-pro-latest",
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+        }
+      });
+
+      const result = await model.generateContent({
+        contents: [{ parts: [{ text: prompt + "\nPlease ensure the response is in valid JSON format." }] }],
+      });
+
+      const response = await result.response;
+      const text = response.text();
+      return cleanAndParseJSON(text);
+      
+    } catch (error) {
+      // If 1.5 fails, fallback to gemini-pro
+      console.log('Falling back to gemini-pro');
+      const fallbackModel = genAI.getGenerativeModel({ 
+        model: "gemini-pro",
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+        }
+      });
+
+      const result = await fallbackModel.generateContent({
+        contents: [{ parts: [{ text: prompt + "\nPlease ensure the response is in valid JSON format." }] }],
+      });
+
+      const response = await result.response;
+      const text = response.text();
+      return cleanAndParseJSON(text);
+    }
   } catch (error) {
-    console.error('Gemini API Error:', error);
+    console.error('Generation error:', error);
     throw error;
   }
 };
 
-export default geminiInstance; 
+export const generateContentWithImage = async (prompt, imageData, apiKey) => {
+  try {
+    const genAI = new GoogleGenerativeAI(apiKey);
+    
+    try {
+      // Try with gemini-1.5-pro-vision-latest first
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-pro-vision-latest",
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+        }
+      });
+
+      const result = await model.generateContent({
+        contents: [{
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: imageData
+              }
+            }
+          ]
+        }]
+      });
+
+      const response = await result.response;
+      const text = response.text();
+      return cleanAndParseJSON(text);
+      
+    } catch (error) {
+      // If 1.5 fails, fallback to gemini-pro-vision
+      console.log('Falling back to gemini-pro-vision');
+      const fallbackModel = genAI.getGenerativeModel({ 
+        model: "gemini-pro-vision",
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+        }
+      });
+
+      const result = await fallbackModel.generateContent({
+        contents: [{
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: imageData
+              }
+            }
+          ]
+        }]
+      });
+
+      const response = await result.response;
+      const text = response.text();
+      return cleanAndParseJSON(text);
+    }
+  } catch (error) {
+    console.error('Image generation error:', error);
+    throw error;
+  }
+}; 

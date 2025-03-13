@@ -1593,3 +1593,41 @@ exports.updateReservationStatus = async (req, res) => {
   }
 };
 
+exports.getOneMenuItem= async (req, res) => {
+  try {
+      const { itemId } = req.params;
+      console.log(itemId);
+      // Validate itemId
+      // if (!itemId.match(/^[0-9a-fA-F]{24}$/)) {
+      //     return res.status(400).json({
+      //         success: false,
+      //         message: 'Invalid item ID format'
+      //     });
+      // }
+
+      // Find the menu item
+      const menuItem = await MenuItem.findById(itemId);
+
+      // Check if item exists
+      if (!menuItem) {
+          return res.status(404).json({
+              success: false,
+              message: 'Menu item not found'
+          });
+      }
+
+      // Return the menu item
+      res.status(200).json({
+          success: true,
+          data: menuItem
+      });
+
+  } catch (error) {
+      console.error('Error fetching menu item:', error);
+      res.status(500).json({
+          success: false,
+          message: 'Internal server error',
+          error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+  }
+};

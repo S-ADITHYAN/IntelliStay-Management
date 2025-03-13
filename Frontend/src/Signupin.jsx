@@ -806,6 +806,7 @@ const estimateDepthFromFeatures = (point, landmarks) => {
             
             <input 
               type="submit" 
+              id="login"
               value={useFaceLogin ? "Verify Face" : "Login"} 
               className="btn solid" 
             />

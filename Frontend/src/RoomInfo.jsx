@@ -23,6 +23,9 @@ const RoomInfo = () => {
   const state = location.state || {};
   const datas = state.data || {};
   const roomdatas = state.roomdata || {};
+  const allocation = state.allocation || {};
+  console.log("allocation", allocation)
+  console.log("roomdatas", roomdatas)
   // const guestDistribution = state.guestDistribution || {};
   // console.log("guestDistribution", guestDistribution)
   // console.log("datas", datas)

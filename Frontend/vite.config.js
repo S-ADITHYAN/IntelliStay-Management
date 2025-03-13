@@ -7,7 +7,9 @@ export default defineConfig({
   plugins: [react()],
   server:{
     // host: 'IntelliStay',
-    port: 5173
+    port: 5173,
+    // host: true,
+    // https: true
   },
   assetsInclude: ['**/*.shard1', '**/*.json'],
   build: {

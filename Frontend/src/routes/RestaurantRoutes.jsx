@@ -10,6 +10,7 @@ import OrderCheckout from '../../components/restaurant/OrderCheckout';
 import OrderHistory from '../../components/restaurant/OrderHistory';
 import TableReservation from '../../components/restaurant/TableReservation';
 import MyTableReservation from '../../components/restaurant/MyTableReservation';
+import ARView from '../../components/restaurant/ARView';
 
 // Admin Components
 // import RestaurantDashboard from '../../components/restaurant/admin/RestaurantDashboard';
@@ -23,6 +24,7 @@ const RestaurantRoutes = () => {
     <Routes>
       {/* Public Routes */}
       <Route path="menu" element={<MenuDisplay />} />
+      <Route path="ar-view" element={<ARView />} />
 
       {/* Protected Routes */}
       <Route element={<PrivateRoute />}>

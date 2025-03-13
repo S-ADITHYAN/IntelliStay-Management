@@ -1023,3 +1023,40 @@
     opacity: 1;
   }
 }
+
+.search-bar-container {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.image-search-btn {
+  padding: 0.5rem;
+  background-color: #f3f4f6;
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.image-search-btn:hover:not(:disabled) {
+  background-color: #e5e7eb;
+}
+
+.image-search-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

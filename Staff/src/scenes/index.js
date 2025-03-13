@@ -32,6 +32,7 @@ import TableManagement from "./TableManagement/TableManagement";
 import ReservationManagement from "./RestaurantReservation/ReservationManagement";
 import MenuManagement from "./MenuManagement/MenuManagement"; 
 import OrderManagement from "./OrderManagement/OrderManagement";
+import ARView from "./MenuManagement/ARView";
 
 export {
   Navbar,
@@ -68,4 +69,5 @@ export {
   Stream,
   FAQ,
   Geography,
+  ARView
 };

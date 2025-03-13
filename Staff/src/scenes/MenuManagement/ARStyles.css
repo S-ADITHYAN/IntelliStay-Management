@@ -1,0 +1,1497 @@
+/* AR View Container */
+.ar-view-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.9);
+}
+
+.video-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+.ar-canvas {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 2;
+  touch-action: none;
+}
+
+/* AR Scene Container */
+.ar-scene-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* AR Item */
+.ar-item {
+  position: absolute;
+  transform-origin: center;
+  cursor: move;
+  user-select: none;
+  transition: box-shadow 0.2s;
+  z-index: 10;
+}
+
+.ar-item.selected {
+  box-shadow: 0 0 0 3px #4CAF50;
+}
+
+.ar-item-image {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.ar-item-label {
+  position: absolute;
+  bottom: -40px;
+  left: 0;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px;
+  border-radius: 5px;
+  text-align: center;
+}
+
+.ar-item-name {
+  font-weight: bold;
+  font-size: 14px;
+}
+
+.ar-item-price {
+  color: #4CAF50;
+  font-size: 12px;
+}
+
+/* Controls */
+.ar-controls {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ar-controls-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+}
+
+.ar-control-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: white;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ar-control-btn:hover {
+  transform: scale(1.1);
+  background: #f0f0f0;
+}
+
+.ar-control-btn.ar-add-btn {
+  position: fixed;
+  top: 20px;
+  right: 80px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: #4CAF50;
+  color: white;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  transition: all 0.3s ease;
+}
+
+.ar-control-btn.ar-add-btn:hover {
+  transform: scale(1.1);
+  background: #45a049;
+}
+
+.ar-item-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.5);
+  padding: 10px;
+  border-radius: 25px;
+}
+
+/* Close Button */
+.ar-close-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1001;
+  transition: background-color 0.2s;
+}
+
+.ar-close-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+/* Loading Overlay */
+.ar-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  z-index: 1002;
+}
+
+.ar-spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 4px solid white;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Enhanced Error Message Styles */
+.ar-error {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  text-align: left;
+  z-index: 1002;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.ar-error p {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 16px;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+.ar-error ul {
+  margin: 15px 0;
+  padding-left: 20px;
+}
+
+.ar-error li {
+  margin: 10px 0;
+  color: #555;
+  line-height: 1.4;
+}
+
+.ar-error-buttons {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  margin-top: 25px;
+}
+
+.ar-error button {
+  padding: 14px 28px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 120px;
+}
+
+.ar-error .retry-btn {
+  background: #4CAF50;
+  color: white;
+}
+
+.ar-error .retry-btn:hover {
+  background: #45a049;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.ar-error .close-btn {
+  background: #f44336;
+  color: white;
+}
+
+.ar-error .close-btn:hover {
+  background: #d32f2f;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+}
+
+/* Sweet Alert Customization */
+/* .swal2-popup {
+  border-radius: 20px !important;
+  padding: 30px !important;
+}
+
+.swal2-title {
+  color: #333 !important;
+  font-size: 24px !important;
+  font-weight: 600 !important;
+  margin-bottom: 20px !important;
+}
+
+.swal2-html-container {
+  text-align: left !important;
+  font-size: 16px !important;
+  line-height: 1.6 !important;
+  color: #555 !important;
+}
+
+.swal2-html-container ul {
+  margin: 15px 0 !important;
+}
+
+.swal2-html-container li {
+  margin: 10px 0 !important;
+}
+
+.swal2-confirm {
+  background-color: #4CAF50 !important;
+  border-radius: 12px !important;
+  padding: 14px 28px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2) !important;
+}
+
+.swal2-cancel {
+  background-color: #f44336 !important;
+  border-radius: 12px !important;
+  padding: 14px 28px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.2) !important;
+} */
+
+/* Item Selector */
+.ar-item-selector {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  border-top-left-radius: 15px;
+  border-top-right-radius: 15px;
+  padding: 20px;
+  z-index: 1500;
+  color: white;
+  backdrop-filter: blur(10px);
+}
+
+.ar-item-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.ar-item-selector-header h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.ar-item-selector-header button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.ar-item-selector-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 10px 0;
+}
+
+.ar-item-selector-item {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ar-item-selector-item:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.ar-item-selector-img {
+  width: 100%;
+  height: 120px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 10px;
+}
+
+.ar-item-selector-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ar-item-selector-info h4 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+}
+
+.ar-item-selector-info p {
+  margin: 0;
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+/* Screenshot Display */
+.ar-screenshot-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.ar-screenshot {
+  max-width: 90%;
+  max-height: 70vh;
+  border: 5px solid white;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+
+.ar-screenshot-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.ar-screenshot-actions button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.ar-download-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.ar-reset-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+/* Instructions */
+.ar-instructions {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 15px 25px;
+  border-radius: 10px;
+  text-align: center;
+  z-index: 1001;
+}
+
+.ar-instructions p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+/* Camera button */
+.ar-camera-btn {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 1001;
+}
+
+.ar-camera-btn:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+/* Item info overlay */
+.ar-item-info-overlay {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(44, 62, 80, 0.9);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 10px;
+  text-align: center;
+  z-index: 1001;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ar-item-info-overlay h2 {
+  margin: 0 0 5px 0;
+  font-size: 18px;
+}
+
+.ar-item-price {
+  margin: 0;
+  font-size: 16px;
+  color: #4caf50;
+  font-weight: bold;
+}
+
+/* Loading spinner inside model-viewer */
+.ar-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+}
+
+/* AR button styling */
+.ar-button {
+  background-color: #4285f4 !important;
+  border: none !important;
+  border-radius: 24px !important;
+  color: white !important;
+  font-family: 'Google Sans', sans-serif, Roboto !important;
+  font-size: 18px !important;
+  font-weight: 500 !important;
+  padding: 14px 28px !important;
+  position: absolute !important;
+  bottom: 24px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.ar-button-icon {
+  margin-right: 8px;
+  font-size: 20px;
+}
+
+/* Annotation styles */
+.annotation {
+  display: block;
+  width: 0;
+  height: 0;
+}
+
+.annotation-content {
+  position: absolute;
+  transform: translate3d(-50%, -50%, 0);
+  background-color: #FF5722;
+  border-radius: 10px;
+  color: white;
+  font-family: Arial, sans-serif;
+  font-size: 24px;
+  font-weight: bold;
+  padding: 12px 18px;
+  text-align: center;
+  width: auto;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+.annotation-content.price {
+  background-color: #4CAF50;
+  margin-top: 60px;
+  font-size: 22px;
+}
+
+/* AR tooltip */
+.ar-tooltip {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1001;
+  pointer-events: none;
+}
+
+.ar-tooltip-content {
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 10px;
+  text-align: center;
+  max-width: 300px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.ar-tooltip-content h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.ar-tooltip-content p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* AR Instructions */
+.ar-instructions-sub {
+  font-size: 14px;
+  opacity: 0.8;
+  margin-top: 5px;
+}
+
+.ar-instructions a {
+  color: #4CAF50;
+  text-decoration: underline;
+}
+
+/* Item info */
+.ar-item-info-fixed {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 10px;
+  text-align: center;
+  z-index: 1001;
+}
+
+.ar-item-info-fixed h2 {
+  margin: 0 0 5px 0;
+  font-size: 18px;
+}
+
+.ar-item-info-fixed p {
+  margin: 0;
+  font-size: 16px;
+  color: #4caf50;
+  font-weight: bold;
+}
+
+/* Floating label that appears during AR session */
+.ar-floating-label {
+  position: absolute;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 15px;
+  border-radius: 8px;
+  pointer-events: none;
+  transform: translate(-50%, -100%);
+  backdrop-filter: blur(5px);
+}
+
+.ar-name-label {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 5px;
+}
+
+.ar-price-label {
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+/* Touch indicators for gestures */
+.ar-touch-indicator {
+  position: absolute;
+  bottom: 180px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 30px;
+  z-index: 1001;
+}
+
+.ar-touch-indicator div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: white;
+  font-size: 12px;
+}
+
+.ar-touch-indicator svg {
+  margin-bottom: 5px;
+  opacity: 0.8;
+}
+
+/* Placement mode button */
+.ar-placement-btn {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  background-color: rgba(255, 255, 255, 0.8);
+  color: #333;
+  border: none;
+  border-radius: 50%;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  cursor: pointer;
+  z-index: 1001;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s;
+}
+
+.ar-placement-btn:hover {
+  background-color: rgba(255, 255, 255, 1);
+  transform: scale(1.05);
+}
+
+.ar-placement-btn:active {
+  transform: scale(0.95);
+}
+
+.ar-placement-btn.active {
+  background-color: #4caf50;
+  color: white;
+}
+
+/* Add this to your existing CSS */
+
+.ar-activate-btn {
+  position: absolute;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #4285f4;
+  color: white;
+  border: none;
+  border-radius: 24px;
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 1001;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.ar-activate-btn:hover {
+  background-color: #3367d6;
+  transform: translateX(-50%) scale(1.05);
+}
+
+.ar-activate-btn:active {
+  transform: translateX(-50%) scale(0.95);
+}
+
+/* Move camera button to the right side when AR button is present */
+.ar-camera-btn {
+  left: auto;
+  right: 30px;
+  transform: none;
+}
+
+/* Add this to your existing CSS */
+
+.ar-not-supported {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 20px;
+  border-radius: 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  max-width: 80%;
+  z-index: 10;
+}
+
+.ar-not-supported svg {
+  font-size: 40px;
+  color: #ffcc00;
+}
+
+.ar-not-supported p {
+  margin: 0;
+  font-size: 18px;
+}
+
+.ar-not-supported-sub {
+  font-size: 14px !important;
+  opacity: 0.8;
+}
+
+/* Add this to your existing CSS */
+
+.ar-label-hotspot {
+  display: block;
+  width: 0;
+  height: 0;
+}
+
+.ar-label {
+  position: absolute;
+  width: auto;
+  height: auto;
+  background-color: #000000;
+  border-radius: 4px;
+  color: white;
+  font-family: sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  padding: 8px 12px;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.ar-text-overlay {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 18px;
+  font-weight: bold;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+/* AR Hotspot styles */
+.ar-hotspot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ar-hotspot:hover {
+  background-color: rgba(0, 0, 0, 0.7);
+  transform: scale(1.1);
+}
+
+.ar-hotspot-content {
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: white;
+  color: #333;
+  padding: 10px 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  width: 150px;
+  text-align: center;
+  pointer-events: none;
+}
+
+.ar-hotspot-content h3 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.ar-hotspot-content p {
+  margin: 0;
+  font-size: 14px;
+  color: #4caf50;
+  font-weight: bold;
+}
+
+/* Add a pointer from the hotspot content to the hotspot */
+.ar-hotspot-content::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 10px 10px 0;
+  border-style: solid;
+  border-color: white transparent transparent;
+}
+
+/* Add these styles to your existing CSS */
+
+.ar-label-hotspot {
+  display: block;
+  width: 0;
+  height: 0;
+}
+
+.ar-label {
+  position: absolute;
+  width: auto;
+  height: auto;
+  background-color: #000000;
+  border-radius: 4px;
+  color: white;
+  font-family: sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  padding: 8px 12px;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.ar-text-overlay {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 18px;
+  font-weight: bold;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+/* Annotation styles */
+.annotation {
+  display: block;
+  width: 0;
+  height: 0;
+}
+
+.annotation-content {
+  position: absolute;
+  transform: translate3d(-50%, -50%, 0);
+  background-color: #FF5722;
+  border-radius: 10px;
+  color: white;
+  font-family: Arial, sans-serif;
+  font-size: 24px;
+  font-weight: bold;
+  padding: 12px 18px;
+  text-align: center;
+  width: auto;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+.annotation-content.price {
+  background-color: #4CAF50;
+  margin-top: 60px;
+  font-size: 22px;
+}
+
+/* Floating label that appears during AR session */
+.ar-floating-label {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 10000;
+}
+
+/* Add these styles to your existing CSS */
+
+/* AR floating labels */
+.ar-labels-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10000;
+}
+
+.ar-floating-label {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-size: 22px;
+  font-weight: bold;
+  text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  z-index: 10000;
+}
+
+.ar-name-label {
+  top: 15%;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+}
+
+.ar-price-label {
+  top: calc(15% + 60px);
+  background-color: rgba(76, 175, 80, 0.9);
+  color: white;
+}
+
+/* AR Controls */
+.ar-controls-container {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  z-index: 1000000;
+}
+
+.ar-control-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  font-size: 30px;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.ar-add-btn {
+  background-color: #4CAF50;
+}
+
+.ar-screenshot-btn {
+  background-color: #2196F3;
+}
+
+/* Item selector modal */
+.ar-item-selector {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  border-radius: 12px;
+  padding: 20px;
+  width: 80%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  z-index: 2000000;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+.ar-item-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.ar-item-selector-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.ar-item-selector-header button {
+  background: none;
+  border: none;
+  font-size: 20px;
+  color: #666;
+  cursor: pointer;
+}
+
+.ar-item-selector-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ar-item-selector-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.ar-item-selector-item:hover {
+  background-color: #f0f0f0;
+}
+
+.ar-item-selector-img {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-right: 15px;
+}
+
+.ar-item-selector-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ar-item-selector-info h4 {
+  margin: 0 0 5px 0;
+  font-size: 16px;
+  color: #333;
+}
+
+.ar-item-selector-info p {
+  margin: 0;
+  font-size: 14px;
+  color: #4CAF50;
+  font-weight: bold;
+}
+
+/* Screenshot display */
+.ar-screenshot-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000000;
+}
+
+.ar-screenshot {
+  max-width: 90%;
+  max-height: 70vh;
+  border: 5px solid white;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+}
+
+.ar-screenshot-actions {
+  display: flex;
+  gap: 15px;
+  margin-top: 20px;
+}
+
+.ar-screenshot-actions button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.ar-download-btn {
+  background-color: #4CAF50;
+  color: white;
+}
+
+.ar-reset-btn {
+  background-color: #f44336;
+  color: white;
+}
+
+/* AR container */
+.ar-scene-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* AR instructions */
+.ar-instructions {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 10px;
+  text-align: center;
+  z-index: 1000000;
+  max-width: 80%;
+}
+
+/* 3D model styles */
+.food-model {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.food-model:hover {
+  transform: scale(1.1);
+}
+
+.food-model.selected {
+  outline: 2px solid #4CAF50;
+}
+
+/* Add this new instruction text */
+.ar-gesture-instructions {
+  margin-top: 10px;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.ar-floating-menu {
+  position: absolute;
+  top: 80px;
+  right: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  padding: 15px;
+  max-width: 300px;
+  max-height: 70vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.ar-menu-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 15px;
+}
+
+.ar-menu-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.ar-menu-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ar-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 10px;
+  border-radius: 10px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid #eee;
+}
+
+.ar-menu-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.ar-menu-item:active {
+  transform: translateY(0);
+}
+
+.ar-menu-item img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  margin-right: 12px;
+}
+
+.ar-menu-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.item-name {
+  font-weight: bold;
+  color: #333;
+}
+
+.item-price {
+  color: #666;
+  font-size: 0.9em;
+}
+
+.ar-control-btn.ar-add-btn {
+  background: #4CAF50;
+  color: white;
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ar-control-btn.ar-add-btn:hover {
+  background: #45a049;
+  transform: scale(1.05);
+}
+
+/* Enhanced Menu Styles */
+.ar-menu-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ar-menu-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.ar-menu-item:active {
+  transform: translateY(0);
+}
+
+/* Add to Cart Button Styles */
+.ar-add-to-cart-btn {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #4CAF50;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 25px;
+  border: none;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  z-index: 1000;
+  transition: all 0.2s ease;
+}
+
+.ar-add-to-cart-btn:hover {
+  background-color: #45a049;
+  transform: translateX(-50%) translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+.ar-add-to-cart-btn:active {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Add More Items Button Styles */
+.ar-add-more-btn {
+  position: fixed;
+  bottom: 160px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #2196F3;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 25px;
+  border: none;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 500;
+  z-index: 1000;
+  min-width: 200px;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.ar-add-more-btn:hover {
+  background-color: #1976D2;
+  transform: translateX(-50%) translateY(-2px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+}
+
+.ar-add-more-btn:active {
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Camera switch button */
+.ar-camera-switch-btn {
+  position: fixed;
+  top: 20px;
+  right: 80px; /* Position next to close button */
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 1001;
+  transition: all 0.2s ease;
+}
+
+.ar-camera-switch-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
+  transform: scale(1.1);
+}
+
+.ar-camera-switch-btn:active {
+  transform: scale(0.95);
+}
+
+/* Add responsive styles for mobile */
+@media (max-width: 768px) {
+  .ar-camera-switch-btn {
+    top: auto;
+    bottom: 20px;
+    right: 20px;
+  }
+
+  .ar-error {
+    width: 95%;
+    padding: 25px;
+    margin: 10px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .ar-error-buttons {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ar-error button {
+    width: 100%;
+    padding: 16px;
+  }
+
+  .swal2-popup {
+    padding: 20px !important;
+    margin: 10px;
+  }
+
+  .swal2-title {
+    font-size: 20px !important;
+  }
+
+  .swal2-html-container {
+    font-size: 14px !important;
+  }
+
+  .swal2-confirm,
+  .swal2-cancel {
+    width: 100% !important;
+    margin: 5px 0 !important;
+  }
+} 

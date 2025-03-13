@@ -13,6 +13,7 @@ import youtube from './assets/youtube.png';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { FormControl, InputLabel, Select, MenuItem, Slider, Box, Typography } from '@mui/material';
 import Footer from '../components/footer';
+import Swal from 'sweetalert2';
 
 
 function Rooms() {
@@ -106,14 +107,95 @@ function Rooms() {
 
   const groupedRooms = groupByRoomType(rooms);
 
-  // Function to randomly select a room for booking from the available rooms of the same roomtype
-  const handleRoomBooking = (roomtype) => {
-    
+  // Add this helper function to calculate required rooms
+  const calculateRequiredRooms = (roomtype) => {
     const roomsOfType = groupedRooms[roomtype];
-    if (roomsOfType.length > 0) {
-      const randomRoom = roomsOfType[Math.floor(Math.random() * roomsOfType.length)];
-      navigate('/roominfo', { state: { data: searchdata, roomdata: randomRoom } });
+    if (!roomsOfType || roomsOfType.length === 0) return null;
+
+    const totalAdults = searchdata.adults;
+    const totalChildren = searchdata.children;
+    const sampleRoom = roomsOfType[0]; // Get room capacity details
+
+    // Calculate how many rooms needed based on capacity
+    const roomsNeededForAdults = Math.ceil(totalAdults / sampleRoom.allowedAdults);
+    const roomsNeededForChildren = Math.ceil(totalChildren / sampleRoom.allowedChildren);
+    
+    // Take the maximum to ensure enough rooms for both adults and children
+    const totalRoomsNeeded = Math.max(roomsNeededForAdults, roomsNeededForChildren);
+
+    // Check if we have enough available rooms
+    if (roomsOfType.length < totalRoomsNeeded) {
+      return null; // Not enough rooms of this type
     }
+
+    // Select required number of rooms
+    const selectedRooms = [];
+    const availableRooms = [...roomsOfType];
+
+    for (let i = 0; i < totalRoomsNeeded; i++) {
+      const randomIndex = Math.floor(Math.random() * availableRooms.length);
+      selectedRooms.push(availableRooms.splice(randomIndex, 1)[0]);
+    }
+
+    return {
+      rooms: selectedRooms,
+      count: totalRoomsNeeded,
+      distribution: {
+        adults: Math.ceil(totalAdults / totalRoomsNeeded),
+        children: Math.ceil(totalChildren / totalRoomsNeeded)
+      }
+    };
+  };
+
+  // Update the handleRoomBooking function
+  const handleRoomBooking = (roomtype) => {
+    const roomAllocation = calculateRequiredRooms(roomtype);
+    
+    if (!roomAllocation) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Not Enough Rooms',
+        text: `We don't have enough ${roomtype} rooms to accommodate your group. Please try a different room type or adjust your group size.`,
+        showConfirmButton: true
+      });
+      return;
+    }
+
+    // Show room allocation confirmation
+    Swal.fire({
+      icon: 'info',
+      title: 'Room Allocation',
+      html: `
+        <div class="room-allocation-info">
+          <p>Based on your group size, you need ${roomAllocation.count} ${roomtype} room(s):</p>
+          <ul>
+            <li>Adults per room: ${roomAllocation.distribution.adults}</li>
+            <li>Children per room: ${roomAllocation.distribution.children}</li>
+          </ul>
+          <p>Total: ${roomAllocation.count} room(s) for ${searchdata.adults} adults and ${searchdata.children} children</p>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Proceed with Booking',
+      cancelButtonText: 'Cancel',
+      customClass: {
+        container: 'room-allocation-container'
+      }
+    }).then((result) => {
+      if (result.isConfirmed) {
+        navigate('/roominfo', { 
+          state: { 
+            data: searchdata, 
+            roomdata: roomAllocation.rooms[0],
+            allocation: {
+              totalRooms: roomAllocation.count,
+              rooms: roomAllocation.rooms,
+              distribution: roomAllocation.distribution
+            }
+          } 
+        });
+      }
+    });
   };
 
   // Add this function to get unique room types
@@ -238,9 +320,21 @@ function Rooms() {
                 </div>
                 <div className="room__card__details">
                   <h4>{room.roomtype}</h4>
-                  <p>{room.description}</p>
+                  <div className="room__capacity">
+                    <p>Capacity per room:</p>
+                    <ul>
+                      <li>Adults: {room.allowedAdults}</li>
+                      <li>Children: {room.allowedChildren}</li>
+                    </ul>
+                  </div>
                   <h5>Starting from <span>₹{room.rate}/night</span></h5>
-                  <button className="btn" id='details' onClick={() => handleRoomBooking(room.roomtype)}>See Details</button>
+                  <button 
+                    className="btn" 
+                    id='details' 
+                    onClick={() => handleRoomBooking(room.roomtype)}
+                  >
+                    See Details
+                  </button>
                 </div>
               </div>
             );

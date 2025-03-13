@@ -1754,265 +1754,404 @@ exports.updateReservationStatus = async (req, res) => {
 
 
 exports.getDashboardStats = async (req, res) => {
-    try {
-        // Get current date and time ranges
-        const today = new Date();
-        const startOfDay = new Date(today.setHours(0, 0, 0, 0));
-        const endOfDay = new Date(today.setHours(23, 59, 59, 999));
-        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay());
+  try {
+    // Get room statistics
+    const rooms = await RoomModel.find();
+    const reservations = await ReservationModel.find();
+    const staff = await StaffModel.find();
+    const orders = await Order.find();
+    const maintenanceJobs = await MaintenanceJobModel.find();
+    const housekeepingJobs = await HousekeepingJobModel.find();
+    const attendance = await AttendanceModel.find();
+    const bills = await BillModel.find();
 
-        // Hotel Statistics
-        const hotelStats = await Promise.all([
-            // Room statistics with detailed status
-            RoomModel.aggregate([
-                {
-                    $group: {
-                        _id: "$status",
-                        count: { $sum: 1 },
-                        rooms: { $push: "$$ROOT" }
-                    }
-                }
-            ]),
+    // Calculate room stats
+    const roomStats = {
+      totalRooms: rooms.length,
+      occupiedRooms: rooms.filter(room => room.status === 'occupied').length,
+      availableRooms: rooms.filter(room => room.status === 'available').length,
+      maintenanceRooms: rooms.filter(room => room.status === 'maintenance').length,
+      occupancyRate: ((rooms.filter(room => room.status === 'occupied').length / rooms.length) * 100).toFixed(1)
+    };
 
-            // Revenue statistics with daily breakdown
-            BillModel.aggregate([
-                {
-                    $match: {
-                        createdAt: { $gte: startOfMonth, $lte: endOfMonth },
-                        status: "Confirmed" // Only count paid bills
-                    }
-                },
-                {
-                    $group: {
-                        _id: {
-                            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-                        },
-                        dailyRevenue: { $sum: "$totalRate" },
-                        count: { $sum: 1 }
-                    }
-                },
-                {
-                    $sort: { "_id": 1 }
-                }
-            ]),
+    // Calculate financial stats
+    const today = new Date();
+    const thisMonth = today.getMonth();
+    const thisYear = today.getFullYear();
 
-            // Current occupancy with detailed room info
-            ReservationModel.aggregate([
-                {
-                    $match: {
-                        checkInDate: { $lte: today },
-                        checkOutDate: { $gte: today },
-                        status: { $in: ["confirmed", "checked-in"] }
-                    }
-                },
-                {
-                    $lookup: {
-                        from: "rooms",
-                        localField: "room_id",
-                        foreignField: "_id",
-                        as: "roomDetails"
-                    }
-                }
-            ]),
+    const monthlyRevenue = bills
+      .filter(bill => {
+        const billDate = new Date(bill.orderDate);
+        return billDate.getMonth() === thisMonth && billDate.getFullYear() === thisYear;
+      })
+      .reduce((total, bill) => total + bill.totalRate, 0);
 
-            // Popular room types with revenue data
-            ReservationModel.aggregate([
-                {
-                    $match: {
-                        createdAt: { $gte: startOfMonth },
-                        status: { $in: ["confirmed", "checked-in", "completed"] }
-                    }
-                },
-                {
-                    $lookup: {
-                        from: "rooms",
-                        localField: "room_id",
-                        foreignField: "_id",
-                        as: "room"
-                    }
-                },
-                { $unwind: "$room" },
-                {
-                    $group: {
-                        _id: "$room.type",
-                        count: { $sum: 1 },
-                        revenue: { $sum: "$totalAmount" },
-                        averageRate: { $avg: "$totalAmount" }
-                    }
-                },
-                { $sort: { count: -1 } },
-                { $limit: 5 }
-            ])
-        ]);
+    // Calculate staff stats
+    const staffStats = {
+      totalStaff: staff.length,
+      onDuty: attendance.filter(a => a.present && new Date(a.date).toDateString() === today.toDateString()).length,
+      onLeave: staff.length - attendance.filter(a => a.present && new Date(a.date).toDateString() === today.toDateString()).length,
+      attendanceRate: ((attendance.filter(a => a.present).length / attendance.length) * 100).toFixed(1)
+    };
 
-        // Restaurant Statistics
-        const restaurantStats = await Promise.all([
-            // Today's orders with status breakdown
-            Order.aggregate([
-                {
-                    $match: {
-                        orderDate: { $gte: startOfDay, $lte: endOfDay }
-                    }
-                },
-                {
-                    $group: {
-                        _id: "$status",
-                        count: { $sum: 1 },
-                        revenue: { $sum: "$totalAmount" }
-                    }
-                }
-            ]),
+    // Calculate restaurant stats
+    const restaurantStats = {
+      dailyOrders: orders.filter(order => new Date(order.orderDate).toDateString() === today.toDateString()).length,
+      todayRevenue: orders
+        .filter(order => new Date(order.orderDate).toDateString() === today.toDateString())
+        .reduce((total, order) => total + order.totalAmount, 0),
+      pendingOrders: orders.filter(order => order.status === 'pending').length,
+      popularItems: await getPopularMenuItems()
+    };
 
-            // Monthly revenue with daily breakdown
-            Order.aggregate([
-                {
-                    $match: {
-                        createdAt: { $gte: startOfMonth },
-                        status: "completed"
-                    }
-                },
-                {
-                    $group: {
-                        _id: {
-                            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
-                        },
-                        revenue: { $sum: "$totalAmount" },
-                        orderCount: { $sum: 1 }
-                    }
-                },
-                { $sort: { "_id": 1 } }
-            ]),
+    // Calculate maintenance stats
+    const maintenanceStats = {
+      pendingTasks: maintenanceJobs.filter(job => job.status === 'pending').length + 
+                   housekeepingJobs.filter(job => job.status === 'pending').length,
+      roomsToClean: housekeepingJobs.filter(job => job.status === 'pending').length,
+      maintenanceRequests: maintenanceJobs.filter(job => job.status === 'pending').length,
+      completedToday: maintenanceJobs.filter(job => 
+        job.status === 'completed' && 
+        new Date(job.completedAt).toDateString() === today.toDateString()
+      ).length
+    };
 
-            // Popular dishes with revenue data
-            Order.aggregate([
-                {
-                    $match: {
-                        createdAt: { $gte: startOfMonth },
-                        status: "completed"
-                    }
-                },
-                { $unwind: "$items" },
-                {
-                    $group: {
-                        _id: "$items.menuItem",
-                        count: { $sum: 1 },
-                        revenue: { $sum: { $multiply: ["$items.price", "$items.quantity"] } }
-                    }
-                },
-                {
-                    $lookup: {
-                        from: "menuitems",
-                        localField: "_id",
-                        foreignField: "_id",
-                        as: "menuItem"
-                    }
-                },
-                { $unwind: "$menuItem" },
-                {
-                    $project: {
-                        name: "$menuItem.name",
-                        count: 1,
-                        revenue: 1,
-                        averageOrderValue: { $divide: ["$revenue", "$count"] }
-                    }
-                },
-                { $sort: { count: -1 } },
-                { $limit: 5 }
-            ]),
+    console.log({
+        roomStats,
+        financialStats: {
+          totalRevenue: monthlyRevenue,
+          revenueData: await getRevenueData()
+        },
+        staffStats,
+        restaurantStats,
+        maintenanceStats,
+        guestStats: {
+          currentGuests: await getCurrentGuestsCount(),
+          guestTrend: await calculateGuestTrend()
+        }
+      });
+      
+    res.json({
+      roomStats,
+      financialStats: {
+        totalRevenue: monthlyRevenue,
+        revenueData: await getRevenueData()
+      },
+      staffStats,
+      restaurantStats,
+      maintenanceStats,
+      guestStats: {
+        currentGuests: await getCurrentGuestsCount(),
+        guestTrend: await calculateGuestTrend()
+      }
+    });
 
-            // Table utilization with detailed metrics
-            TableReservationModel.aggregate([
-                {
-                    $match: {
-                        reservationDate: { $gte: startOfWeek }
-                    }
-                },
-                {
-                    $group: {
-                        _id: "$table_id",
-                        reservationCount: { $sum: 1 },
-                        totalGuests: { $sum: "$numberOfGuests" },
-                        averagePartySize: { $avg: "$numberOfGuests" }
-                    }
-                }
-            ])
-        ]);
+  } catch (error) {
+    console.error('Dashboard stats error:', error);
+    res.status(500).json({ message: 'Error fetching dashboard statistics' });
+  }
+}
 
-        // Format and transform the data
-        const [roomStatus, revenueData, currentOccupancy, popularRooms] = hotelStats;
-        const [todayOrders, monthlyOrders, popularDishes, tableUtilization] = restaurantStats;
+// Helper functions
+const getPopularMenuItems = async () => {
+  const orders = await Order.find()
+    .populate('items.menuItem')
+    .limit(100);
+  
+  const itemCounts = {};
+  orders.forEach(order => {
+    order.items.forEach(item => {
+      itemCounts[item.menuItem.name] = (itemCounts[item.menuItem.name] || 0) + item.quantity;
+    });
+  });
 
-        // Calculate total rooms for occupancy rate
-        const totalRooms = roomStatus.reduce((sum, status) => sum + status.count, 0);
-
-        // Transform revenue data for charts
-        const transformedRevenueData = revenueData.map(day => ({
-            x: day._id,
-            y: day.dailyRevenue
-        }));
-
-        return res.status(200).json({
-            success: true,
-            hotelMetrics: {
-                roomStatus: roomStatus.reduce((acc, curr) => ({
-                    ...acc,
-                    [curr._id]: {
-                        count: curr.count,
-                        percentage: (curr.count / totalRooms) * 100
-                    }
-                }), {}),
-                revenueData: [{
-                    id: 'revenue',
-                    data: transformedRevenueData
-                }],
-                occupancyRate: (currentOccupancy.length / totalRooms) * 100,
-                popularRoomTypes: popularRooms.map(room => ({
-                    type: room._id,
-                    bookings: room.count,
-                    revenue: room.revenue,
-                    averageRate: room.averageRate
-                }))
-            },
-            restaurantMetrics: {
-                todayOrders: {
-                    total: todayOrders.reduce((sum, status) => sum + status.count, 0),
-                    byStatus: todayOrders.reduce((acc, curr) => ({
-                        ...acc,
-                        [curr._id]: curr.count
-                    }), {})
-                },
-                revenueData: [{
-                    id: 'revenue',
-                    data: monthlyOrders.map(day => ({
-                        x: day._id,
-                        y: day.revenue
-                    }))
-                }],
-                popularDishes: popularDishes.map(dish => ({
-                    name: dish.name,
-                    count: dish.count,
-                    revenue: dish.revenue,
-                    averageOrderValue: dish.averageOrderValue
-                })),
-                tableUtilization: tableUtilization.map(table => ({
-                    tableId: table._id,
-                    utilizationRate: (table.reservationCount / 7) * 100,
-                    totalGuests: table.totalGuests,
-                    averagePartySize: table.averagePartySize
-                }))
-            },
-            timestamp: new Date()
-        });
-
-    } catch (error) {
-        console.error("Error fetching dashboard stats:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Error fetching dashboard statistics",
-            error: error.message
-        });
-    }
+  return Object.entries(itemCounts)
+    .sort(([,a], [,b]) => b - a)
+    .slice(0, 5)
+    .map(([name]) => name);
 };
+
+const getCurrentGuestsCount = async () => {
+  const activeReservations = await ReservationModel.find({
+    status: 'checked-in'
+  });
+  return activeReservations.length;
+};
+
+const calculateGuestTrend = async () => {
+  // Calculate guest trend compared to last week
+  // Implementation details...
+  return 5; // Placeholder
+};
+
+const getRevenueData = async () => {
+  // Get revenue data for the last 30 days
+  // Implementation details...
+  return []; // Placeholder
+};
+
+
+
+// exports.getDashboardStats = async (req, res) => {
+//     try {
+//         // Get current date and time ranges
+//         const today = new Date();
+//         const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+//         const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+//         const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+//         const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+//         const startOfWeek = new Date(today);
+//         startOfWeek.setDate(today.getDate() - today.getDay());
+
+//         // Hotel Statistics
+//         const hotelStats = await Promise.all([
+//             // Room statistics with detailed status
+//             RoomModel.aggregate([
+//                 {
+//                     $group: {
+//                         _id: "$status",
+//                         count: { $sum: 1 },
+//                         rooms: { $push: "$$ROOT" }
+//                     }
+//                 }
+//             ]),
+
+//             // Revenue statistics with daily breakdown
+//             BillModel.aggregate([
+//                 {
+//                     $match: {
+//                         createdAt: { $gte: startOfMonth, $lte: endOfMonth },
+//                         status: "Confirmed" // Only count paid bills
+//                     }
+//                 },
+//                 {
+//                     $group: {
+//                         _id: {
+//                             $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+//                         },
+//                         dailyRevenue: { $sum: "$totalRate" },
+//                         count: { $sum: 1 }
+//                     }
+//                 },
+//                 {
+//                     $sort: { "_id": 1 }
+//                 }
+//             ]),
+
+//             // Current occupancy with detailed room info
+//             ReservationModel.aggregate([
+//                 {
+//                     $match: {
+//                         checkInDate: { $lte: today },
+//                         checkOutDate: { $gte: today },
+//                         status: { $in: ["confirmed", "checked-in"] }
+//                     }
+//                 },
+//                 {
+//                     $lookup: {
+//                         from: "rooms",
+//                         localField: "room_id",
+//                         foreignField: "_id",
+//                         as: "roomDetails"
+//                     }
+//                 }
+//             ]),
+
+//             // Popular room types with revenue data
+//             ReservationModel.aggregate([
+//                 {
+//                     $match: {
+//                         createdAt: { $gte: startOfMonth },
+//                         status: { $in: ["confirmed", "checked-in", "completed"] }
+//                     }
+//                 },
+//                 {
+//                     $lookup: {
+//                         from: "rooms",
+//                         localField: "room_id",
+//                         foreignField: "_id",
+//                         as: "room"
+//                     }
+//                 },
+//                 { $unwind: "$room" },
+//                 {
+//                     $group: {
+//                         _id: "$room.type",
+//                         count: { $sum: 1 },
+//                         revenue: { $sum: "$totalAmount" },
+//                         averageRate: { $avg: "$totalAmount" }
+//                     }
+//                 },
+//                 { $sort: { count: -1 } },
+//                 { $limit: 5 }
+//             ])
+//         ]);
+
+//         // Restaurant Statistics
+//         const restaurantStats = await Promise.all([
+//             // Today's orders with status breakdown
+//             Order.aggregate([
+//                 {
+//                     $match: {
+//                         orderDate: { $gte: startOfDay, $lte: endOfDay }
+//                     }
+//                 },
+//                 {
+//                     $group: {
+//                         _id: "$status",
+//                         count: { $sum: 1 },
+//                         revenue: { $sum: "$totalAmount" }
+//                     }
+//                 }
+//             ]),
+
+//             // Monthly revenue with daily breakdown
+//             Order.aggregate([
+//                 {
+//                     $match: {
+//                         createdAt: { $gte: startOfMonth },
+//                         status: "completed"
+//                     }
+//                 },
+//                 {
+//                     $group: {
+//                         _id: {
+//                             $dateToString: { format: "%Y-%m-%d", date: "$createdAt" }
+//                         },
+//                         revenue: { $sum: "$totalAmount" },
+//                         orderCount: { $sum: 1 }
+//                     }
+//                 },
+//                 { $sort: { "_id": 1 } }
+//             ]),
+
+//             // Popular dishes with revenue data
+//             Order.aggregate([
+//                 {
+//                     $match: {
+//                         createdAt: { $gte: startOfMonth },
+//                         status: "completed"
+//                     }
+//                 },
+//                 { $unwind: "$items" },
+//                 {
+//                     $group: {
+//                         _id: "$items.menuItem",
+//                         count: { $sum: 1 },
+//                         revenue: { $sum: { $multiply: ["$items.price", "$items.quantity"] } }
+//                     }
+//                 },
+//                 {
+//                     $lookup: {
+//                         from: "menuitems",
+//                         localField: "_id",
+//                         foreignField: "_id",
+//                         as: "menuItem"
+//                     }
+//                 },
+//                 { $unwind: "$menuItem" },
+//                 {
+//                     $project: {
+//                         name: "$menuItem.name",
+//                         count: 1,
+//                         revenue: 1,
+//                         averageOrderValue: { $divide: ["$revenue", "$count"] }
+//                     }
+//                 },
+//                 { $sort: { count: -1 } },
+//                 { $limit: 5 }
+//             ]),
+
+//             // Table utilization with detailed metrics
+//             TableReservationModel.aggregate([
+//                 {
+//                     $match: {
+//                         reservationDate: { $gte: startOfWeek }
+//                     }
+//                 },
+//                 {
+//                     $group: {
+//                         _id: "$table_id",
+//                         reservationCount: { $sum: 1 },
+//                         totalGuests: { $sum: "$numberOfGuests" },
+//                         averagePartySize: { $avg: "$numberOfGuests" }
+//                     }
+//                 }
+//             ])
+//         ]);
+
+//         // Format and transform the data
+//         const [roomStatus, revenueData, currentOccupancy, popularRooms] = hotelStats;
+//         const [todayOrders, monthlyOrders, popularDishes, tableUtilization] = restaurantStats;
+
+//         // Calculate total rooms for occupancy rate
+//         const totalRooms = roomStatus.reduce((sum, status) => sum + status.count, 0);
+
+//         // Transform revenue data for charts
+//         const transformedRevenueData = revenueData.map(day => ({
+//             x: day._id,
+//             y: day.dailyRevenue
+//         }));
+
+//         return res.status(200).json({
+//             success: true,
+//             hotelMetrics: {
+//                 roomStatus: roomStatus.reduce((acc, curr) => ({
+//                     ...acc,
+//                     [curr._id]: {
+//                         count: curr.count,
+//                         percentage: (curr.count / totalRooms) * 100
+//                     }
+//                 }), {}),
+//                 revenueData: [{
+//                     id: 'revenue',
+//                     data: transformedRevenueData
+//                 }],
+//                 occupancyRate: (currentOccupancy.length / totalRooms) * 100,
+//                 popularRoomTypes: popularRooms.map(room => ({
+//                     type: room._id,
+//                     bookings: room.count,
+//                     revenue: room.revenue,
+//                     averageRate: room.averageRate
+//                 }))
+//             },
+//             restaurantMetrics: {
+//                 todayOrders: {
+//                     total: todayOrders.reduce((sum, status) => sum + status.count, 0),
+//                     byStatus: todayOrders.reduce((acc, curr) => ({
+//                         ...acc,
+//                         [curr._id]: curr.count
+//                     }), {})
+//                 },
+//                 revenueData: [{
+//                     id: 'revenue',
+//                     data: monthlyOrders.map(day => ({
+//                         x: day._id,
+//                         y: day.revenue
+//                     }))
+//                 }],
+//                 popularDishes: popularDishes.map(dish => ({
+//                     name: dish.name,
+//                     count: dish.count,
+//                     revenue: dish.revenue,
+//                     averageOrderValue: dish.averageOrderValue
+//                 })),
+//                 tableUtilization: tableUtilization.map(table => ({
+//                     tableId: table._id,
+//                     utilizationRate: (table.reservationCount / 7) * 100,
+//                     totalGuests: table.totalGuests,
+//                     averagePartySize: table.averagePartySize
+//                 }))
+//             },
+//             timestamp: new Date()
+//         });
+
+//     } catch (error) {
+//         console.error("Error fetching dashboard stats:", error);
+//         return res.status(500).json({
+//             success: false,
+//             message: "Error fetching dashboard statistics",
+//             error: error.message
+//         });
+//     }
+// };

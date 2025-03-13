@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "start:all": "concurrently \" npm run dev\" \"cd ../Staff && npm run dev\" \"cd ../admin && npm run dev\""
+    "ayikko": "concurrently \" npm run dev\" \"cd ../Staff && npm run dev\" \"cd ../admin && npm run dev\""
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -19,7 +19,13 @@
     "@google/generative-ai": "^0.21.0",
     "@mui/icons-material": "^6.4.1",
     "@mui/material": "^6.4.1",
+    "@react-three/drei": "^10.0.2",
+    "@react-three/fiber": "^9.0.4",
+    "@tensorflow/tfjs": "^4.22.0",
     "@types/leaflet": "^1.9.16",
+    "@types/three": "^0.173.0",
+    "aframe": "^1.7.0",
+    "aframe-extras": "^7.5.4",
     "axios": "^1.7.2",
     "bootstrap": "^5.3.3",
     "date-fns": "^3.6.0",
@@ -32,6 +38,7 @@
     "jspdf": "^2.5.2",
     "jwt-decode": "^4.0.0",
     "leaflet": "^1.9.4",
+    "mind-ar": "^1.2.5",
     "openai": "^4.80.1",
     "pdf.js": "^0.1.0",
     "qr-scanner": "^1.4.2",
@@ -55,6 +62,7 @@
     "styled-components": "^6.1.12",
     "sweetalert2": "^11.12.4",
     "tesseract.js": "^6.0.0",
+    "three": "^0.173.0",
     "zustand": "^4.4.6"
   },
   "devDependencies": {

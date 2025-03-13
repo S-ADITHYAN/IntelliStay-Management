@@ -803,6 +803,7 @@ const CartManagement = () => {
                   onClick={handleCheckout}
                   className="checkout-btn"
                   disabled={!orderType}
+                  
                 >
                   Proceed to Checkout
                 </button>

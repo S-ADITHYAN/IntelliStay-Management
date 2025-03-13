@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
-import { FaSearch, FaShoppingCart, FaLeaf, FaInfoCircle, FaTimes, FaGlobeAmericas, FaListUl, FaHeartbeat, FaExclamationTriangle, FaSpinner } from 'react-icons/fa';
+import { FaSearch, FaShoppingCart, FaLeaf, FaInfoCircle, FaTimes, FaGlobeAmericas, FaListUl, FaHeartbeat, FaExclamationTriangle, FaSpinner, FaCamera, FaCube } from 'react-icons/fa';
 import { GiMeat, GiCookingPot } from 'react-icons/gi';
 import { MdRestaurantMenu } from 'react-icons/md';
 import './MenuDisplay.css';
@@ -9,6 +9,9 @@ import Swal from 'sweetalert2';
 import {jwtDecode}from 'jwt-decode';
 import Footer from '../../components/footer';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import ARView from './ARView';
+import { processImageForAR } from '../../utils/arUtils';
+import './ARStyles.css';
 
 const MenuDisplay = ({ addToCart }) => {
   const [menuItems, setMenuItems] = useState([]);
@@ -21,6 +24,12 @@ const MenuDisplay = ({ addToCart }) => {
   const [dishInfo, setDishInfo] = useState(null);
   const [isInfoLoading, setIsInfoLoading] = useState(false);
   const [selectedDishName, setSelectedDishName] = useState(null);
+  const [isImageSearching, setIsImageSearching] = useState(false);
+  const [imageSearchError, setImageSearchError] = useState(null);
+  const fileInputRef = useRef(null);
+  const [showAR, setShowAR] = useState(false);
+  const [selectedARItem, setSelectedARItem] = useState(null);
+  const [isProcessingAR, setIsProcessingAR] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -137,49 +146,68 @@ const MenuDisplay = ({ addToCart }) => {
 
   const generateContent = async (prompt, apiKey) => {
     try {
-      // Initialize the Generative AI
       const genAI = new GoogleGenerativeAI(apiKey);
-      
-      // Get the generative model (gemini-pro)
-      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" });
 
-      // Update the prompt to ensure clean JSON response
-      const structuredPrompt = `${prompt} 
-      Important: Respond with ONLY the JSON object, no markdown formatting, no backticks, no explanations.`;
-
-      // Generate content
-      const result = await model.generateContent(structuredPrompt);
-      const response = await result.response;
-      let text = response.text();
-
-      // Clean the response text
-      // Remove any markdown formatting or extra characters
-      text = text.replace(/```json\s*|\s*```/g, '')  // Remove markdown code blocks
-               .replace(/^[\s\n]+|[\s\n]+$/g, '');   // Remove leading/trailing whitespace
-
-      // Parse the JSON response
       try {
-        // Validate JSON structure before parsing
-        if (!text.startsWith('{') || !text.endsWith('}')) {
-          throw new Error('Response is not in valid JSON format');
-        }
-        
-        const parsedData = JSON.parse(text);
-        
-        // Validate required fields
-        if (!parsedData.origin || !parsedData.ingredients || !parsedData.nutrition) {
-          throw new Error('Response missing required fields');
-        }
+        const result = await model.generateContent({
+          contents: [{
+            parts: [{
+              text: prompt
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 2048
+          }
+        });
 
-        return parsedData;
-      } catch (parseError) {
-        console.error('Raw response:', text);
-        console.error('Parse error:', parseError);
-        throw new Error(`Failed to parse AI response: ${parseError.message}`);
+        const response = await result.response;
+        const text = response.text();
+        
+        // Clean the response text
+        const cleanText = text
+          .replace(/```json\s*|\s*```/g, '') // Remove markdown code blocks
+          .replace(/^\s+|\s+$/g, ''); // Remove leading/trailing whitespace
+        
+        try {
+          return JSON.parse(cleanText);
+        } catch (parseError) {
+          console.error('JSON Parse Error:', parseError);
+          throw new Error('Failed to parse AI response as JSON');
+        }
+      } catch (error) {
+        if (error.message?.includes('not found') || error.message?.includes('404')) {
+          console.log('Falling back to gemini-pro');
+          const fallbackModel = genAI.getGenerativeModel({ model: "gemini-pro" });
+          const fallbackResult = await fallbackModel.generateContent({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.7,
+              topK: 40,
+              topP: 0.95,
+              maxOutputTokens: 2048
+            }
+          });
+          
+          const fallbackResponse = await fallbackResult.response;
+          const fallbackText = fallbackResponse.text()
+            .replace(/```json\s*|\s*```/g, '')
+            .replace(/^\s+|\s+$/g, '');
+          
+          return JSON.parse(fallbackText);
+        }
+        throw error;
       }
     } catch (error) {
       console.error('Generation error:', error);
-      throw new Error(`Failed to generate content: ${error.message}`);
+      throw error;
     }
   };
 
@@ -187,7 +215,7 @@ const MenuDisplay = ({ addToCart }) => {
     setIsInfoLoading(true);
     setSelectedDishName(dishName);
     try {
-      const prompt = `Provide detailed culinary information about "${dishName}" in the following JSON structure:
+      const prompt = `Generate a JSON object with detailed culinary information about "${dishName}". Return ONLY the JSON object with no additional text or formatting. The JSON structure should be:
       {
         "origin": {
           "country": "country name",
@@ -228,7 +256,7 @@ const MenuDisplay = ({ addToCart }) => {
         icon: 'error',
         title: 'Error Fetching Information',
         text: 'Unable to get dish information at this time. Please try again later.',
-        footer: import.meta.env.DEV ? error.message : null // Show error details only in development
+        footer: import.meta.env.DEV ? error.message : null
       });
     } finally {
       setIsInfoLoading(false);
@@ -369,6 +397,134 @@ const MenuDisplay = ({ addToCart }) => {
     );
   };
 
+  const handleImageSearch = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setIsImageSearching(true);
+    setImageSearchError(null);
+    setSearchTerm('');
+
+    try {
+      const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_API_KEY);
+      
+      // Update to use gemini-1.5-pro-vision-latest
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro-vision-latest" });
+
+      const base64Image = await fileToBase64(file);
+
+      const imagePart = {
+        inlineData: {
+          data: base64Image,
+          mimeType: file.type
+        }
+      };
+
+      try {
+        // Try with Gemini 1.5
+        const result = await model.generateContent([prompt, imagePart]);
+        const response = await result.response;
+        const identifiedFood = response.text().trim();
+        
+        // Process the result...
+        const matchingItems = menuItems.filter(item => 
+          item.name.toLowerCase().includes(identifiedFood.toLowerCase()) ||
+          item.description.toLowerCase().includes(identifiedFood.toLowerCase())
+        );
+
+        if (matchingItems.length === 0) {
+          setImageSearchError('No matching menu items found');
+        } else {
+          setSearchTerm(identifiedFood);
+        }
+      } catch (error) {
+        if (error.message?.includes('not found') || error.message?.includes('404')) {
+          // Fallback to gemini-pro-vision if 1.5 is not available
+          console.log('Falling back to gemini-pro-vision');
+          const fallbackModel = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+          const fallbackResult = await fallbackModel.generateContent([prompt, imagePart]);
+          const fallbackResponse = await fallbackResult.response;
+          const identifiedFood = fallbackResponse.text().trim();
+          
+          // Process the fallback result...
+          const matchingItems = menuItems.filter(item => 
+            item.name.toLowerCase().includes(identifiedFood.toLowerCase()) ||
+            item.description.toLowerCase().includes(identifiedFood.toLowerCase())
+          );
+
+          if (matchingItems.length === 0) {
+            setImageSearchError('No matching menu items found');
+          } else {
+            setSearchTerm(identifiedFood);
+          }
+        } else {
+          throw error;
+        }
+      }
+    } catch (error) {
+      console.error('Image search error:', error);
+      setImageSearchError('Failed to process image search. Please try again.');
+    } finally {
+      setIsImageSearching(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  // Helper function to convert File to base64
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        // Remove data URL prefix (e.g., "data:image/jpeg;base64,")
+        const base64 = reader.result.split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleViewInAR = async (item) => {
+    // Ensure we have a valid image URL
+    if (!item.image) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Cannot Show in AR',
+        text: 'This item does not have an image available.',
+        showConfirmButton: true,
+        position: 'center'
+      });
+      return;
+    }
+
+    setIsProcessingAR(true);
+    
+    try {
+      // For testing, we'll use the pizza.glb model
+      const modelPath = '/models/pizza.glb';
+      
+      // In a production app, you might want to map food items to specific models
+      // const modelPath = getModelPathForItem(item.name);
+      
+      // Set the selected item for AR view with the model path
+      setSelectedARItem({...item, modelPath});
+      setShowAR(true);
+    } catch (error) {
+      console.error('Error preparing AR view:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'AR View Failed',
+        text: 'Could not initialize AR view. Please try again.',
+        showConfirmButton: true,
+        position: 'center'
+      });
+    } finally {
+      setIsProcessingAR(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -415,15 +571,46 @@ const MenuDisplay = ({ addToCart }) => {
 
         <div className="menu-container">
           <div className="search-filter-section">
-            <div className="search-bar">
-              <FaSearch />
-              <input
-                type="text"
-                placeholder="Search menu..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+            <div className="search-bar-container">
+              <div className="search-bar">
+                <FaSearch />
+                <input
+                  type="text"
+                  placeholder="Search menu..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              
+              <div className="image-search">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSearch}
+                  className="hidden"
+                  ref={fileInputRef}
+                  id="imageSearchInput"
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="image-search-btn"
+                  disabled={isImageSearching}
+                  title="Search by image"
+                >
+                  {isImageSearching ? (
+                    <FaSpinner className="animate-spin" />
+                  ) : (
+                    <FaCamera />
+                  )}
+                </button>
+              </div>
             </div>
+
+            {imageSearchError && (
+              <div className="text-red-500 text-sm mt-2">
+                {imageSearchError}
+              </div>
+            )}
 
             <div className="category-filter">
               <button
@@ -472,20 +659,30 @@ const MenuDisplay = ({ addToCart }) => {
                   <div className="item-content">
                     <div className="item-header">
                       <h3>{item.name}</h3>
-                      <button 
-                        onClick={() => getDishInfo(item.name)}
-                        className="info-btn"
-                        disabled={isInfoLoading}
-                      >
-                        {isInfoLoading ? (
-                          <FaSpinner className="animate-spin text-blue-500" size={20} />
-                        ) : (
-                          <FaInfoCircle 
-                            className="text-gray-600 hover:text-blue-500 transition-colors" 
-                            size={20}
-                          />
-                        )}
-                      </button>
+                      <div className="item-actions">
+                        <button 
+                          onClick={() => getDishInfo(item.name)}
+                          className="info-btn"
+                          disabled={isInfoLoading}
+                        >
+                          {isInfoLoading ? (
+                            <FaSpinner className="animate-spin" />
+                          ) : (
+                            <FaInfoCircle />
+                          )}
+                        </button>
+                        <button 
+                          onClick={() => handleViewInAR(item)}
+                          className="ar-btn"
+                          disabled={isProcessingAR}
+                        >
+                          {isProcessingAR ? (
+                            <FaSpinner className="animate-spin" />
+                          ) : (
+                            <FaCube />
+                          )}
+                        </button>
+                      </div>
                     </div>
                     <p className="item-description">{item.description}</p>
                     <div className="item-footer">
@@ -494,6 +691,7 @@ const MenuDisplay = ({ addToCart }) => {
                         <button 
                           onClick={() => handleAddToCart(item)}
                           className="add-to-cart-btn"
+                          id="add"
                         >
                           <FaShoppingCart /> Add
                         </button>
@@ -519,6 +717,17 @@ const MenuDisplay = ({ addToCart }) => {
           info={dishInfo} 
           onClose={handleClosePopup}
           dishName={selectedDishName}
+        />
+      )}
+
+      {/* AR View Overlay */}
+      {showAR && selectedARItem && (
+        <ARView
+          item={selectedARItem}
+          onClose={() => {
+            setShowAR(false);
+            setSelectedARItem(null);
+          }}
         />
       )}
     </div>

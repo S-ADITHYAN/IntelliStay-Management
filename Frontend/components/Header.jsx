@@ -293,7 +293,7 @@ import Swal from 'sweetalert2';
               {token ? (
                 // Show these items only if user is logged in
                 <>
-                  <a href="/restaurant/cart" onClick={(e) => handleDropdownClick(e, '/restaurant/cart')}>
+                  <a href="/restaurant/cart" id="cart" onClick={(e) => handleDropdownClick(e, '/restaurant/cart')}>
                     My Cart
                   </a>
                   <a href="/restaurant/reservations" onClick={(e) => handleDropdownClick(e, '/restaurant/reservations')}>
@@ -353,7 +353,7 @@ import Swal from 'sweetalert2';
             {/*<li><a href="#" onClick={handleLogout}>Logout</a></li>
             <li><a href="#"></a>{user}</li>
             */}
-            <li className="image-search-li">
+            {/* <li className="image-search-li">
               <a 
                 href="#" 
                 className="image-search-btn"
@@ -372,7 +372,7 @@ import Swal from 'sweetalert2';
                 onClick={(e) => e.target.value = null}
                 disabled={isProcessing}
               />
-            </li>
+            </li> */}
           </ul>
         <button className="btn nav__btn" onClick={() => navigate('/rooms')}>Book Now</button> 
         </nav>

@@ -34,14 +34,13 @@ import {
   Geography,
   Calendar,
   Stream,
+  ARView,
 } from "./scenes";
-
 
 const AppRouter = () => {
   return (
     <Router>
       <Routes>
-        
         <Route path="/" element={<StaffSignin />} /> 
         <Route path="/dashboard" element={<App />}>
           <Route path="/dashboard" element={<Dashboard />} />
@@ -53,6 +52,7 @@ const AppRouter = () => {
           <Route path="/dashboard/restaurant/menu" element={<MenuManagement />} />
           <Route path="/dashboard/restaurant/orders" element={<OrderManagement />} />
           <Route path="/dashboard/restaurant/reservations" element={<ReservationManagement />} />
+          <Route path="/dashboard/restaurant/ar-view/:itemId" element={<ARView />} />
           <Route path="/dashboard/restaurant/tables" element={<TableManagement />} />
           <Route path="/dashboard/roomadd" element={<Roomadd />} />
           <Route path="/dashboard/reservations" element={<Reservation />} />
@@ -77,7 +77,7 @@ const AppRouter = () => {
           <Route path="/dashboard/faq" element={<FAQ />} />
           <Route path="/dashboard/geography" element={<Geography />} />
         </Route>
-        
+        <Route path="/ar/:itemId" element={<ARView />} />
       </Routes>
     </Router>
   );

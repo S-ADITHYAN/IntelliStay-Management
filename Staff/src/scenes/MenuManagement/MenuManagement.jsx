@@ -6,7 +6,8 @@ import {
   FaTrash, 
   FaUpload,
   FaSearch,
-  FaArrowLeft 
+  FaArrowLeft,
+  FaCube
 } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +16,10 @@ import { useTheme } from '@mui/material';
 import { tokens } from "../../theme";
 import { RiLeafFill } from 'react-icons/ri';
 import { GiMeat } from 'react-icons/gi';
+import GenerateMenuPDFButton from '../../components/GenerateMenuPDFButton';
+import { Dialog, DialogTitle, DialogContent } from '@mui/material';
+import ARView from './ARView';
+import { Button } from '@mui/material';
 
 const PREDEFINED_CATEGORIES = [
   'Appetizers',
@@ -63,6 +68,10 @@ const MenuManagement = () => {
     foodType: 'Veg',
     quantity: 1
   });
+
+  // Add new states for AR preview
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [openPreview, setOpenPreview] = useState(false);
 
   useEffect(() => {
     fetchMenuItems();
@@ -412,6 +421,13 @@ const MenuManagement = () => {
     return errors;
   };
 
+  // Update the handlePreviewAR function
+  const handlePreviewAR = (item) => {
+    if (item?._id) {
+      navigate(`/ar/${item._id}`);
+    }
+  };
+
   return (
     <div className="menu-management" style={{ backgroundColor: baseColors.surface }}>
       <div className="page-header">
@@ -426,6 +442,7 @@ const MenuManagement = () => {
       <div className="menu-header" style={{ backgroundColor: baseColors.background }}>
         <h2 style={{ color: baseColors.text }}>Menu Management</h2>
         <div className="menu-actions">
+          <GenerateMenuPDFButton menuItems={menuItems} />
           <button 
             className="add-btn" 
             style={{ 
@@ -436,18 +453,6 @@ const MenuManagement = () => {
           >
             <FaPlus /> Add Item
           </button>
-          {/* <div className="upload-btn-wrapper">
-            <button 
-              className="upload-btn" 
-              style={{ 
-                backgroundColor: baseColors.secondary,
-                color: baseColors.text 
-              }}
-            >
-              <FaUpload /> Bulk Upload
-            </button>
-            <input type="file" accept=".csv,.xlsx" onChange={handleBulkUpload} />
-          </div> */}
         </div>
       </div>
 
@@ -519,6 +524,15 @@ const MenuManagement = () => {
                 </span>
               </div>
               <div className="item-actions">
+                <Button
+                  onClick={() => handlePreviewAR(item)}
+                  startIcon={<FaCube />}
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                >
+                  Preview AR
+                </Button>
                 <button 
                   onClick={() => handleEdit(item)}
                   style={{ 

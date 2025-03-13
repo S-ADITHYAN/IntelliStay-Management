@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Grid,
@@ -7,102 +7,97 @@ import {
   Typography,
   IconButton,
   Tooltip,
+  Divider,
 } from '@mui/material';
 import {
   Hotel,
   AttachMoney,
-  TrendingUp,
-  Room,
   Person,
+  Restaurant,
+  CleaningServices,
+  Event,
+  Build,
+  Group,
+  RoomService,
   Assessment,
-  MeetingRoom,
 } from '@mui/icons-material';
 import StatBox from '../../components/StatBox';
 import LineChart from '../../components/LineChart';
 import PieChart from '../../components/PieChart';
 import BarChart from '../../components/BarChart';
-import InteractiveChart from '../../components/InteractiveChart';
 
-const HotelDashboard = ({ stats, colors }) => {
-  // Add default values and safe checks
-  const {
-    roomStatus = {},
-    monthlyRevenue = 0,
-    occupancyRate = 0,
-    popularRoomTypes = [],
-    revenueData = []
-  } = stats?.hotelMetrics || {};
+const HotelDashboard = () => {
+  const [dashboardData, setDashboardData] = useState({
+    roomStats: {},
+    financialStats: {},
+    staffStats: {},
+    restaurantStats: {},
+    maintenanceStats: {},
+    guestStats: {},
+  });
 
-  // Format currency
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount || 0);
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API}/admin/dashboard-stats`);
+      const data = await response.json();
+      setDashboardData(data);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    }
   };
-
-  // Format percentage
-  const formatPercentage = (value) => {
-    return `${Number(value || 0).toFixed(1)}%`;
-  };
-
-  // Transform room status for pie chart
-  const roomStatusData = Object.entries(roomStatus).map(([status, data]) => ({
-    id: status,
-    label: status,
-    value: data?.count || 0
-  }));
 
   return (
     <Grid container spacing={3}>
-      {/* Stats Row */}
+      {/* Revenue & Occupancy Stats */}
       <Grid item xs={12} sm={6} md={3}>
         <StatBox
-          title={formatCurrency(monthlyRevenue)}
-          subtitle="Monthly Revenue"
+          title={formatCurrency(dashboardData.financialStats?.totalRevenue)}
+          subtitle="Total Revenue"
           progress={0.75}
           increase="+14%"
-          icon={<AttachMoney sx={{ fontSize: "26px" }} />}
+          icon={<AttachMoney />}
         />
       </Grid>
       <Grid item xs={12} sm={6} md={3}>
         <StatBox
-          title={formatPercentage(occupancyRate)}
+          title={`${dashboardData.roomStats?.occupancyRate}%`}
           subtitle="Occupancy Rate"
-          progress={occupancyRate / 100}
-          increase={`${formatPercentage(occupancyRate)}`}
-          icon={<Hotel sx={{ fontSize: "26px" }} />}
+          progress={dashboardData.roomStats?.occupancyRate / 100}
+          increase={`${dashboardData.roomStats?.occupancyTrend}%`}
+          icon={<Hotel />}
         />
       </Grid>
       <Grid item xs={12} sm={6} md={3}>
         <StatBox
-          title={roomStatus?.occupied?.count || 0}
-          subtitle="Occupied Rooms"
+          title={dashboardData.guestStats?.currentGuests}
+          subtitle="Current Guests"
           progress={0.65}
-          increase="+5%"
-          icon={<MeetingRoom sx={{ fontSize: "26px" }} />}
+          increase={`${dashboardData.guestStats?.guestTrend}%`}
+          icon={<Person />}
         />
       </Grid>
       <Grid item xs={12} sm={6} md={3}>
         <StatBox
-          title={roomStatus?.available?.count || 0}
-          subtitle="Available Rooms"
-          progress={0.50}
-          increase="+8%"
-          icon={<Person sx={{ fontSize: "26px" }} />}
+          title={dashboardData.restaurantStats?.dailyOrders}
+          subtitle="Restaurant Orders"
+          progress={0.80}
+          increase={`${dashboardData.restaurantStats?.orderTrend}%`}
+          icon={<Restaurant />}
         />
       </Grid>
 
-      {/* Charts Row */}
+      {/* Revenue Trend Chart */}
       <Grid item xs={12} md={8}>
         <Card>
           <CardContent>
-            <Typography variant="h5" gutterBottom>
-              Revenue Trend
-            </Typography>
-            <Box height={400}>
+            <Typography variant="h6">Revenue Trends</Typography>
+            <Box height={300}>
               <LineChart 
-                data={revenueData} 
+                data={dashboardData.financialStats?.revenueData} 
                 isDashboard={true}
               />
             </Box>
@@ -110,51 +105,108 @@ const HotelDashboard = ({ stats, colors }) => {
         </Card>
       </Grid>
 
+      {/* Room Status Distribution */}
       <Grid item xs={12} md={4}>
         <Card>
           <CardContent>
-            <Typography variant="h5" gutterBottom>
-              Room Status Distribution
-            </Typography>
-            <Box height={400}>
-              <PieChart data={roomStatusData} />
+            <Typography variant="h6">Room Status</Typography>
+            <Box height={300}>
+              <PieChart data={dashboardData.roomStats?.statusDistribution} />
             </Box>
           </CardContent>
         </Card>
       </Grid>
 
-      {/* Popular Room Types */}
+      {/* Staff & Maintenance Section */}
+      <Grid item xs={12} md={6}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6">Staff Overview</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Typography variant="body2">Total Staff</Typography>
+                <Typography variant="h4">{dashboardData.staffStats?.totalStaff}</Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="body2">On Duty</Typography>
+                <Typography variant="h4">{dashboardData.staffStats?.onDuty}</Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="body2">On Leave</Typography>
+                <Typography variant="h4">{dashboardData.staffStats?.onLeave}</Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="body2">Attendance Rate</Typography>
+                <Typography variant="h4">{dashboardData.staffStats?.attendanceRate}%</Typography>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Restaurant Analytics */}
+      <Grid item xs={12} md={6}>
+        <Card>
+          <CardContent>
+            <Typography variant="h6">Restaurant Analytics</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={6}>
+                <Typography variant="body2">Today's Revenue</Typography>
+                <Typography variant="h4">{formatCurrency(dashboardData.restaurantStats?.todayRevenue)}</Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="body2">Popular Items</Typography>
+                <Typography variant="body1">{dashboardData.restaurantStats?.popularItems?.join(', ')}</Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="body2">Table Reservations</Typography>
+                <Typography variant="h4">{dashboardData.restaurantStats?.tableReservations}</Typography>
+              </Grid>
+              <Grid item xs={6}>
+                <Typography variant="body2">Pending Orders</Typography>
+                <Typography variant="h4">{dashboardData.restaurantStats?.pendingOrders}</Typography>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      </Grid>
+
+      {/* Maintenance & Housekeeping */}
       <Grid item xs={12}>
         <Card>
           <CardContent>
-            <Typography variant="h5" gutterBottom>
-              Popular Room Types
-            </Typography>
+            <Typography variant="h6">Maintenance & Housekeeping</Typography>
             <Grid container spacing={2}>
-              {popularRoomTypes.map((room, index) => (
-                <Grid item xs={12} sm={6} md={4} key={index}>
-                  <Box
-                    bgcolor="background.paper"
-                    p={2}
-                    borderRadius={1}
-                    boxShadow={1}
-                  >
-                    <Typography variant="h6">{room.type || 'Unknown'}</Typography>
-                    <Typography>
-                      Bookings: {room.bookings || 0}
-                    </Typography>
-                    <Typography>
-                      Revenue: {formatCurrency(room.revenue)}
-                    </Typography>
-                  </Box>
-                </Grid>
-              ))}
+              <Grid item xs={12} md={3}>
+                <Typography variant="body2">Pending Tasks</Typography>
+                <Typography variant="h4">{dashboardData.maintenanceStats?.pendingTasks}</Typography>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <Typography variant="body2">Rooms to Clean</Typography>
+                <Typography variant="h4">{dashboardData.maintenanceStats?.roomsToClean}</Typography>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <Typography variant="body2">Maintenance Requests</Typography>
+                <Typography variant="h4">{dashboardData.maintenanceStats?.maintenanceRequests}</Typography>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <Typography variant="body2">Completed Today</Typography>
+                <Typography variant="h4">{dashboardData.maintenanceStats?.completedToday}</Typography>
+              </Grid>
             </Grid>
           </CardContent>
         </Card>
       </Grid>
     </Grid>
   );
+};
+
+// Helper function to format currency
+const formatCurrency = (amount) => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR'
+  }).format(amount || 0);
 };
 
 export default HotelDashboard;
