@@ -357,7 +357,7 @@ const transporterr = nodemailer.createTransport({
         const availableRooms = await RoomModel.find({
             _id: { $nin: reservedRooms }
         });
-console.log("avaiable",availableRooms)
+// console.log("avaiable",availableRooms)
         if (availableRooms.length < roomsNeeded) {
             return res.status(200).json({ 
                 message: 'Not enough available rooms', 
@@ -2967,5 +2967,94 @@ exports.searchByImage = async (req, res) => {
       message: 'Error processing image',
       error: error.message
     });
+  }
+};
+
+
+const calculateUserPreferences = async (userId) => {
+  const bookings = await ReservationModel.find({ user_id: userId })
+                              .populate('room_id')
+                              .sort({ createdAt: -1 })
+                              .limit(10);
+  console.log("bookings",bookings)
+  if (!bookings.length) return null;
+  
+  // Calculate preferences
+  const preferences = {
+      preferredRoomTypes: [],
+      averageStayDuration: 0,
+      preferredAmenities: [],
+      priceRange: { min: 0, max: 0 },
+      seasonalPreferences: []
+  };
+
+  // Calculate room type preferences
+  const roomTypeCounts = {};
+  let totalStayDuration = 0;
+  const amenitiesCounts = {};
+
+  bookings.forEach(booking => {
+      // Room type preferences
+      const roomType = booking.room_id.roomtype;
+      roomTypeCounts[roomType] = (roomTypeCounts[roomType] || 0) + 1;
+
+      // Stay duration
+      const duration = (new Date(booking.checkOut) - new Date(booking.checkIn)) / (1000 * 60 * 60 * 24);
+      totalStayDuration += duration;
+
+      // Amenities preferences
+      // booking.room_id.amenities.forEach(amenity => {
+      //     amenitiesCounts[amenity] = (amenitiesCounts[amenity] || 0) + 1;
+      // });
+  });
+
+  // Set preferences
+  preferences.preferredRoomTypes = Object.entries(roomTypeCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 2)
+      .map(([type]) => type);
+
+  preferences.averageStayDuration = Math.round(totalStayDuration / bookings.length);
+
+  // preferences.preferredAmenities = Object.entries(amenitiesCounts)
+  //     .sort(([,a], [,b]) => b - a)
+  //     .slice(0, 3)
+  //     .map(([amenity]) => amenity);
+
+  return preferences;
+};
+
+exports.getRecommendations = async (req, res) => {
+  try {
+      const { userId, adults, children, checkIn, checkOut } = req.query;
+
+      // Get user preferences
+      const preferences = await calculateUserPreferences(userId);
+      // console.log("preferences",preferences);
+
+      if (!preferences) {
+          return res.json({
+              recommendedRooms: [],
+              userPreferences: null
+          });
+      }
+
+      // Find rooms that match user preferences
+      const recommendedRooms = await RoomModel.find({
+          roomtype: { $in: preferences.preferredRoomTypes },
+          // allowedAdults: { $gte: parseInt(adults) },
+          // allowedChildren: { $gte: parseInt(children) },
+          // isAvailable: true
+      }).limit(3);
+      // console.log("recommendedRooms",recommendedRooms)
+
+      res.json({
+          recommendedRooms,
+          userPreferences: preferences
+      });
+
+  } catch (error) {
+      console.error('Recommendation error:', error);
+      res.status(500).json({ error: 'Error generating recommendations' });
   }
 };

@@ -14,6 +14,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { FormControl, InputLabel, Select, MenuItem, Slider, Box, Typography } from '@mui/material';
 import Footer from '../components/footer';
 import Swal from 'sweetalert2';
+import { getRecommendations } from './services/recommendationService';
 
 
 function Rooms() {
@@ -28,6 +29,8 @@ function Rooms() {
   const [selectedRoomType, setSelectedRoomType] = useState('all');
   const [priceRange, setPriceRange] = useState([0, 10000]); // Adjust max value as needed
   const [filteredRooms, setFilteredRooms] = useState([]);
+  const [recommendedRooms, setRecommendedRooms] = useState([]);
+  const [userPreferences, setUserPreferences] = useState(null);
 
   const checkrooms = () => {
     axios.post(`${import.meta.env.VITE_API}/user/checkrooms`, { searchdata })
@@ -51,8 +54,24 @@ function Rooms() {
       });
   };
 
+  // Add this function to fetch recommendations
+  const fetchRecommendations = async () => {
+    const userId = localStorage.getItem('userId');
+     // Assuming you store userId in localStorage
+    if (!userId) return;
+
+    const recommendations = await getRecommendations(userId, searchdata);
+    // console.log("recommendations",recommendations.userPreferences);
+    if (recommendations) {
+      setRecommendedRooms(recommendations.recommendedRooms);
+      setUserPreferences(recommendations.userPreferences);
+      console.log("userPreferences",recommendations.userPreferences)
+    }
+  };
+
   useEffect(() => {
     checkrooms();
+    fetchRecommendations();
   }, [searchdata]);
 
   // useEffect(() => {
@@ -231,6 +250,107 @@ function Rooms() {
     setFilteredRooms(filtered);
   }, [rooms, selectedRoomType, priceRange]);
 
+  // Add this function to check if a room is recommended
+  const isRecommended = (room) => {
+    // console.log("room",room)
+    // console.log("recommendedRooms",recommendedRooms)
+    return recommendedRooms.some(rec => rec.roomtype === room.roomtype);
+  };
+
+  // Add this component for recommendation explanation
+  const RecommendationExplanation = ({ preferences }) => {
+    if (!preferences) return null;
+
+    return (
+      <Box sx={{
+        padding: '15px',
+        backgroundColor: '#f8f4ff',
+        borderRadius: '8px',
+        marginBottom: '20px',
+        border: '1px solid #e0d4ff'
+      }}>
+        <Typography variant="h6" sx={{ color: '#5c2db0', marginBottom: '10px' }}>
+          Personalized Recommendations
+        </Typography>
+        <Typography variant="body2">
+          Based on your previous stays, we noticed you prefer:
+          <ul>
+            {preferences.preferredRoomTypes && (
+              <li>Room types similar to: {preferences.preferredRoomTypes.join(', ')}</li>
+            )}
+            {preferences.averageStayDuration && (
+              <li>Average stay duration: {preferences.averageStayDuration} nights</li>
+            )}
+            {preferences.preferredAmenities && (
+              <li>Amenities you enjoy: {preferences.preferredAmenities.join(', ')}</li>
+            )}
+          </ul>
+        </Typography>
+      </Box>
+    );
+  };
+
+  // Update your room card rendering
+  const RoomCard = ({ room, isRecommended }) => (
+    console.log("isRecommended",isRecommended),
+    <div className={`room__card ${isRecommended ? 'recommended' : ''}`}>
+      <div className="room__card__image">
+        <img 
+          src={(room.images.length > 0) ? 
+            `${import.meta.env.VITE_API}/uploads/${room.images[0]}` : 
+            room1
+          } 
+          alt="room" 
+        />
+        {isRecommended && (
+          <div className="recommendation-badge">
+            <span>✨ Recommended for You</span>
+          </div>
+        )}
+        <div className="room__card__icons">
+          <span><i className="ri-heart-fill"></i></span>
+          <span><i className="ri-paint-fill"></i></span>
+          <span><i className="ri-shield-star-line"></i></span>
+        </div>
+      </div>
+      <div className="room__card__details">
+        <h4>{room.roomtype}</h4>
+        {isRecommended && (
+          <div className="recommendation-reason">
+            <p style={{ 
+              color: '#5c2db0', 
+              fontSize: '0.9em', 
+              marginTop: '5px',
+              fontStyle: 'italic' 
+            }}>
+              Matches your preferred room type
+            </p>
+          </div>
+        )}
+        <div className="room__capacity">
+          <p>Capacity per room:</p>
+          <ul>
+            <li>Adults: {room.allowedAdults}</li>
+            <li>Children: {room.allowedChildren}</li>
+          </ul>
+        </div>
+        <h5>Starting from <span>₹{room.rate}/night</span></h5>
+        <button 
+          className={`btn ${isRecommended ? 'btn-recommended' : ''}`}
+          id='details' 
+          onClick={() => handleRoomBooking(room.roomtype)}
+        >
+          {isRecommended ? (
+            <>
+              <span className="star-icon">★</span>
+              Book Recommended Room
+            </>
+          ) : 'See Details'}
+        </button>
+      </div>
+    </div>
+  );
+
   // Add this component for the filter section
   const FilterSection = () => (
     <Box sx={{ 
@@ -296,6 +416,8 @@ function Rooms() {
         <p className="section__subheader">OUR LIVING ROOM</p>
         <h2 className="section__header">The Most Memorable Rest Time Starts Here.</h2>
         
+        {userPreferences && <RecommendationExplanation preferences={userPreferences} />}
+        
         {/* Add the filter section */}
         <FilterSection />
 
@@ -309,34 +431,11 @@ function Rooms() {
             const roomsOfType = groupByRoomType(filteredRooms)[roomtype];
             const room = roomsOfType[0];
             return (
-              <div key={room._id} className="room__card">
-                <div className="room__card__image">
-                  <img src={(room.images.length > 0) ? `${import.meta.env.VITE_API}/uploads/${room.images[0]}` : room1} alt="room" />
-                  <div className="room__card__icons">
-                    <span><i className="ri-heart-fill"></i></span>
-                    <span><i className="ri-paint-fill"></i></span>
-                    <span><i className="ri-shield-star-line"></i></span>
-                  </div>
-                </div>
-                <div className="room__card__details">
-                  <h4>{room.roomtype}</h4>
-                  <div className="room__capacity">
-                    <p>Capacity per room:</p>
-                    <ul>
-                      <li>Adults: {room.allowedAdults}</li>
-                      <li>Children: {room.allowedChildren}</li>
-                    </ul>
-                  </div>
-                  <h5>Starting from <span>₹{room.rate}/night</span></h5>
-                  <button 
-                    className="btn" 
-                    id='details' 
-                    onClick={() => handleRoomBooking(room.roomtype)}
-                  >
-                    See Details
-                  </button>
-                </div>
-              </div>
+              <RoomCard 
+                key={room._id} 
+                room={room} 
+                isRecommended={isRecommended(room)}
+              />
             );
           })}
         </div>

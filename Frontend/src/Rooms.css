@@ -344,7 +344,80 @@ body {
   background-color: var(--primary-color-dark);
 }
 
+/* Recommended Room Card Styles */
+.room__card.recommended {
+  position: relative;
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(92, 45, 176, 0.15);
+  border: 2px solid #5c2db0;
+  transition: all 0.3s ease;
+}
 
+.room__card.recommended:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 25px rgba(92, 45, 176, 0.2);
+}
+
+.recommendation-badge {
+  position: absolute;
+  top: 20px;
+  right: -8px;
+  background: linear-gradient(45deg, #5c2db0, #7c4ddb);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-weight: 500;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  z-index: 2;
+}
+
+.recommendation-badge::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -8px;
+  border-left: 8px solid transparent;
+  border-top: 8px solid #461d8f;
+}
+
+/* Highlight effect for recommended rooms */
+.room__card.recommended .room__card__details {
+  background: linear-gradient(to bottom, #fff, #f8f4ff);
+}
+
+.room__card.recommended h4 {
+  color: #5c2db0;
+}
+
+/* Pulsing effect for the recommendation badge */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.recommendation-badge {
+  animation: pulse 2s infinite;
+}
+
+/* Special price highlight for recommended rooms */
+.room__card.recommended .room__card__details h5 span {
+  color: #5c2db0;
+  font-weight: bold;
+}
+
+/* Add a special icon for recommended rooms */
+.room__card.recommended::before {
+  content: '★';
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  color: #5c2db0;
+  font-size: 24px;
+  z-index: 2;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
 
 /* Basic dropdown styling */
 /* .dropdown {
@@ -418,4 +491,59 @@ body {
   text-align: center;
   margin: 40px 0;
   color: #666;
+}
+
+.btn-recommended {
+  background: linear-gradient(45deg, #5c2db0, #7c4ddb) !important;
+  color: white !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(92, 45, 176, 0.3) !important;
+  transition: all 0.3s ease !important;
+  padding: 12px 24px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.5px !important;
+  width: 100% !important;
+  margin-top: 15px !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  font-size: 1rem !important;
+  text-transform: uppercase !important;
+}
+
+.btn-recommended:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(92, 45, 176, 0.4) !important;
+  background: linear-gradient(45deg, #7c4ddb, #5c2db0) !important;
+}
+
+.btn-recommended:active {
+  transform: translateY(1px) !important;
+  box-shadow: 0 2px 10px rgba(92, 45, 176, 0.3) !important;
+}
+
+/* Add specific styles for the star icon in the button */
+.btn-recommended .star-icon {
+  font-size: 1.2em !important;
+  margin-right: 4px !important;
+}
+
+/* Add a subtle shine animation */
+@keyframes shine {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.btn-recommended {
+  background-size: 200% auto !important;
+  animation: shine 3s linear infinite !important;
 }

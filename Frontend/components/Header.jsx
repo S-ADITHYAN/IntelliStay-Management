@@ -296,13 +296,13 @@ import Swal from 'sweetalert2';
                   <a href="/restaurant/cart" id="cart" onClick={(e) => handleDropdownClick(e, '/restaurant/cart')}>
                     My Cart
                   </a>
-                  <a href="/restaurant/reservations" onClick={(e) => handleDropdownClick(e, '/restaurant/reservations')}>
+                  <a href="/restaurant/reservations" onClick={(e) => handleDropdownClick(e, '/restaurant/reservations')} id='book-table'>
                 Book Table
               </a>
                   <a href="/restaurant/orders" onClick={(e) => handleDropdownClick(e, '/restaurant/orders')}>
                     My Orders
                   </a>
-                  <a href="/restaurant/table-reservations" onClick={(e) => handleDropdownClick(e, '/restaurant/table-reservations')}>
+                  <a href="/restaurant/table-reservations" onClick={(e) => handleDropdownClick(e, '/restaurant/table-reservations')} id='table-reservation'>
                     Table Reservation
                   </a>
                 </>

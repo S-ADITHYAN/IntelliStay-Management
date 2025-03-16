@@ -205,43 +205,52 @@ const TableReservation = () => {
   const getFilteredTables = () => {
     if (!Array.isArray(tables)) return [];
     
-    return tables.filter(table => {
-      if (!table) return false;
-      
-      // Check if table is already reserved
-      const isReserved = confirmedReservations.some(
-        reservation => reservation.tableNumber === table.tableNumber
-      );
-      
-      const locationMatch = selectedLocation === 'all' || table.location === selectedLocation;
-      
-      // New capacity matching logic
-      const exactCapacityMatch = table.capacity === guests;
-      const nextBestCapacityMatch = table.capacity > guests && 
-                                   table.capacity <= guests + 2; // Allow up to 2 extra seats
-      
-      const capacityMatch = exactCapacityMatch || nextBestCapacityMatch;
-      
-      // Only show tables that are not reserved and match criteria
-      return !isReserved && locationMatch && capacityMatch && table.isAvailable;
-    }).sort((a, b) => {
-      // Sort by closest capacity match
-      const aDiff = Math.abs(a.capacity - guests);
-      const bDiff = Math.abs(b.capacity - guests);
-      return aDiff - bDiff;
+    // First, get all available tables (not reserved)
+    const availableTables = tables.filter(table => {
+        if (!table) return false;
+        
+        const isReserved = confirmedReservations.some(
+            reservation => reservation.tableNumber === table.tableNumber
+        );
+        
+        const locationMatch = selectedLocation === 'all' || table.location === selectedLocation;
+        
+        return !isReserved && locationMatch && table.isAvailable;
     });
+
+    // Find exact capacity matches
+    const exactMatches = availableTables.filter(table => table.capacity === guests);
+    
+    if (exactMatches.length > 0) {
+        // If we have exact matches, return only those
+        return exactMatches;
+    }
+    
+    // If no exact matches, find the tables with the smallest suitable capacity
+    const suitableTables = availableTables.filter(table => table.capacity > guests);
+    if (suitableTables.length > 0) {
+        // Find the minimum capacity that can accommodate the guests
+        const minCapacity = Math.min(...suitableTables.map(table => table.capacity));
+        // Return only tables with that minimum capacity
+        return suitableTables
+            .filter(table => table.capacity === minCapacity)
+            .sort((a, b) => a.capacity - b.capacity);
+    }
+    
+    // If no suitable tables found, return empty array
+    return [];
   };
 
   // Add a function to show capacity warning
   const showCapacityWarning = (tableCapacity) => {
     if (tableCapacity > guests) {
-      return (
-        <div className="capacity-warning">
-          <small style={{ color: '#666', fontSize: '0.85em' }}>
-            This table has {tableCapacity - guests} extra seat(s) but is the next best available option
-          </small>
-        </div>
-      );
+        return (
+            <div className="capacity-warning">
+                <small style={{ color: '#666', fontSize: '0.85em' }}>
+                    No {guests}-seat tables available. This {tableCapacity}-seat table is the next best available option.
+                </small>
+            </div>
+        );
     }
     return null;
   };
