@@ -1,9 +1,10 @@
-import { createWorker } from 'tesseract.js';
+import { initTesseract, terminateWorker } from './tesseractService';
 
 export const verifyDocument = async (file, documentType, documentNumber) => {
+  let worker = null;
   try {
-    // Create Tesseract worker
-    const worker = await createWorker('eng');
+    // Initialize worker
+    worker = await initTesseract();
 
     // Convert file to image data
     const imageData = await fileToImage(file);
@@ -11,17 +12,21 @@ export const verifyDocument = async (file, documentType, documentNumber) => {
     // Recognize text from image
     const { data: { text } } = await worker.recognize(imageData);
 
-    // Terminate worker
-    await worker.terminate();
-
     // Verify based on document type
-    return validateDocument(text, documentType, documentNumber);
+    const result = validateDocument(text, documentType, documentNumber);
+
+    return result;
   } catch (error) {
     console.error('OCR Error:', error);
     return {
       isValid: false,
       error: 'Failed to verify document. Please ensure the image is clear.'
     };
+  } finally {
+    // Clean up worker
+    if (worker) {
+      await terminateWorker();
+    }
   }
 };
 

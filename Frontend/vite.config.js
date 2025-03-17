@@ -5,29 +5,46 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  build:{
-    outDir: 'dist',
-  },
+ 
   server:{
     // host: 'IntelliStay',
     port: 5173,
-    // host: true,
+    host: true,
     // https: true
   },
   assetsInclude: ['**/*.shard1', '**/*.json'],
   build: {
+    outDir: 'dist',
+    sourcemap: true,
+    minify: true,
+    chunkSizeWarningLimit: 1000000000,
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
+    },
     rollupOptions: {
+      external: ['tesseract.js-core'],
       output: {
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.name.endsWith('.shard1')) {
-            return 'assets/models/[name][extname]';
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('tesseract.js')) {
+              return 'tesseract';
+            }
+            return 'vendor';
           }
-          return 'assets/[name]-[hash][extname]';
         }
       }
-    }
+    },
   },
   optimizeDeps: {
-    exclude: ['public/models/*']
+    esbuildOptions: {
+      target: 'es2020'
+    },
+    include: ['tesseract.js']
+  },
+  resolve: {
+    alias: {
+      'tesseract.js': 'tesseract.js/dist/tesseract.min.js'
+    }
   }
 })
