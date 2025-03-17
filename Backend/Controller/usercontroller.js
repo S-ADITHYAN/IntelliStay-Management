@@ -28,7 +28,7 @@ const { MenuItem, Table,TableReservation,Order } = require('../models/Restaurant
 const Cart=require('../models/Cart')
 const Razorpay = require('razorpay');
 const TableReservationModel=require('../models/TableReservation')
-const FaceAuthModel=require('../Models/FaceAuth')
+const FaceAuthModel=require('../models/FaceAuth')
 
 const vision = require('@google-cloud/vision');
 
