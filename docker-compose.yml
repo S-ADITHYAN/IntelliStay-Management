@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./Backend
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - CLOUDINARY_CLOUD_NAME=${CLOUDINARY_CLOUD_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRET=${CLOUDINARY_API_SECRET}
+    volumes:
+      - ./Backend/uploads:/app/uploads
+    depends_on:
+      - redis
+    networks:
+      - app-network
+
+  frontend:
+    build: ./Frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://backend:3001
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  admin:
+    build: ./admin
+    ports:
+      - "5174:5174"
+    environment:
+      - VITE_API_URL=http://backend:3001
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  staff:
+    build: ./Staff
+    ports:
+      - "5175:5175"
+    environment:
+      - VITE_API_URL=http://backend:3001
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  redis-data: 

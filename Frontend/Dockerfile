@@ -16,8 +16,8 @@ COPY . .
 # Build the app
 RUN npm run build
 
-# Expose port 5173 (or your Vite port)
+# Expose port 5173
 EXPOSE 5173
 
 # Start the app
-CMD ["npm", "run", "dev"] 
+CMD ["npm", "run", "dev", "--", "--host"] 

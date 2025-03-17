@@ -34,6 +34,8 @@ const OpenAI = require('openai');
 const chatroutes=require('./Routers/chatroutes.js')
 // const restaurantRoutes = require('./Routers/restaurantRoutes.js');
 const seedData = require('./utils/sampleData.js');
+// Add this near your other route imports
+const imageRecognitionRoutes = require('./routes/imageRecognition');
 
 
 
@@ -3323,5 +3325,8 @@ app.get('*', (req, res) => {
 app.listen(3001, () => {
     console.log("Server connected");
 });
+
+// Add this with your other route uses
+app.use('/api/image-recognition', imageRecognitionRoutes);
 
 

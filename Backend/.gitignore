@@ -2,3 +2,5 @@ backup.txt
 .env
 node_modules/
 Backend/uploads/
+venv/
+

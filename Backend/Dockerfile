@@ -13,7 +13,10 @@ RUN npm install
 # Copy all backend files
 COPY . .
 
-# Expose port 5000
+# Create uploads directory
+RUN mkdir -p uploads
+
+# Expose port 3001
 EXPOSE 3001
 
 # Start the server

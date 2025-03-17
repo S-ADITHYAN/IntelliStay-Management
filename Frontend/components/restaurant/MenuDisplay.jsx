@@ -30,6 +30,9 @@ const MenuDisplay = ({ addToCart }) => {
   const [showAR, setShowAR] = useState(false);
   const [selectedARItem, setSelectedARItem] = useState(null);
   const [isProcessingAR, setIsProcessingAR] = useState(false);
+  const [isRecognizing, setIsRecognizing] = useState(false);
+  const [recognitionError, setRecognitionError] = useState(null);
+  const imageInputRef = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -525,6 +528,76 @@ const MenuDisplay = ({ addToCart }) => {
     }
   };
 
+  const handleFoodRecognition = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setIsRecognizing(true);
+    setRecognitionError(null);
+    setSearchTerm('');
+
+    try {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await axios.post(
+            `${import.meta.env.VITE_API}/api/image-recognition/recognize-food`,
+            formData,
+            {
+                headers: {
+                    'Content-Type': 'multipart/form-data'
+                }
+            }
+        );
+
+        if (response.data.success) {
+            // Extract only the part before the comma
+            const recognizedFood = response.data.category.split(',')[0].trim();
+            
+            // Filter menu items based on recognized food
+            const matchingItems = menuItems.filter(menuItem => 
+                menuItem.name.toLowerCase().includes(recognizedFood.toLowerCase()) ||
+                menuItem.description.toLowerCase().includes(recognizedFood.toLowerCase())
+            );
+            
+            console.log("Recognized food:", recognizedFood);
+            console.log("Matching items found:", matchingItems.length);
+            
+            if (matchingItems.length === 0) {
+                setRecognitionError('No matching menu items found');
+            } else {
+                setSearchTerm(recognizedFood);
+                
+                // Show success message
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Food Recognized!',
+                    text: `Looks like ${recognizedFood}. Showing matching items...`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            }
+        } else {
+            throw new Error('Recognition failed');
+        }
+    } catch (error) {
+        console.error('Food recognition error:', error);
+        setRecognitionError('Failed to recognize food. Please try again.');
+        
+        Swal.fire({
+            icon: 'error',
+            title: 'Recognition Failed',
+            text: 'Unable to recognize the food in the image. Please try again.',
+            showConfirmButton: true
+        });
+    } finally {
+        setIsRecognizing(false);
+        if (imageInputRef.current) {
+            imageInputRef.current.value = '';
+        }
+    }
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -582,22 +655,22 @@ const MenuDisplay = ({ addToCart }) => {
                 />
               </div>
               
-              <div className="image-search">
+              <div className="image-recognition">
                 <input
                   type="file"
                   accept="image/*"
-                  onChange={handleImageSearch}
+                  onChange={handleFoodRecognition}
                   className="hidden"
-                  ref={fileInputRef}
-                  id="imageSearchInput"
+                  ref={imageInputRef}
+                  id="imageRecognitionInput"
                 />
                 <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="image-search-btn"
-                  disabled={isImageSearching}
-                  title="Search by image"
+                  onClick={() => imageInputRef.current?.click()}
+                  className="image-recognition-btn"
+                  disabled={isRecognizing}
+                  title="Recognize food from image"
                 >
-                  {isImageSearching ? (
+                  {isRecognizing ? (
                     <FaSpinner className="animate-spin" />
                   ) : (
                     <FaCamera />
@@ -606,9 +679,9 @@ const MenuDisplay = ({ addToCart }) => {
               </div>
             </div>
 
-            {imageSearchError && (
+            {recognitionError && (
               <div className="text-red-500 text-sm mt-2">
-                {imageSearchError}
+                {recognitionError}
               </div>
             )}
 
