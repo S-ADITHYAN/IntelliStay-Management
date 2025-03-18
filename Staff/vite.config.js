@@ -1,11 +1,11 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  server:{
-    // host: 'IntelliStay.staff',
+  server: {
+    // host: 'IntelliStay.staff', // Uncomment if needed
     port: 5174
   },
   assetsInclude: ['**/*.shard1', '**/*.json'],
@@ -25,4 +25,4 @@ export default defineConfig({
   optimizeDeps: {
     exclude: ['public/models/*']
   }
-})
+});
