@@ -56,7 +56,7 @@ app.use(bodyParser.urlencoded({
 }));
 
 app.use(cors({
-  origin: ["http://localhost:5173","http://localhost:5174","http://localhost:5175"],
+  origin: ["http://localhost:5173","http://localhost:5174","http://localhost:5175","https://intellistay-frontend.onrender.com"],
   methods: ["GET","POST","PUT","DELETE"],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization'],
