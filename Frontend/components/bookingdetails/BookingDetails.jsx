@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Box, Typography, Grid, Paper, Button, Avatar, Modal, IconButton } from "@mui/material";
 import axios from "axios";
 import CloseIcon from "@mui/icons-material/Close";
-import { useSpring, animated } from "react-spring";
+import { useSpring, animated } from "@react-spring/web";
 import useAuth from '../../src/useAuth';
 import Header from '../Header';
 import './BookingDetails.css';
