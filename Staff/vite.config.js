@@ -4,15 +4,13 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  build:{
-    outDir: 'dist',
-  },
   server:{
     // host: 'IntelliStay.staff',
     port: 5174
   },
   assetsInclude: ['**/*.shard1', '**/*.json'],
   build: {
+    outDir: 'dist',
     rollupOptions: {
       output: {
         assetFileNames: (assetInfo) => {
