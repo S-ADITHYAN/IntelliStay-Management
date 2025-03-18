@@ -11,6 +11,13 @@ export default defineConfig({
   assetsInclude: ['**/*.shard1', '**/*.json'],
   build: {
     outDir: 'dist',
+    sourcemap: true,
+    minify: true,
+    chunkSizeWarningLimit: 1000000000,
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true
+    },
     rollupOptions: {
       output: {
         assetFileNames: (assetInfo) => {
