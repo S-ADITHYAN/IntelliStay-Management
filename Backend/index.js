@@ -36,6 +36,8 @@ const chatroutes=require('./Routers/chatroutes.js')
 const seedData = require('./utils/sampleData.js');
 // Add this near your other route imports
 const imageRecognitionRoutes = require('./routes/imageRecognition');
+const cron = require('node-cron');
+const { MenuItem } = require('./models/RestaurantModel'); // Adjust the path as necessary
 
 
 
@@ -56,10 +58,10 @@ app.use(bodyParser.urlencoded({
 }));
 
 app.use(cors({
-  origin: ["http://localhost:5173","http://localhost:5174","http://localhost:5175","https://intellistay-frontend.onrender.com","https://intellistay-admin.onrender.com"],
+  origin: ["http://localhost:5173","http://localhost:5174","http://localhost:5175","https://intellistay-frontend.onrender.com","https://intellistay-admin.onrender.com","*"],
   methods: ["GET","POST","PUT","DELETE"],
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization','user_id'],
   exposedHeaders: ['*', 'Authorization']
 }));
 
@@ -3322,11 +3324,26 @@ app.get('*', (req, res) => {
 
 
 
-app.listen(3001, () => {
-    console.log("Server connected");
-});
+
 
 // Add this with your other route uses
 app.use('/api/image-recognition', imageRecognitionRoutes);
 
+// Schedule a task to run at midnight every day
+cron.schedule('0 0 * * *', async () => {
+  try {
+    const menuItems = await MenuItem.find({});
+    for (const item of menuItems) {
+      // Trigger the save operation to reset availableQuantity
+      await item.save();
+    }
+    console.log('Daily reset of available quantities completed.');
+  } catch (error) {
+    console.error('Error during daily reset of available quantities:', error);
+  }
+});
 
+
+app.listen(3001, () => {
+  console.log("Server connected");
+});

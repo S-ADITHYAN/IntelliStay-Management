@@ -31,6 +31,7 @@
     "aframe": "^1.7.0",
     "aframe-extras": "^7.5.4",
     "axios": "^1.7.2",
+    "bad-words": "^4.0.0",
     "bootstrap": "^5.3.3",
     "date-fns": "^3.6.0",
     "dotenv": "^16.4.5",

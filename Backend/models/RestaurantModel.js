@@ -59,6 +59,10 @@ const menuItemSchema = new mongoose.Schema({
     lastResetDate: {
         type: Date,
         default: Date.now
+    },
+    model3D: {
+        type: String,
+        required: false
     }
 }, { timestamps: true });
 

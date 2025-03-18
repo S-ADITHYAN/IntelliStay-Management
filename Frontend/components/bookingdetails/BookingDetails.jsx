@@ -18,6 +18,7 @@ import StarIcon from '@mui/icons-material/Star';
 import { TextField } from '@mui/material';
 import QRGenerator from '../../src/components/QRSystem/QRGenerator';
 import { Alert } from '@mui/material';
+import { Filter } from 'bad-words';
 
 
 const BookingDetails = () => {
@@ -36,6 +37,7 @@ const BookingDetails = () => {
   const [roomRating, setRoomRating] = useState(0);
   const [feedback, setFeedback] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [submittedFeedback, setSubmittedFeedback] = useState(null);
   
   // Added for counting adults and children
   let adultCount = 0;
@@ -51,6 +53,11 @@ const BookingDetails = () => {
 
         if (response.status === 200) {
           setBookingDetails(response.data); // response.data contains reservation, room, and guests
+          // Check if feedback is already submitted
+          if (response.data.feedback) {
+            setFeedbackSubmitted(true);
+            setSubmittedFeedback(response.data.feedback.feedback);
+          }
         } else {
           setError("Failed to fetch booking details.");
         }
@@ -216,21 +223,37 @@ const BookingDetails = () => {
   
 
   const handleFeedbackSubmit = async () => {
-    try {
-      const response = await axios.post(`${import.meta.env.VITE_API}/user/feedback`, {
-        reservationId: reservation._id,
-        hotelRating,
-        roomRating,
-        feedback,
-        userId: localStorage.getItem('userId')
-      });
+    const filter = new Filter();
+    const cleanFeedback = filter.clean(feedback);
 
-      if (response.status === 201) {
-        setFeedbackSubmitted(true);
-        Swal.fire('Success', 'Thank you for your feedback!', 'success');
+    if (cleanFeedback !== feedback) {
+      // Feedback contains vulgar words
+      Swal.fire({
+        icon: 'error',
+        title: 'Inappropriate Language Detected',
+        text: 'Your feedback contains inappropriate language. Please revise it.',
+      });
+      setFeedback(cleanFeedback); // Set feedback with asterisks
+    } else {
+      try {
+        // Submit the clean feedback
+        const response = await axios.post(`${import.meta.env.VITE_API}/user/feedback`, {
+          reservationId: reservation._id,
+          hotelRating,
+          roomRating,
+          feedback: cleanFeedback,
+          userId: localStorage.getItem('userId')
+        });
+
+        if (response.status === 201) {
+          setFeedbackSubmitted(true);
+          setSubmittedFeedback(cleanFeedback);
+          Swal.fire('Success', 'Thank you for your feedback!', 'success');
+        }
+      } catch (error) {
+        console.error('Error submitting feedback:', error);
+        Swal.fire('Error', 'An error occurred while submitting your feedback. Please try again later.', 'error');
       }
-    } catch (error) {
-      Swal.fire('Error', 'Failed to submit feedback. Please try again.', 'error');
     }
   };
 
@@ -536,7 +559,19 @@ const BookingDetails = () => {
 
       </Grid>
 
-      {reservation.check_in_time && !feedbackSubmitted && (
+      {/* Feedback Section */}
+      {feedbackSubmitted ? (
+        <Grid item xs={12}>
+          <Paper elevation={3} style={{ padding: "20px", backgroundColor: "#E8F5E9", color: "#111", marginTop: "20px" }}>
+            <Typography variant="h6" style={{ textAlign: "center", color: "green" }}>
+              Thank you for sharing your feedback!
+            </Typography>
+            <Typography variant="body1" style={{ marginTop: "10px" }}>
+              Your Feedback: {submittedFeedback}
+            </Typography>
+          </Paper>
+        </Grid>
+      ) : (
         <Grid item xs={12}>
           <Paper elevation={3} style={{ padding: "20px", backgroundColor: "#F0F8FF", color: "#111", marginTop: "20px" }}>
             <Typography variant="h5" style={{ fontWeight: "bold", textAlign: "center", marginBottom: "20px" }}>
@@ -599,95 +634,7 @@ const BookingDetails = () => {
         </Grid>
       )}
 
-      {feedbackSubmitted && (
-        <Grid item xs={12}>
-          <Paper elevation={3} style={{ padding: "20px", backgroundColor: "#E8F5E9", color: "#111", marginTop: "20px" }}>
-            <Typography variant="h6" style={{ textAlign: "center", color: "green" }}>
-              Thank you for sharing your feedback!
-            </Typography>
-          </Paper>
-        </Grid>
-      )}
-        {/* Modal for Viewing Documents */}
-        <Modal
-      open={open}
-      onClose={handleCloseModal}
-      fullWidth
-      maxWidth="md"
-      sx={{ backgroundColor: 'transparent' }} // Make modal background transparent
-    >
-      <animated.div style={modalAnimation}>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '100vh', // Use full viewport height
-             // The paper background will remain opaque
-            borderRadius: '8px',
-            boxShadow: 24,
-            p: 2,
-          }}
-        >
-          <IconButton onClick={handleCloseModal} style={{ position: "absolute", top: 10, right: 10 }}>
-            <CloseIcon />
-          </IconButton>
-          {modalType === "room" && (
-            <Box display="flex" flexDirection="column" alignItems="center" height="100%">
-              <Typography variant="h6" gutterBottom>Room Image</Typography>
-              <Box
-                component="img"
-                src={`${import.meta.env.VITE_API}/uploads/${currentDocument}`}
-                alt="Room"
-                style={{
-                  width: `${zoomLevel * 100}%`, // Adjust width based on zoom level
-                  height: "auto",
-                  borderRadius: "10px",
-                  maxHeight: "80vh", // Prevent the image from exceeding the viewport height
-                  objectFit: "contain", // Maintain aspect ratio
-                }}
-              />
-              <Box mt={2} display="flex" justifyContent="center">
-                <IconButton onClick={handleZoomIn} aria-label="Zoom In">
-                  <ZoomInIcon />
-                </IconButton>
-                <IconButton onClick={handleZoomOut} aria-label="Zoom Out">
-                  <ZoomOutIcon />
-                </IconButton>
-              </Box>
-            </Box>
-          )}
-          {modalType === "proof" && (
-            <Box display="flex" flexDirection="column" alignItems="center" height="100%">
-              <Typography variant="h6" gutterBottom>Proof Document</Typography>
-              <Box
-                component="img"
-                src={currentDocument}
-                alt="Proof Document"
-                style={{
-                  width: `${zoomLevel * 100}%`, // Adjust width based on zoom level
-                  height: "auto",
-                  borderRadius: "10px",
-                  maxHeight: "80vh", // Prevent the image from exceeding the viewport height
-                  objectFit: "contain", // Maintain aspect ratio
-                }}
-              />
-              <Box mt={2} display="flex" justifyContent="center">
-                <IconButton onClick={handleZoomIn} aria-label="Zoom In">
-                  <ZoomInIcon />
-                </IconButton>
-                <IconButton onClick={handleZoomOut} aria-label="Zoom Out">
-                  <ZoomOutIcon />
-                </IconButton>
-              </Box>
-            </Box>
-          )}
-        </Box>
-      </animated.div>
-    </Modal>
-
-      </Box>
+      {/* </Grid> */}
 
       {/* QR Code Generator Section */}
       <Grid item xs={12}>
@@ -777,6 +724,7 @@ const BookingDetails = () => {
           ) : null;
         })()}
       </Grid>
+      </Box>
     </div>
   );
 };

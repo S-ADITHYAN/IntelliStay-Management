@@ -409,12 +409,24 @@ const transporterr = nodemailer.createTransport({
         }
       });
 
+      const menuModelStorage = new CloudinaryStorage({
+        cloudinary: cloudinary,
+        params: {
+          folder: 'menu_models',
+          allowed_formats: ['glb'],
+          resource_type: 'auto'
+        }
+      });
 
       const uploadmenuImages = multer({ 
         storage: menuImageStorage,
         limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
       });
 
+      const uploadMenuModels = multer({ 
+        storage: menuModelStorage,
+        limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+      });
 
       // Initialize multer with Cloudinary storage
       const uploadProfilePhoto = multer({ storage: profileStorage });
@@ -942,75 +954,75 @@ exports.deleteLeave= async (req, res) => {
 
   // Menu Item Management
 exports.Addmenuitem = [
-  uploadmenuImages.single('image'), // Handle file upload
+  uploadmenuImages.single('image'),
   async (req, res) => {
-      try {
-        // await console.log('hello');
-        //   await console.log('Request body:', JSON.stringify(req.body));
-        //   await console.log('File:', req.file);
+    try {
+      const {
+        name,
+        description,
+        price,
+        category,
+        preparationTime,
+        specialTags,
+        spicyLevel,
+        isAvailable,
+        foodType,
+        quantity
+      } = req.body;
 
-          const {
-              name,
-              description,
-              price,
-              category,
-              preparationTime,
-              specialTags,
-              spicyLevel,
-              isAvailable,
-              foodType,
-              quantity
-          } = req.body;
-            
-          // Validate required fields
-          if (!name || !description || !price || !category || !foodType || !quantity) {
-              return res.status(400).json({
-                  error: 'Missing required fields: name, description, price, category, foodType, and quantity are required'
-              });
-          }
-
-          // Parse special tags if provided
-          let parsedSpecialTags = [];
-          try {
-              parsedSpecialTags = specialTags ? JSON.parse(specialTags) : [];
-          } catch (e) {
-              return res.status(400).json({
-                  error: 'Invalid format for specialTags. Must be a JSON array.'
-              });
-          }
-
-          // Get image URL if file uploaded
-          const imageUrl = req.file ? req.file.path : null;
-
-          // Create new menu item
-          const menuItem = new MenuItem({
-              name: name.trim(),
-              description: description.trim(),
-              price: parseFloat(price),
-              category: category.trim(),
-              image: imageUrl,
-              preparationTime: preparationTime ? parseInt(preparationTime) : 30,
-              specialTags: parsedSpecialTags,
-              spicyLevel: spicyLevel || 'Not Spicy',
-              isAvailable: isAvailable === 'true',
-              foodtype: foodType,
-              quantity: quantity
-          });
-
-          // Save the menu item to the database
-          const savedMenuItem = await menuItem.save();
-          console.log('Saved menu item:', savedMenuItem);
-
-          return res.status(201).json({
-              message: 'Menu item added successfully',
-              menuItem: savedMenuItem
-          });
-      } catch (error) {
-          await console.error('Error adding menu item:', error.stack || error.message);
-          return res.status(500).json({
-              error: 'Internal server error while adding menu item',
-          });
+      // Validate required fields
+      if (!name || !description || !price || !category || !foodType || !quantity) {
+        return res.status(400).json({
+          error: 'Missing required fields: name, description, price, category, foodType, and quantity are required'
+        });
       }
+
+      // Parse special tags if provided
+      let parsedSpecialTags = [];
+      try {
+        parsedSpecialTags = specialTags ? JSON.parse(specialTags) : [];
+      } catch (e) {
+        return res.status(400).json({
+          error: 'Invalid format for specialTags. Must be a JSON array.'
+        });
+      }
+
+      // Get image URL if file uploaded
+      const imageUrl = req.files['image'] ? req.files['image'][0].path : null;
+
+      // Get 3D model URL if file uploaded
+      // const model3DUrl = req.files['model3D'] ? req.files['model3D'][0].path : null;
+
+      // Create new menu item
+      const menuItem = new MenuItem({
+        name: name.trim(),
+        description: description.trim(),
+        price: parseFloat(price),
+        category: category.trim(),
+        image: imageUrl,
+        preparationTime: preparationTime ? parseInt(preparationTime) : 30,
+        specialTags: parsedSpecialTags,
+        spicyLevel: spicyLevel || 'Not Spicy',
+        isAvailable: isAvailable === 'true',
+        foodtype: foodType,
+        quantity: quantity,
+        model3D: "model3DUrl",
+      });
+
+      // Save the menu item to the database
+      const savedMenuItem = await menuItem.save();
+      console.log('Saved menu item:', savedMenuItem);
+
+      return res.status(201).json({
+        message: 'Menu item added successfully',
+        menuItem: savedMenuItem
+      });
+    } catch (error) {
+      console.error('Error adding menu item:', error.stack || error.message);
+      return res.status(500).json({
+        error: 'Internal server error while adding menu item',
+      });
+    }
   }
 ];
 
@@ -1120,140 +1132,167 @@ exports.deleteMenuItem = async (req, res) => {
 
 //update menu item
 exports.updatemenuitem = [
-  uploadmenuImages.single('image'), 
+  uploadmenuImages.single('image'),
+  // uploadMenuModels.single('model3D'),
   async (req, res) => {
-      try {
-          const { id } = req.params;
-          console.log('Request Body:', req.body);
-          
-          // Check if menu item exists
-          const existingItem = await MenuItem.findById(id);
-          if (!existingItem) {
-              return res.status(404).json({
-                  success: false,
-                  message: 'Menu item not found'
-              });
-          }
+    try {
+      const { id } = req.params;
+      console.log('Request Body:', req.body);
 
-          // Validate price
-          const price = parseFloat(req.body.price);
-          if (isNaN(price) || price <= 0) {
-              return res.status(400).json({
-                  success: false,
-                  message: 'Invalid price value. Price must be a positive number.'
-              });
-          }
-
-          // Validate preparation time
-          const prepTime = parseInt(req.body.preparationTime);
-          if (isNaN(prepTime) || prepTime < 0) {
-              return res.status(400).json({
-                  success: false,
-                  message: 'Invalid preparation time. Must be a non-negative number.'
-              });
-          }
-
-          // Prepare update data
-          const updateData = {
-              name: req.body.name?.trim(),
-              description: req.body.description?.trim(),
-              price: price,
-              category: req.body.category?.trim(),
-              preparationTime: prepTime,
-              specialTags: req.body.specialTags ? JSON.parse(req.body.specialTags) : [],
-              spicyLevel: req.body.spicyLevel,
-              isAvailable: req.body.isAvailable === 'true',
-              foodtype: req.body.foodType,
-              quantity: req.body.quantity,
-              updatedAt: new Date()
-          };
-
-          // Handle image update if new image is uploaded
-          if (req.file) {
-              try {
-                  // Delete old image from cloudinary if exists
-                  const oldImagePublicId = existingItem.image?.split('/').pop().split('.')[0];
-                  if (oldImagePublicId) {
-                      await cloudinary.uploader.destroy(oldImagePublicId);
-                  }
-
-                  // Upload new image
-                  const result = await cloudinary.uploader.upload(req.file.path, {
-                      folder: 'menu-items',
-                      width: 1200,
-                      height: 800,
-                      crop: "limit",
-                      quality: "auto"
-                  });
-
-                  // Store only the secure URL in the image field
-                  updateData.image = result.secure_url;
-              } catch (cloudinaryError) {
-                  console.error('Cloudinary error:', cloudinaryError);
-                  return res.status(500).json({
-                      success: false,
-                      message: 'Error processing image upload'
-                  });
-              }
-          }
-
-          console.log('Update Data:', updateData); // Debug log
-
-          // Update the menu item
-          const updatedItem = await MenuItem.findByIdAndUpdate(
-              id,
-              updateData,
-              { 
-                  new: true,
-                  runValidators: true 
-              }
-          );
-
-          if (!updatedItem) {
-              return res.status(404).json({
-                  success: false,
-                  message: 'Menu item not found after update'
-              });
-          }
-
-          res.status(200).json({
-              success: true,
-              message: 'Menu item updated successfully',
-              data: updatedItem
-          });
-
-      } catch (error) {
-          console.error('Error updating menu item:', error);
-
-          if (error.name === 'SyntaxError') {
-              return res.status(400).json({
-                  success: false,
-                  message: 'Invalid data format for specialTags'
-              });
-          }
-
-          if (error.name === 'ValidationError') {
-              return res.status(400).json({
-                  success: false,
-                  message: 'Validation Error',
-                  errors: Object.values(error.errors).map(err => err.message)
-              });
-          }
-
-          if (error.name === 'CastError') {
-              return res.status(400).json({
-                  success: false,
-                  message: `Invalid data format for field: ${error.path}`,
-                  details: error.message
-              });
-          }
-
-          res.status(500).json({
-              success: false,
-              message: 'Error updating menu item',
-              error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-          });
+      // Check if menu item exists
+      const existingItem = await MenuItem.findById(id);
+      if (!existingItem) {
+        return res.status(404).json({
+          success: false,
+          message: 'Menu item not found'
+        });
       }
+
+      // Validate price
+      const price = parseFloat(req.body.price);
+      if (isNaN(price) || price <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid price value. Price must be a positive number.'
+        });
+      }
+
+      // Validate preparation time
+      const prepTime = parseInt(req.body.preparationTime);
+      if (isNaN(prepTime) || prepTime < 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid preparation time. Must be a non-negative number.'
+        });
+      }
+
+      // Prepare update data
+      const updateData = {
+        name: req.body.name?.trim(),
+        description: req.body.description?.trim(),
+        price: price,
+        category: req.body.category?.trim(),
+        preparationTime: prepTime,
+        specialTags: req.body.specialTags ? JSON.parse(req.body.specialTags) : [],
+        spicyLevel: req.body.spicyLevel,
+        isAvailable: req.body.isAvailable === 'true',
+        foodtype: req.body.foodType,
+        quantity: req.body.quantity,
+        updatedAt: new Date()
+      };
+
+      // Handle image update if new image is uploaded
+      if (req.files['image']) {
+        try {
+          // Delete old image from cloudinary if exists
+          const oldImagePublicId = existingItem.image?.split('/').pop().split('.')[0];
+          if (oldImagePublicId) {
+            await cloudinary.uploader.destroy(oldImagePublicId);
+          }
+
+          // Upload new image
+          const result = await cloudinary.uploader.upload(req.files['image'][0].path, {
+            folder: 'menu-items',
+            width: 1200,
+            height: 800,
+            crop: "limit",
+            quality: "auto"
+          });
+
+          // Store only the secure URL in the image field
+          updateData.image = result.secure_url;
+        } catch (cloudinaryError) {
+          console.error('Cloudinary error:', cloudinaryError);
+          return res.status(500).json({
+            success: false,
+            message: 'Error processing image upload'
+          });
+        }
+      }
+
+      // Handle 3D model update if new model is uploaded
+      // if (req.files['model3D']) {
+      //   try {
+      //     // Delete old model from cloudinary if exists
+      //     const oldModelPublicId = existingItem.model3D?.split('/').pop().split('.')[0];
+      //     if (oldModelPublicId) {
+      //       await cloudinary.uploader.destroy(oldModelPublicId);
+      //     }
+
+      //     // Upload new model
+      //     const result = await cloudinary.uploader.upload(req.files['model3D'][0].path, {
+      //       folder: 'menu-models',
+      //       resource_type: "auto"
+      //     });
+
+      //     // Store only the secure URL in the model3D field
+      //     updateData.model3D = result.secure_url;
+      //   } catch (cloudinaryError) {
+      //     console.error('Cloudinary error:', cloudinaryError);
+      //     return res.status(500).json({
+      //       success: false,
+      //       message: 'Error processing 3D model upload'
+      //     });
+      //   }
+      // }
+
+      console.log('Update Data:', updateData); // Debug log
+
+      // Update the menu item
+      const updatedItem = await MenuItem.findByIdAndUpdate(
+        id,
+        updateData,
+        { 
+          new: true,
+          runValidators: true 
+        }
+      );
+
+      if (!updatedItem) {
+        return res.status(404).json({
+          success: false,
+          message: 'Menu item not found after update'
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Menu item updated successfully',
+        data: updatedItem
+      });
+
+    } catch (error) {
+      console.error('Error updating menu item:', error);
+
+      if (error.name === 'SyntaxError') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid data format for specialTags'
+        });
+      }
+
+      if (error.name === 'ValidationError') {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation Error',
+          errors: Object.values(error.errors).map(err => err.message)
+        });
+      }
+
+      if (error.name === 'CastError') {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid data format for field: ${error.path}`,
+          details: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Error updating menu item',
+        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+      });
+    }
   }
 ];
 
@@ -1631,3 +1670,10 @@ exports.getOneMenuItem= async (req, res) => {
       });
   }
 };
+
+
+// module.exports = {
+//   uploadmenuImages,
+//   uploadMenuModels,
+//   // ... other exports ...
+// };

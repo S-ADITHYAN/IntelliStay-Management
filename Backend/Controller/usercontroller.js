@@ -678,12 +678,14 @@ exports.my_bookings= async (req, res) => {
       // Fetch guest details using the array of guest ids
       const guests = await RoomGuestModel.find({ _id: { $in: reservation.guestids } });
       const bill = await BillModel.findOne({ reservationid: reservationId });
+      const feedback = await FeedbackModel.findOne({ reservationId: reservationId });
       // Combine all data into a single response object
       const response = {
         reservation,
         room,
         guests,
         bill,
+        feedback
       };
   
       res.json(response);
@@ -836,10 +838,11 @@ exports.bookings_cancel=async (req, res) => {
   
   //feedback
 
-  exports.feedback =async (req, res) => {
+  exports.feedback = async (req, res) => {
     try {
       const { reservationId, hotelRating, roomRating, feedback, userId } = req.body;
-  
+
+      // Create and save new feedback
       const newFeedback = new FeedbackModel({
         reservationId,
         userId,
@@ -848,8 +851,14 @@ exports.bookings_cancel=async (req, res) => {
         feedback,
         submittedDate: new Date()
       });
-  
-      await newFeedback.save();
+
+      const savedFeedback = await newFeedback.save();
+
+      // Update the reservation with the feedback ID
+      await ReservationModel.findByIdAndUpdate(reservationId, {
+        feedback: savedFeedback._id
+      });
+
       res.status(201).json({ message: 'Feedback submitted successfully' });
     } catch (error) {
       console.error('Error submitting feedback:', error);
@@ -1055,7 +1064,7 @@ const mailtrans = nodemailer.createTransport({
   
   // Send email
   await mailtrans.sendMail({
-      from:  process.env.password,
+      from:  process.env.email_id,
       to: userDetails.email,
       subject: 'Booking Confirmation',
       text: emailContent

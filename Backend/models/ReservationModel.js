@@ -13,7 +13,8 @@ const ReservationSchema = new mongoose.Schema({
     guestids:[{ type: mongoose.Schema.Types.ObjectId, ref: 'RoomGuest' }],
     totaldays:String,
     is_verified:String,
-    cancel_date:{ type: Date, default: null }
+    cancel_date:{ type: Date, default: null },
+    feedback: { type: mongoose.Schema.Types.ObjectId, ref: 'feedback' },
     
 },{timestamps:true});
 

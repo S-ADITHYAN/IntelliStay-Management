@@ -66,7 +66,8 @@ const MenuManagement = () => {
     spicyLevel: '',
     isAvailable: true,
     foodType: 'Veg',
-    quantity: 1
+    quantity: 1,
+    model3D: null
   });
 
   // Add new states for AR preview
@@ -134,6 +135,11 @@ const MenuManagement = () => {
   if (formData.image instanceof File) {
       formDatas.append('image', formData.image);
   }
+
+  // Append 3D model if a new one is selected
+  // if (formData.model3D instanceof File) {
+  //     formDatas.append('model3D', formData.model3D);
+  // }
 
   try {
       let response;
@@ -209,7 +215,8 @@ const MenuManagement = () => {
       spicyLevel: item.spicyLevel,
       isAvailable: item.isAvailable,
       foodType: item.foodType || 'Veg',
-      quantity: item.quantity || 1
+      quantity: item.quantity || 1,
+      model3D: null
     });
     setShowForm(true);
   };
@@ -341,7 +348,8 @@ const MenuManagement = () => {
       spicyLevel: '',
       isAvailable: true,
       foodType: 'Veg',
-      quantity: 1
+      quantity: 1,
+      model3D: null
     });
   };
 
@@ -764,6 +772,15 @@ const MenuManagement = () => {
                   />
                 </div>
               </div>
+
+              {/* <div className="form-group">
+                <label style={{color:baseColors.text}}>3D Model (.glb)</label>
+                <input
+                  type="file"
+                  accept=".glb"
+                  onChange={(e) => setFormData({...formData, model3D: e.target.files[0]})}
+                />
+              </div> */}
 
               <div className="form-actions">
                 <button type="submit" className="save-btn" style={{ backgroundColor: baseColors.primary }}>

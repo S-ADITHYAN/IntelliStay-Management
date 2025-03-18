@@ -317,12 +317,13 @@ const minDate = Years.toISOString().split('T')[0]; // Format: YYYY-MM-DD
             // Create preview
             const filePreviewUrl = URL.createObjectURL(file);
             setPreview(filePreviewUrl);
-
+            // console.log("guest.name",guest.name);
             // Verify document only for new guests
             const verificationResult = await verifyDocument(
                 file,
                 guest.proofType,
-                guest.proofNumber
+                guest.proofNumber,
+                guest.name // Pass the entered name for verification
             );
 
             setVerificationStatus(prev => ({
