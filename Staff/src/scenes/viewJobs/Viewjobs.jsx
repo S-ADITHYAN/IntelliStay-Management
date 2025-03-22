@@ -31,7 +31,8 @@ const Viewjobs = () => {
         setUserData(decodedToken);
 
         axios.post(`${import.meta.env.VITE_API}/staff/asjobdetails/${decodedToken._id}`)
-          .then((res) => setJobDetails(res.data))
+          .then((res) => setJobDetails(res.data),
+        console.log(res))
           .catch((err) => console.error(err));
       } catch (error) {
         console.error("Failed to decode token:", error);

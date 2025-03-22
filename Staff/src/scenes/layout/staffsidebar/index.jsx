@@ -224,6 +224,18 @@ const StaffSideBar = () => {
               
             </>
           )}
+           {userData?.role === "maintenance" && (
+            <>
+              <Item
+                title="view assigned jobs"
+                path="/dashboard/viewjobs"
+                colors={colors}
+                icon={<PersonOutlined />}
+              />
+            
+              
+            </>
+          )}
 
           {userData?.role === "restaurantstaff" && (
             <>

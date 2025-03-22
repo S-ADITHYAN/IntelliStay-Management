@@ -5,6 +5,10 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import './ARStyles.css';
 import Swal from 'sweetalert2';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import * as tf from '@tensorflow/tfjs';
+import * as cocossd from '@tensorflow-models/coco-ssd';
+import '@tensorflow/tfjs-backend-webgl';
 
 const ARView = ({ item, onClose, menuItems = [] }) => {
   const containerRef = useRef(null);
@@ -49,18 +53,16 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
   // Add loadModel function before the useEffect
   const loadModel = (item, index) => {
     const loader = new GLTFLoader();
-    const modelPath = item.model3d || '/models/pizza.glb'; // Default to pizza if no model specified
+    const modelPath = item.model3d || '/models/pizza.glb';
 
     loader.load(
       modelPath,
-      (gltf) => {
+      async (gltf) => {
         const model = gltf.scene;
-        
-        // Create a container for the model and its label
         const container = new THREE.Group();
         
         // Set initial position
-        model.position.set(0, 0, 0); // Reset model position
+        model.position.set(0, 0, 0);
         container.position.set(
           item.position.x,
           item.position.y,
@@ -68,14 +70,16 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
         );
         container.scale.setScalar(item.scale);
         
-        // Add the model to the container
         container.add(model);
         
-        // Pass the item data to createLabel
-        const label = createLabel(item.name, model, item);
+        // Detect ingredients when loading the model
+        if (item.image) {
+          await detectIngredientsInImage(item.image, item.name);
+        }
+        
+        const label = await createLabel(item.name, model, item);
         container.add(label);
         
-        // Add the container to the scene
         if (sceneRef.current) {
           if (modelsRef.current[index]) {
             sceneRef.current.remove(modelsRef.current[index]);
@@ -83,14 +87,12 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
           sceneRef.current.add(container);
           modelsRef.current[index] = container;
           
-          // Make label always face camera
           const updateLabel = () => {
             if (label && cameraRef.current) {
               label.lookAt(cameraRef.current.position);
             }
           };
           
-          // Add to animation loop
           const animate = () => {
             requestAnimationFrame(animate);
             updateLabel();
@@ -160,10 +162,10 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
       rendererRef.current = renderer;
 
       // Add lights
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+      const ambientLight = new THREE.AmbientLight(0xffffff, 2);
       scene.add(ambientLight);
 
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
       directionalLight.position.set(10, 10, 5);
       scene.add(directionalLight);
 
@@ -381,56 +383,254 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
     // Load the new model
     loadModel(newItem, arItems.length);
   };
+  console.log(arItems[0].image)
+  // Add this function to handle Cloudinary URLs
+  const getFullResolutionImage = (cloudinaryUrl) => {
+    // Remove any existing transformation parameters
+    return cloudinaryUrl.split('/upload/').join('/upload/q_auto,f_auto/');
+  };
 
-  // Update the createLabel function to include nutritional information
-  const createLabel = (text, model, item) => {
+  // Update the IngredientsPanel component
+  const IngredientsPanel = ({ ingredients }) => (
+    <div style={{
+      position: 'fixed',
+      right: '20px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      backgroundColor: 'rgba(0, 0, 0, 0.95)',
+      borderRadius: '15px',
+      padding: '20px',
+      color: 'white',
+      width: '300px',
+      zIndex: 1000,
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+      border: '1px solid rgba(255, 255, 255, 0.1)'
+    }}>
+      <h3 style={{
+        margin: '0 0 15px 0',
+        color: '#4CAF50',
+        fontSize: '24px',
+        borderBottom: '2px solid #4CAF50',
+        paddingBottom: '10px',
+        textAlign: 'center'
+      }}>Ingredients Detected from Model</h3>
+      
+      {ingredients && ingredients.length > 0 ? (
+        <ul style={{
+          listStyle: 'none',
+          padding: 0,
+          margin: 0
+        }}>
+          {ingredients.map((ingredient, index) => (
+            <li key={index} style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '12px',
+              fontSize: '18px',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              padding: '8px 12px',
+              borderRadius: '8px'
+            }}>
+              <span style={{
+                width: '8px',
+                height: '8px',
+                backgroundColor: '#4CAF50',
+                borderRadius: '50%',
+                marginRight: '12px',
+                flexShrink: 0
+              }}></span>
+              {ingredient.name}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p style={{ 
+          color: '#999', 
+          margin: 0,
+          textAlign: 'center',
+          fontSize: '16px'
+        }}>Detecting ingredients...</p>
+      )}
+    </div>
+  );
+
+  // Add state for storing detected ingredients
+  const [detectedIngredients, setDetectedIngredients] = useState([]);
+
+  // Modify the detectIngredientsInImage function
+  const detectIngredientsInImage = async (imageUrl, itemName) => {
+    try {
+      console.log('Starting Gemini ingredient detection for:', itemName);
+      console.log('Image URL:', imageUrl);
+
+      const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+      const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      const response = await fetch(imageUrl);
+      const imageBlob = await response.blob();
+
+      const prompt = `detect ingredients used in the food from the image. 
+      Format each ingredient with an asterisk (*) at the start of the line.`;
+      const imagePart = {
+        inlineData: {
+          data: await blobToBase64(imageBlob),
+          mimeType: "image/jpeg"
+        }
+      };
+
+      const result = await model.generateContent([prompt, imagePart]);
+      const response_text = await result.response.text();
+      
+      console.log('Gemini Detection Results:', response_text);
+
+      const ingredients = parseGeminiResponse(response_text);
+      setDetectedIngredients(ingredients); // Update the state with detected ingredients
+      
+      return ingredients;
+
+    } catch (error) {
+      console.error('Ingredient detection error:', error);
+      setDetectedIngredients([]); // Clear ingredients on error
+      return [];
+    }
+  };
+
+  // Helper function to convert blob to base64
+  const blobToBase64 = (blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result.split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  // Update the parseGeminiResponse function
+  const parseGeminiResponse = (response) => {
+    const ingredients = [];
+    
+    try {
+      // Extract ingredients from the response
+      const lines = response.split('\n');
+      lines.forEach(line => {
+        if (line.trim().startsWith('*')) {
+          const ingredient = line.trim().substring(1).trim();
+          if (ingredient) {
+            ingredients.push({
+              name: ingredient,
+              confidence: 95 // High confidence since these are directly detected
+            });
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error parsing Gemini response:', error);
+    }
+
+    return ingredients;
+  };
+
+  // Modify the createLabel function to remove ingredients section
+  const createLabel = async (text, model, item) => {
     const canvas = document.createElement('canvas');
     const context = canvas.getContext('2d');
     canvas.width = 512;
-    canvas.height = 256; // Increased height for additional information
+    canvas.height = 300; // Reduced height since we're not showing ingredients here
 
-    // Create background with rounded corners
-    context.fillStyle = 'rgba(0, 0, 0, 0.85)';
+    // Create background with rounded corners and gradient
+    const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 0.95)');
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
+    context.fillStyle = gradient;
     roundRect(context, 0, 0, canvas.width, canvas.height, 20);
     context.fill();
 
+    // Add a subtle border
+    context.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+    context.lineWidth = 2;
+    roundRect(context, 0, 0, canvas.width, canvas.height, 20);
+    context.stroke();
+
     // Style for the text
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
+    context.textAlign = 'left';
+    context.textBaseline = 'top';
 
-    // Item name
-    context.font = 'bold 48px Arial';
+    // Item name with decorative underline
+    context.font = 'bold 32px Arial';
     context.fillStyle = '#ffffff';
-    context.fillText(text, canvas.width/2, 50);
+    const titleY = 20;
+    context.fillText(text, 20, titleY);
+    
+    // Add decorative underline
+    context.beginPath();
+    context.moveTo(20, titleY + 40);
+    context.lineTo(canvas.width - 20, titleY + 40);
+    context.strokeStyle = '#4CAF50';
+    context.lineWidth = 2;
+    context.stroke();
 
-    // Nutritional information
-    context.font = '28px Arial';
-    const nutritionInfo = [
-      `Calories: 266`,
-      `Protein: 12g`,
-      `Carbs: 34g`,
-      `Fat: 12g`
-    ];
+    try {
+      // Only show nutritional information in the label
+      let yOffset = 80;
 
-    // Draw nutrition info
-    nutritionInfo.forEach((info, index) => {
-      context.fillText(info, canvas.width/2, 100 + (index * 35));
-    });
+      // Display nutritional information
+      context.font = 'bold 24px Arial';
+      context.fillStyle = '#4CAF50';
+      context.fillText('Nutritional Information:', 20, yOffset);
+      yOffset += 35;
+
+      // Fetch and display nutritional info
+      const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+      const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+      const aiModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      const result = await aiModel.generateContent([
+        `For ${text}, provide only the following nutritional information in this exact format:
+        Calories: [number]
+        Protein: [number]g
+        Carbs: [number]g
+        Fat: [number]g
+        Allergens: [list]`
+      ]);
+
+      const response = await result.response;
+      const nutritionInfo = await response.text();
+
+      context.font = '22px Arial';
+      context.fillStyle = '#ffffff';
+      const nutritionLines = nutritionInfo.split('\n');
+      nutritionLines.forEach(line => {
+        if (line.trim()) {
+          context.fillText(line.trim(), 20, yOffset);
+          yOffset += 30;
+        }
+      });
+
+    } catch (error) {
+      console.error('Error in createLabel:', error);
+      context.font = '24px Arial';
+      context.fillStyle = '#ff6b6b';
+      context.fillText('Error loading information', 20, 100);
+    }
 
     // Create texture from canvas
     const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.SpriteMaterial({ 
+    const material = new THREE.SpriteMaterial({
       map: texture,
       transparent: true,
       opacity: 0.95
     });
     const sprite = new THREE.Sprite(material);
-    
+
     // Position the label above the model
     const modelBox = new THREE.Box3().setFromObject(model);
     const modelHeight = modelBox.max.y - modelBox.min.y;
-    sprite.position.set(0, modelHeight + 1, 0); // Positioned higher for larger label
-    sprite.scale.set(2.5, 1.25, 1); // Adjusted scale for larger content
+    sprite.position.set(0, modelHeight + 1, 0);
+    sprite.scale.set(2.5, 2, 1);
 
     return sprite;
   };
@@ -844,6 +1044,11 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
           </div>
           
           {showItemSelector && <FloatingMenu />}
+
+          {/* Add the ingredients panel */}
+          {detectedIngredients.length > 0 && (
+            <IngredientsPanel ingredients={detectedIngredients} />
+          )}
         </>
       )}
       

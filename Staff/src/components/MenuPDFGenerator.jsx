@@ -103,11 +103,9 @@ const MenuPDFDocument = ({ menuItems }) => {
         console.error('Invalid item data:', item);
         return null;
       }
-
       // Construct a shorter URL
       const baseUrl = window.location.origin;
       const arViewUrl = `${baseUrl}/ar/${item._id}`;
-
       // QR Code options with higher version and error correction
       const qrOptions = {
         version: 8, // Increased version to handle more data
@@ -120,7 +118,6 @@ const MenuPDFDocument = ({ menuItems }) => {
         },
         maskPattern: 0, // Add mask pattern for better scanning
       };
-
       // Generate QR code with better error handling
       try {
         const qrCodeDataURL = await QRCode.toDataURL(arViewUrl, qrOptions);

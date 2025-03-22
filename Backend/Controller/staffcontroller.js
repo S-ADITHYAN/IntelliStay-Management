@@ -420,7 +420,7 @@ const transporterr = nodemailer.createTransport({
 
       const uploadmenuImages = multer({ 
         storage: menuImageStorage,
-        limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
+        limits: { fileSize: 10 * 1024 * 1024 } // 5MB limit
       });
 
       const uploadMenuModels = multer({ 
@@ -916,6 +916,48 @@ exports.asjobdetails= async (req, res) => {
 
 //post
 
+exports.asjobdetailsss= async (req, res) => {
+      try {
+        // Get the staffId from the request params
+        const staffId = req.params.staffId;
+    
+        // Find jobs assigned to the specific staffId
+        const jobs = await HousekeepingJobModel.find({ staff_id: staffId });
+    
+        // If no jobs are found, send an empty array
+        if (!jobs || jobs.length === 0) {
+          return res.status(200).json([]);
+        }
+    
+        // Array to hold job details with room number
+        const jobDetailsWithRoomNo = await Promise.all(
+          jobs.map(async (job) => {
+            // Find the room based on room_id
+            const room = await RoomModel.findById(job.room_id);
+    
+            // Return an object with desired fields (roomno, task_description, task_date, status)
+            return {
+              _id:job._id,
+              roomno: room ? room.roomno : 'Unknown', // Fallback in case room is not found
+              task_description: job.task_description,
+              task_date: job.task_date,
+              status: job.status,
+              photos:job.photos,
+              maintenanceRequired:job.maintenanceRequired,
+              completedAt:job.completedAt
+            };
+          })
+        );
+    
+        // Respond with the job details including room number
+        res.status(200).json(jobDetailsWithRoomNo);
+      } catch (error) {
+        console.error('Error fetching job details:', error);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    };
+  
+
 exports.leaveDetails=async (req, res) => {
     try {
       const leaves = await LeaveApplicationModel.find({ staff_id: req.params.userId });
@@ -1133,7 +1175,6 @@ exports.deleteMenuItem = async (req, res) => {
 //update menu item
 exports.updatemenuitem = [
   uploadmenuImages.single('image'),
-  // uploadMenuModels.single('model3D'),
   async (req, res) => {
     try {
       const { id } = req.params;
@@ -1182,7 +1223,7 @@ exports.updatemenuitem = [
       };
 
       // Handle image update if new image is uploaded
-      if (req.files['image']) {
+      if (req.file) {
         try {
           // Delete old image from cloudinary if exists
           const oldImagePublicId = existingItem.image?.split('/').pop().split('.')[0];
@@ -1191,7 +1232,7 @@ exports.updatemenuitem = [
           }
 
           // Upload new image
-          const result = await cloudinary.uploader.upload(req.files['image'][0].path, {
+          const result = await cloudinary.uploader.upload(req.file.path, {
             folder: 'menu-items',
             width: 1200,
             height: 800,
@@ -1209,32 +1250,6 @@ exports.updatemenuitem = [
           });
         }
       }
-
-      // Handle 3D model update if new model is uploaded
-      // if (req.files['model3D']) {
-      //   try {
-      //     // Delete old model from cloudinary if exists
-      //     const oldModelPublicId = existingItem.model3D?.split('/').pop().split('.')[0];
-      //     if (oldModelPublicId) {
-      //       await cloudinary.uploader.destroy(oldModelPublicId);
-      //     }
-
-      //     // Upload new model
-      //     const result = await cloudinary.uploader.upload(req.files['model3D'][0].path, {
-      //       folder: 'menu-models',
-      //       resource_type: "auto"
-      //     });
-
-      //     // Store only the secure URL in the model3D field
-      //     updateData.model3D = result.secure_url;
-      //   } catch (cloudinaryError) {
-      //     console.error('Cloudinary error:', cloudinaryError);
-      //     return res.status(500).json({
-      //       success: false,
-      //       message: 'Error processing 3D model upload'
-      //     });
-      //   }
-      // }
 
       console.log('Update Data:', updateData); // Debug log
 
