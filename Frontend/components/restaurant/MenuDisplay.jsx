@@ -503,17 +503,31 @@ const MenuDisplay = ({ addToCart }) => {
     }
 
     setIsProcessingAR(true);
+    console.log("item",item)
     
     try {
-      // For testing, we'll use the pizza.glb model
-      const modelPath = '/models/pizza.glb';
-      
-      // In a production app, you might want to map food items to specific models
-      // const modelPath = getModelPathForItem(item.name);
+      // Check if the item has a 3D model in the database
+      const modelPath = item.model3D || '/models/pizza.glb';
+      console.log('Using model path:', modelPath); // Debug log
       
       // Set the selected item for AR view with the model path
-      setSelectedARItem({...item, modelPath});
+      setSelectedARItem({
+        ...item,
+        model3D: modelPath // This will be used by ARView component
+      });
       setShowAR(true);
+
+      // Show a toast notification indicating which model is being used
+      Swal.fire({
+        icon: 'info',
+        title: 'Loading AR View',
+        text: item.model3D ? 'Loading custom 3D model...' : 'Using default pizza model',
+        timer: 2000,
+        showConfirmButton: false,
+        position: 'top-end',
+        toast: true
+      });
+
     } catch (error) {
       console.error('Error preparing AR view:', error);
       Swal.fire({
@@ -748,6 +762,7 @@ const MenuDisplay = ({ addToCart }) => {
                           onClick={() => handleViewInAR(item)}
                           className="ar-btn"
                           disabled={isProcessingAR}
+                          title={item.model3D ? 'View custom 3D model' : 'View in AR (default model)'}
                         >
                           {isProcessingAR ? (
                             <FaSpinner className="animate-spin" />

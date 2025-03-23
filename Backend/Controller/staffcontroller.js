@@ -26,6 +26,12 @@ const cloudinary = require('../config/cloudinary');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { MenuItem, Table, Order, TableReservation } = require('../models/RestaurantModel');
 const TableReservationModel=require('../models/TableReservation')
+const { ref, uploadBytes, getDownloadURL, deleteObject } = require('firebase/storage');
+const { storage } = require('../config/firebase');
+const { v4: uuidv4 } = require('uuid');
+const zlib = require('zlib');
+const util = require('util');
+const fs = require('fs').promises;
 
 
 
@@ -397,38 +403,86 @@ const transporterr = nodemailer.createTransport({
         }
       });
 
+      // Separate storage configurations for images and 3D models
       const menuImageStorage = new CloudinaryStorage({
         cloudinary: cloudinary,
         params: {
-          folder: 'menu_images',
+          folder: 'menu_items/images',
           allowed_formats: ['jpg', 'jpeg', 'png'],
-          transformation: [
-            { width: 1200, height: 800, crop: 'limit' },
-            { quality: 'auto' }
-          ]
+          transformation: [{ width: 1200, height: 800, crop: 'limit' }],
+          resource_type: 'image'
         }
       });
 
-      const menuModelStorage = new CloudinaryStorage({
+      // Configure Cloudinary storage for 3D models
+      const menu3DModelStorage = new CloudinaryStorage({
         cloudinary: cloudinary,
         params: {
-          folder: 'menu_models',
+          folder: 'menu_items/models',
+          resource_type: 'raw',
           allowed_formats: ['glb'],
-          resource_type: 'auto'
+          format: 'glb'
         }
       });
 
-      const uploadmenuImages = multer({ 
+      // Create separate multer instances for each file type
+      const uploadMenuImage = multer({
         storage: menuImageStorage,
-        limits: { fileSize: 10 * 1024 * 1024 } // 5MB limit
+        limits: { fileSize: 10 * 1024 * 1024 }, // 10MB for images
+        fileFilter: (req, file, cb) => {
+          if (!file.mimetype.startsWith('image/')) {
+            return cb(new Error('Only image files are allowed!'), false);
+          }
+          cb(null, true);
+        }
       });
 
-      const uploadMenuModels = multer({ 
-        storage: menuModelStorage,
-        limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+      // Configure multer storage
+      const storageeeeeee = multer.diskStorage({
+        destination: async function (req, file, cb) {
+          const uploadPath = path.join(__dirname, '../public/uploads/3d-models');
+          try {
+            await fs.mkdir(uploadPath, { recursive: true });
+            console.log('Upload directory created/verified:', uploadPath);
+            cb(null, uploadPath);
+          } catch (err) {
+            console.error('Error creating upload directory:', err);
+            cb(err);
+          }
+        },
+        filename: function (req, file, cb) {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+          const filename = uniqueSuffix + path.extname(file.originalname);
+          console.log('Generated filename:', filename);
+          cb(null, filename);
+        }
       });
 
-      // Initialize multer with Cloudinary storage
+      // Configure multer upload
+      const upload3DModel = multer({
+        storage: storageeeeeee,
+        limits: {
+          fileSize: 100 * 1024 * 1024 // 100MB limit
+        },
+        fileFilter: (req, file, cb) => {
+          if (!file.originalname.match(/\.(glb)$/)) {
+            return cb(new Error('Only .glb files are allowed!'), false);
+          }
+          cb(null, true);
+        }
+      }).single('model3D');
+
+      // Helper function to delete local file
+      async function deleteLocalFile(filePath) {
+        try {
+          if (!filePath) return;
+          await fs.unlink(filePath);
+          console.log('Old file deleted successfully');
+        } catch (error) {
+          console.error('Error deleting file:', error);
+        }
+      }
+
       const uploadProfilePhoto = multer({ storage: profileStorage });
       const uploadCleanedRoomPhotos = multer({ storage: cleanedRoomStorage });
       const uploadProofDocs = multer({ storage: proofDocStorage });
@@ -993,80 +1047,79 @@ exports.deleteLeave= async (req, res) => {
     }
   };
 
-
   // Menu Item Management
-exports.Addmenuitem = [
-  uploadmenuImages.single('image'),
-  async (req, res) => {
-    try {
-      const {
-        name,
-        description,
-        price,
-        category,
-        preparationTime,
-        specialTags,
-        spicyLevel,
-        isAvailable,
-        foodType,
-        quantity
-      } = req.body;
-
-      // Validate required fields
-      if (!name || !description || !price || !category || !foodType || !quantity) {
-        return res.status(400).json({
-          error: 'Missing required fields: name, description, price, category, foodType, and quantity are required'
-        });
-      }
-
-      // Parse special tags if provided
-      let parsedSpecialTags = [];
-      try {
-        parsedSpecialTags = specialTags ? JSON.parse(specialTags) : [];
-      } catch (e) {
-        return res.status(400).json({
-          error: 'Invalid format for specialTags. Must be a JSON array.'
-        });
-      }
-
-      // Get image URL if file uploaded
-      const imageUrl = req.files['image'] ? req.files['image'][0].path : null;
-
-      // Get 3D model URL if file uploaded
-      // const model3DUrl = req.files['model3D'] ? req.files['model3D'][0].path : null;
-
-      // Create new menu item
-      const menuItem = new MenuItem({
-        name: name.trim(),
-        description: description.trim(),
-        price: parseFloat(price),
-        category: category.trim(),
-        image: imageUrl,
-        preparationTime: preparationTime ? parseInt(preparationTime) : 30,
-        specialTags: parsedSpecialTags,
-        spicyLevel: spicyLevel || 'Not Spicy',
-        isAvailable: isAvailable === 'true',
-        foodtype: foodType,
-        quantity: quantity,
-        model3D: "model3DUrl",
+exports.Addmenuitem = async (req, res) => {
+  try {
+    // Handle image upload first
+    await new Promise((resolve, reject) => {
+      uploadMenuImage.single('image')(req, res, (err) => {
+        if (err) {
+          reject(err);
+        }
+        resolve();
       });
+    });
 
-      // Save the menu item to the database
-      const savedMenuItem = await menuItem.save();
-      console.log('Saved menu item:', savedMenuItem);
-
-      return res.status(201).json({
-        message: 'Menu item added successfully',
-        menuItem: savedMenuItem
+    // Then handle 3D model upload
+    await new Promise((resolve, reject) => {
+      upload3DModel(req, res, (err) => {
+        if (err) {
+          reject(err);
+        }
+        resolve();
       });
-    } catch (error) {
-      console.error('Error adding menu item:', error.stack || error.message);
-      return res.status(500).json({
-        error: 'Internal server error while adding menu item',
+    });
+
+    const {
+      name,
+      description,
+      price,
+      category,
+      preparationTime,
+      specialTags,
+      spicyLevel,
+      isAvailable,
+      foodType,
+      quantity
+    } = req.body;
+
+    // Validate required fields
+    if (!name || !description || !price || !category || !foodType || !quantity) {
+      return res.status(400).json({
+        error: 'Missing required fields'
       });
     }
+
+    // Create new menu item
+    const menuItem = new MenuItem({
+      name: name.trim(),
+      description: description.trim(),
+      price: parseFloat(price),
+      category: category.trim(),
+      image: req.file?.path || null, // For image
+      model3D: req.file?.path || null, // For 3D model
+      preparationTime: preparationTime ? parseInt(preparationTime) : 30,
+      specialTags: specialTags ? JSON.parse(specialTags) : [],
+      spicyLevel: spicyLevel || 'Not Spicy',
+      isAvailable: isAvailable === 'true',
+      foodtype: foodType,
+      quantity: quantity
+    });
+
+    const savedMenuItem = await menuItem.save();
+    
+    return res.status(201).json({
+      message: 'Menu item added successfully',
+      menuItem: savedMenuItem
+    });
+
+  } catch (error) {
+    console.error('Error adding menu item:', error);
+    return res.status(500).json({
+      error: error.message || 'Internal server error while adding menu item'
+    });
   }
-];
+};
 
 //delete menu item
 exports.deleteMenuItem = async (req, res) => {
@@ -1173,33 +1226,38 @@ exports.deleteMenuItem = async (req, res) => {
 };
 
 //update menu item
-exports.updatemenuitem = [
-  uploadmenuImages.single('image'),
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      console.log('Request Body:', req.body);
+exports.updatemenuitem = [ uploadMenuImage.single('image'), async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log("body",req.body)
+    const existingItem = await MenuItem.findById(id);
 
-      // Check if menu item exists
-      const existingItem = await MenuItem.findById(id);
-      if (!existingItem) {
-        return res.status(404).json({
-          success: false,
-          message: 'Menu item not found'
-        });
-      }
+    if (!existingItem) {
+      return res.status(404).json({
+        success: false,
+        message: 'Menu item not found'
+      });
+    }
 
-      // Validate price
-      const price = parseFloat(req.body.price);
-      if (isNaN(price) || price <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid price value. Price must be a positive number.'
-        });
-      }
+    // Handle single image upload
+  
 
-      // Validate preparation time
-      const prepTime = parseInt(req.body.preparationTime);
+    // Only try to upload image if one was provided
+   
+    // Validate price before updating
+    console.log("req.body.price",req.body.price)
+    const price = parseInt(req.body.price);
+    console.log("price",price)
+    if (isNaN(price) || price <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid price value. Price must be a positive number.'
+      });
+    }
+
+    // Validate preparation time
+    const prepTime = parseInt(req.body.preparationTime);
+
       if (isNaN(prepTime) || prepTime < 0) {
         return res.status(400).json({
           success: false,
@@ -1207,109 +1265,72 @@ exports.updatemenuitem = [
         });
       }
 
-      // Prepare update data
-      const updateData = {
-        name: req.body.name?.trim(),
-        description: req.body.description?.trim(),
-        price: price,
-        category: req.body.category?.trim(),
-        preparationTime: prepTime,
-        specialTags: req.body.specialTags ? JSON.parse(req.body.specialTags) : [],
-        spicyLevel: req.body.spicyLevel,
-        isAvailable: req.body.isAvailable === 'true',
-        foodtype: req.body.foodType,
-        quantity: req.body.quantity,
-        updatedAt: new Date()
-      };
-
-      // Handle image update if new image is uploaded
-      if (req.file) {
-        try {
-          // Delete old image from cloudinary if exists
-          const oldImagePublicId = existingItem.image?.split('/').pop().split('.')[0];
-          if (oldImagePublicId) {
-            await cloudinary.uploader.destroy(oldImagePublicId);
-          }
-
-          // Upload new image
-          const result = await cloudinary.uploader.upload(req.file.path, {
-            folder: 'menu-items',
-            width: 1200,
-            height: 800,
-            crop: "limit",
-            quality: "auto"
-          });
-
-          // Store only the secure URL in the image field
-          updateData.image = result.secure_url;
-        } catch (cloudinaryError) {
-          console.error('Cloudinary error:', cloudinaryError);
-          return res.status(500).json({
-            success: false,
-            message: 'Error processing image upload'
-          });
-        }
-      }
-
-      console.log('Update Data:', updateData); // Debug log
-
-      // Update the menu item
-      const updatedItem = await MenuItem.findByIdAndUpdate(
-        id,
-        updateData,
-        { 
-          new: true,
-          runValidators: true 
-        }
-      );
-
-      if (!updatedItem) {
-        return res.status(404).json({
-          success: false,
-          message: 'Menu item not found after update'
-        });
-      }
-
-      res.status(200).json({
-        success: true,
-        message: 'Menu item updated successfully',
-        data: updatedItem
-      });
-
-    } catch (error) {
-      console.error('Error updating menu item:', error);
-
-      if (error.name === 'SyntaxError') {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid data format for specialTags'
-        });
-      }
-
-      if (error.name === 'ValidationError') {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation Error',
-          errors: Object.values(error.errors).map(err => err.message)
-        });
-      }
-
-      if (error.name === 'CastError') {
-        return res.status(400).json({
-          success: false,
-          message: `Invalid data format for field: ${error.path}`,
-          details: error.message
-        });
-      }
-
-      res.status(500).json({
+    // Validate quantity
+    const quantity = parseInt(req.body.quantity);
+    if (isNaN(quantity) || quantity < 0) {
+      return res.status(400).json({
         success: false,
-        message: 'Error updating menu item',
-        error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        message: 'Invalid quantity. Must be a non-negative number.'
       });
     }
+
+    // Prepare update data with validated values
+    const updateData = {
+      name: req.body.name?.trim(),
+      description: req.body.description?.trim(),
+      price: price,
+      category: req.body.category?.trim(),
+      preparationTime: prepTime,
+      specialTags: req.body.specialTags ? JSON.parse(req.body.specialTags) : [],
+      spicyLevel: req.body.spicyLevel,
+      isAvailable: req.body.isAvailable === 'true',
+      foodtype: req.body.foodType,
+      quantity: quantity,
+      updatedAt: new Date()
+    };
+
+    // Handle image update if a new image was uploaded
+    if (req.file) {
+      // Delete old image from Cloudinary if it exists
+      if (existingItem.image) {
+        try {
+          const publicId = existingItem.image.split('/').pop().split('.')[0];
+          await cloudinary.uploader.destroy(publicId);
+        } catch (error) {
+          console.error('Error deleting old image:', error);
+        }
+      }
+      updateData.image = req.file.path;
+    }
+
+    // Validate required fields
+    if (!updateData.name || !updateData.description || !updateData.category || !updateData.foodtype) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+
+    const updatedItem = await MenuItem.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Menu item updated successfully',
+      data: updatedItem
+    });
+
+  } catch (error) {
+    console.error('Error updating menu item:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error updating menu item'
+    });
   }
-];
+} ];
 
 
 
@@ -1686,6 +1707,144 @@ exports.getOneMenuItem= async (req, res) => {
   }
 };
 
+// Helper function to check if file can be reasonably compressed to target size
+async function testCompression(buffer) {
+  try {
+    // Try maximum compression first to see if it's even possible
+    const compressed = await util.promisify(zlib.gzip)(buffer, { level: 9 });
+    
+    // Calculate compression ratio
+    const ratio = compressed.length / buffer.length;
+    console.log('Best possible compression ratio:', ratio);
+    console.log('Original size:', buffer.length);
+    console.log('Best compressed size:', compressed.length);
+    
+    // If even maximum compression doesn't reach target, reject early
+    if (compressed.length > 10485760) {
+      return {
+        success: false,
+        message: `File cannot be compressed enough. Please use a smaller file. 
+                 Current size: ${(buffer.length/1024/1024).toFixed(2)}MB, 
+                 Best compressed: ${(compressed.length/1024/1024).toFixed(2)}MB, 
+                 Target: 10MB`
+      };
+    }
+    
+    return {
+      success: true,
+      compressed: compressed
+    };
+  } catch (error) {
+    console.error('Compression test error:', error);
+    throw error;
+  }
+}
+
+// Helper function to upload to Cloudinary
+async function uploadToCloudinary(buffer, originalname) {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder: 'menu_items/models',
+        resource_type: 'raw',
+        format: 'glb',
+        use_filename: true,
+        unique_filename: true,
+        content_type: 'model/gltf-binary',
+        encoding: 'gzip'
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+
+    uploadStream.end(buffer);
+  });
+}
+
+// Update the controller
+exports.upload3DModel = (req, res) => {
+  upload3DModel(req, res, async (err) => {
+    try {
+      if (err) {
+        console.error("Multer error:", err);
+        return res.status(400).json({
+          success: false,
+          message: err.message
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No file uploaded'
+        });
+      }
+
+      console.log('File uploaded:', req.file); // Debug log
+
+      const { id } = req.params;
+      const menuItem = await MenuItem.findById(id);
+      if (!menuItem) {
+        await fs.unlink(req.file.path);
+        return res.status(404).json({
+          success: false,
+          message: 'Menu item not found'
+        });
+      }
+
+      // Delete existing 3D model if it exists
+      if (menuItem.model3DPath) {
+        try {
+          const oldPath = path.join(__dirname, '..', menuItem.model3DPath);
+          await fs.unlink(oldPath);
+          console.log('Old file deleted:', oldPath);
+        } catch (error) {
+          console.error('Error deleting old file:', error);
+        }
+      }
+
+      // Create relative path for storage in database
+      const relativePath = path.relative(
+        path.join(__dirname, '..', 'public'),
+        req.file.path
+      );
+
+      // Create URL for the uploaded file
+      const fileUrl = `${req.protocol}://${req.get('host')}/uploads/3d-models/${req.file.filename}`;
+      console.log('File URL:', fileUrl); // Debug log
+
+      // Update menu item with new 3D model path and URL
+      menuItem.model3D = fileUrl;
+      menuItem.model3DPath = relativePath;
+      await menuItem.save();
+
+      return res.status(200).json({
+        success: true,
+        message: '3D model uploaded successfully',
+        data: {
+          model3D: fileUrl
+        }
+      });
+
+    } catch (error) {
+      console.error('Error in upload3DModel:', error);
+      if (req.file) {
+        try {
+          await fs.unlink(req.file.path);
+        } catch (unlinkError) {
+          console.error('Error deleting file after failed upload:', unlinkError);
+        }
+      }
+      return res.status(500).json({
+        success: false,
+        message: 'Error uploading 3D model',
+        error: error.message
+      });
+    }
+  });
+};
 
 // module.exports = {
 //   uploadmenuImages,

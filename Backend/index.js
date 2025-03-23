@@ -71,7 +71,15 @@ app.use(cors({
 
 mongoose.connect(process.env.Mongodb_Connection);
 
-app.use("/uploads",express.static("./uploads/rooms"))
+// Make sure this comes before your routes
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+
+// Log requests to static files (for debugging)
+app.use('/uploads', (req, res, next) => {
+  console.log('Requesting file:', req.url);
+  next();
+});
+
 app.use("/cleanedrooms",express.static("./uploads/cleanedrooms"))
 app.use("/profilepicture",express.static("./uploads/staffprofilepicture"))
 app.use("/profdocs",express.static("./uploads/proofdocs"))

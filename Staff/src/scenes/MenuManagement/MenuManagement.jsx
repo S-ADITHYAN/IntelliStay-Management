@@ -7,7 +7,8 @@ import {
   FaUpload,
   FaSearch,
   FaArrowLeft,
-  FaCube
+  FaCube,
+  FaCheckCircle
 } from 'react-icons/fa';
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
@@ -66,8 +67,7 @@ const MenuManagement = () => {
     spicyLevel: '',
     isAvailable: true,
     foodType: 'Veg',
-    quantity: 1,
-    model3D: null
+    quantity: 1
   });
 
   // Add new states for AR preview
@@ -107,101 +107,121 @@ const MenuManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Show loading state
     Swal.fire({
       title: editingItem ? 'Updating Menu Item' : 'Adding Menu Item',
-      text: editingItem 
-          ? 'Please wait while we update the menu item...'
-          : 'Please wait while we add the new menu item...',
+      text: 'Please wait...',
       allowOutsideClick: false,
-      allowEscapeKey: false,
       showConfirmButton: false,
       didOpen: () => {
-          Swal.showLoading();
+        Swal.showLoading();
       }
-  });
-  const formDatas = new FormData();
-  formDatas.append('name', formData.name);
-  formDatas.append('description', formData.description);
-  formDatas.append('price', formData.price);
-  formDatas.append('category', formData.category);
-  formDatas.append('preparationTime', formData.preparationTime);
-  formDatas.append('specialTags', JSON.stringify(formData.specialTags));
-  formDatas.append('spicyLevel', formData.spicyLevel);
-  formDatas.append('isAvailable', formData.isAvailable);
-  formDatas.append('foodType', formData.foodType);
-  formDatas.append('quantity', formData.quantity);
+    });
 
-  // Only append image if a new one is selected
-  if (formData.image instanceof File) {
-      formDatas.append('image', formData.image);
-  }
+    try {
+      // Validate form data
+      const errors = validateFormData(formData);
+      if (errors.length > 0) {
+        await Swal.fire({
+          icon: 'error',
+          title: 'Validation Error',
+          html: errors.join('<br>'),
+          confirmButtonColor: baseColors.danger
+        });
+        return;
+      }
 
-  // Append 3D model if a new one is selected
-  // if (formData.model3D instanceof File) {
-  //     formDatas.append('model3D', formData.model3D);
-  // }
-
-  try {
-      let response;
+      const formDatas = new FormData();
       
-      if (editingItem) {
-          // Update existing item
-          formDatas.forEach((value, key) => {
-            console.log(key, value);
-          });
-          response = await axios.put(
-              `${import.meta.env.VITE_API}/staff/menu/${editingItem._id}`,
-              formDatas,
-              {
-                  headers: { 'Content-Type': 'multipart/form-data' },
-              }
-          );
-
-          await Swal.fire({
-              icon: 'success',
-              title: 'Updated!',
-              text: 'Menu item has been updated successfully',
-              timer: 1500,
-              timerProgressBar: true,
-              showConfirmButton: false,
-              confirmButtonColor: baseColors.primary
-          });
-      } else {
-          // Add new item
-          console.log(formDatas)
-          response = await axios.post(
-              `${import.meta.env.VITE_API}/staff/menu`,
-              formDatas,
-              {
-                  headers: { 'Content-Type': 'multipart/form-data' },
-              }
-          );
-
-          await Swal.fire({
-              icon: 'success',
-              title: 'Success!',
-              text: 'Menu item has been added successfully',
-              timer: 1500,
-              timerProgressBar: true,
-              showConfirmButton: false,
-              confirmButtonColor: baseColors.primary
-          });
+      // Convert price to number and validate
+      const price = parseFloat(formData.price);
+      if (isNaN(price) || price <= 0) {
+        throw new Error('Invalid price value');
       }
 
-      // Reset form and refresh menu items
+      // Convert preparation time to number
+      const prepTime = parseInt(formData.preparationTime) || 30;
+      
+      // Convert quantity to number
+      const quantity = parseInt(formData.quantity) || 1;
+
+      // Append all form data with proper type conversion
+      formDatas.append('name', formData.name.trim());
+      formDatas.append('description', formData.description.trim());
+      formDatas.append('price', price.toString());
+      formDatas.append('category', formData.category.trim());
+      formDatas.append('preparationTime', prepTime.toString());
+      formDatas.append('specialTags', JSON.stringify(formData.specialTags));
+      formDatas.append('spicyLevel', formData.spicyLevel);
+      formDatas.append('isAvailable', formData.isAvailable.toString());
+      formDatas.append('foodType', formData.foodType);
+      formDatas.append('quantity', quantity.toString());
+
+      // Only append image if it's a new file
+      if (formData.image instanceof File) {
+        formDatas.append('image', formData.image);
+      }
+
+      const config = {
+        headers: { 
+          'Content-Type': 'multipart/form-data'
+        }
+      };
+
+      // Log the form data for debugging
+      console.log('Form data being sent:', Object.fromEntries(formDatas.entries()));
+
+      let response;
+      if (editingItem) {
+        if (!editingItem._id) {
+          throw new Error('Invalid item ID');
+        }
+        response = await axios.put(
+          `${import.meta.env.VITE_API}/staff/menu/${editingItem._id}`,
+          formDatas,
+          config
+        );
+      } else {
+        response = await axios.post(
+          `${import.meta.env.VITE_API}/staff/menu`,
+          formDatas,
+          config
+        );
+      }
+
+      await Swal.fire({
+        icon: 'success',
+        title: editingItem ? 'Updated!' : 'Added!',
+        text: editingItem ? 'Menu item has been updated successfully' : 'Menu item has been added successfully',
+        timer: 1500,
+        showConfirmButton: false
+      });
+
       setShowForm(false);
       setEditingItem(null);
       resetForm();
       await fetchMenuItems();
+
     } catch (error) {
+      console.error('Error:', error);
+      let errorMessage = 'Failed to process menu item';
+      
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
       await Swal.fire({
         icon: 'error',
         title: 'Error',
-        text: error.response?.data?.message || 'Failed to add menu item',
+        text: errorMessage,
         confirmButtonColor: baseColors.danger
       });
     }
-};
+  };
 
   const handleEdit = (item) => {
     setEditingItem(item);
@@ -215,8 +235,7 @@ const MenuManagement = () => {
       spicyLevel: item.spicyLevel,
       isAvailable: item.isAvailable,
       foodType: item.foodType || 'Veg',
-      quantity: item.quantity || 1,
-      model3D: null
+      quantity: item.quantity || 1
     });
     setShowForm(true);
   };
@@ -348,8 +367,7 @@ const MenuManagement = () => {
       spicyLevel: '',
       isAvailable: true,
       foodType: 'Veg',
-      quantity: 1,
-      model3D: null
+      quantity: 1
     });
   };
 
@@ -433,6 +451,90 @@ const MenuManagement = () => {
   const handlePreviewAR = (item) => {
     if (item?._id) {
       navigate(`/ar/${item._id}`);
+    }
+  };
+
+  const handleUpload3DModel = async (itemId) => {
+    const { value: file } = await Swal.fire({
+      title: 'Select 3D Model',
+      input: 'file',
+      inputAttributes: {
+        'accept': '.glb',
+        'aria-label': 'Upload your 3D model'
+      },
+      html: `
+        <div style="margin-top: 1rem; font-size: 0.9rem; color: #666;">
+          <p>File size guidelines:</p>
+          <ul style="text-align: left; display: inline-block;">
+            <li>Maximum file size: 100MB</li>
+            <li>Accepted format: .glb</li>
+          </ul>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Upload',
+      showLoaderOnConfirm: true,
+      preConfirm: (file) => {
+        if (!file) {
+          Swal.showValidationMessage('Please select a file');
+          return;
+        }
+        if (file.size > 100 * 1024 * 1024) {
+          Swal.showValidationMessage('File is too large. Maximum size is 100MB');
+          return;
+        }
+        return file;
+      }
+    });
+
+    if (file) {
+      try {
+        const formData = new FormData();
+        formData.append('model3D', file);
+
+        const loadingAlert = Swal.fire({
+          title: 'Uploading...',
+          html: 'Uploading your 3D model...',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        const response = await axios.post(
+          `${import.meta.env.VITE_API}/staff/menu/upload-model/${itemId}`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            },
+            maxContentLength: 100 * 1024 * 1024,
+            maxBodyLength: 100 * 1024 * 1024,
+            timeout: 30000
+          }
+        );
+
+        await loadingAlert.close();
+
+        if (response.data.success) {
+          await Swal.fire({
+            icon: 'success',
+            title: 'Uploaded!',
+            text: '3D model has been uploaded successfully',
+            timer: 1500
+          });
+
+          await fetchMenuItems();
+        }
+
+      } catch (error) {
+        console.error('Error uploading 3D model:', error);
+        await Swal.fire({
+          icon: 'error',
+          title: 'Upload Failed',
+          text: error.response?.data?.message || 'Failed to upload 3D model. Please try again.'
+        });
+      }
     }
   };
 
@@ -539,8 +641,25 @@ const MenuManagement = () => {
                   color="primary"
                   size="small"
                 >
-                  Preview AR
+                  {item.model3D ? 'Preview AR' : 'Preview Default AR'}
                 </Button>
+                <button 
+                  onClick={() => handleUpload3DModel(item._id)}
+                  style={{ 
+                    backgroundColor: baseColors.secondary,
+                    color: baseColors.text 
+                  }}
+                >
+                  {item.model3D ? (
+                    <>
+                      <FaCheckCircle style={{ color: '#4CAF50' }} /> Update 3D Model
+                    </>
+                  ) : (
+                    <>
+                      <FaUpload /> Upload 3D Model
+                    </>
+                  )}
+                </button>
                 <button 
                   onClick={() => handleEdit(item)}
                   style={{ 
@@ -620,6 +739,8 @@ const MenuManagement = () => {
                     type="number"
                     value={formData.price}
                     onChange={(e) => setFormData({...formData, price: e.target.value})}
+                    min="0"
+                    step="1"
                     required
                     style={{ 
                       backgroundColor: baseColors.surface,
@@ -772,15 +893,6 @@ const MenuManagement = () => {
                   />
                 </div>
               </div>
-
-              {/* <div className="form-group">
-                <label style={{color:baseColors.text}}>3D Model (.glb)</label>
-                <input
-                  type="file"
-                  accept=".glb"
-                  onChange={(e) => setFormData({...formData, model3D: e.target.files[0]})}
-                />
-              </div> */}
 
               <div className="form-actions">
                 <button type="submit" className="save-btn" style={{ backgroundColor: baseColors.primary }}>

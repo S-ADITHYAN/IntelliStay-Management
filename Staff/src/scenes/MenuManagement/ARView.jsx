@@ -7,6 +7,10 @@ import './ARStyles.css';
 import Swal from 'sweetalert2';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+// import * as tf from '@tensorflow/tfjs';
+// import * as cocossd from '@tensorflow-models/coco-ssd';
+// import '@tensorflow/tfjs-backend-webgl';
 
 const ARView = ({ onClose, menuItems = [] }) => {
   const { itemId } = useParams();
@@ -43,19 +47,46 @@ const ARView = ({ onClose, menuItems = [] }) => {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
   });
 
+  // Add new state for ingredients
+  const [detectedIngredients, setDetectedIngredients] = useState([]);
+
+  // Add this state at the top of your component
+  const [webGLSupported, setWebGLSupported] = useState(true);
+
+  // Add this function to check WebGL support
+  const checkWebGLSupport = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl2') || 
+                 canvas.getContext('webgl') || 
+                 canvas.getContext('experimental-webgl');
+      
+      if (!gl) {
+        setWebGLSupported(false);
+        return false;
+      }
+      return true;
+    } catch (e) {
+      setWebGLSupported(false);
+      return false;
+    }
+  };
+
   // Modify the fetch item useEffect to include a check for existing data
   useEffect(() => {
     const fetchItem = async () => {
       try {
-        if (itemId && !selectedARItem) { // Only fetch if we don't have the item
+        if (itemId && !selectedARItem) {
           setIsLoading(true);
           const response = await axios.get(`${import.meta.env.VITE_API}/staff/menu/${itemId}`);
-          const fetchedItem = response.data.data; // Access the data property from response
+          const fetchedItem = response.data.data;
           
-          // Set the selected AR item
+          // Add debug logging
+          console.log('Fetched item:', fetchedItem);
+          console.log('3D Model URL:', fetchedItem.model3D);
+          
           setSelectedARItem(fetchedItem);
           
-          // Initialize arItems with the fetched item
           setArItems([{
             ...fetchedItem,
             position: { x: 0, y: 0, z: -2 },
@@ -63,7 +94,6 @@ const ARView = ({ onClose, menuItems = [] }) => {
             rotation: { x: 0, y: 0, z: 0 }
           }]);
 
-          // Set available items (excluding the current item)
           const filteredItems = menuItems.filter(menuItem => menuItem._id !== fetchedItem._id);
           setAvailableItems(filteredItems);
         }
@@ -76,67 +106,68 @@ const ARView = ({ onClose, menuItems = [] }) => {
     };
 
     fetchItem();
-  }, [itemId, menuItems, selectedARItem]); // Add selectedARItem to dependency array
+  }, [itemId, menuItems, selectedARItem]);
 
-  // Add loadModel function before the useEffect
+  // Modify the loadModel function to handle the async label creation
   const loadModel = (item, index) => {
-    if (!item) return; // Add guard clause
+    if (!item) return;
     
     const loader = new GLTFLoader();
-    const modelPath = item.model3d || '/models/pizza.glb'; // Default to pizza if no model specified
+    const modelPath = (item.model3D && item.model3D.trim()) ? item.model3D : '/models/pizza.glb';
 
-    loader.load(
-      modelPath,
-      (gltf) => {
+    console.log('Loading model from:', modelPath);
+    console.log('Using default model:', !item.model3D || !item.model3D.trim());
+
+    if (item.image) {
+      detectIngredientsInImage(item.image, item.name);
+    }
+
+    const loadWithRetry = async (retries = 3) => {
+      try {
+        const gltf = await new Promise((resolve, reject) => {
+          loader.load(modelPath, resolve, undefined, reject);
+        });
+
         const model = gltf.scene;
-        
-        // Create a container for the model and its label
         const container = new THREE.Group();
         
-        // Set initial position
-        model.position.set(0, 0, 0); // Reset model position
+        model.position.set(0, 0, 0);
         container.position.set(
           item.position.x,
           item.position.y,
           item.position.z
         );
         container.scale.setScalar(item.scale);
-        
-        // Add the model to the container
         container.add(model);
         
-        // Pass the item data to createLabel
-        const label = createLabel(item.name, model, item);
-        container.add(label);
+        // Create label and store it in a ref
+        const label = await createLabel(item.name, model, item);
+        if (label) {
+          container.userData.label = label; // Store label reference in container's userData
+          container.add(label);
+        }
         
-        // Add the container to the scene
         if (sceneRef.current) {
           if (modelsRef.current[index]) {
             sceneRef.current.remove(modelsRef.current[index]);
           }
           sceneRef.current.add(container);
           modelsRef.current[index] = container;
-          
-          // Make label always face camera
-          const updateLabel = () => {
-            if (label && cameraRef.current) {
-              label.lookAt(cameraRef.current.position);
-            }
-          };
-          
-          // Add to animation loop
-          const animate = () => {
-            requestAnimationFrame(animate);
-            updateLabel();
-          };
-          animate();
         }
-      },
-      undefined,
-      (error) => {
+
+      } catch (error) {
         console.error('Error loading model:', error);
+        if (retries > 0) {
+          console.log(`Retrying... (${retries} attempts left)`);
+          setTimeout(() => loadWithRetry(retries - 1), 1000);
+        } else if (modelPath !== '/models/pizza.glb') {
+          console.log('Falling back to default pizza model');
+          loader.load('/models/pizza.glb', /* ... existing fallback code ... */);
+        }
       }
-    );
+    };
+
+    loadWithRetry();
   };
 
   // Define handleDeviceMotion at component level
@@ -173,120 +204,149 @@ const ARView = ({ onClose, menuItems = [] }) => {
     const initScene = () => {
       if (!isActive || !selectedARItem || isLoading) return;
       
-      // Create scene
-      const scene = new THREE.Scene();
-      sceneRef.current = scene;
-
-      // Create camera
-      const camera = new THREE.PerspectiveCamera(
-        75, // field of view
-        window.innerWidth / window.innerHeight,
-        0.1, // near plane (reduced to allow closer viewing)
-        1000
-      );
-      camera.position.z = 5;
-      cameraRef.current = camera;
-
-      // Create renderer
-      const renderer = new THREE.WebGLRenderer({ 
-        alpha: true,
-        antialias: true 
-      });
-      renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setClearColor(0x000000, 0);
-      renderer.setPixelRatio(window.devicePixelRatio);
-      rendererRef.current = renderer;
-
-      // Add lights
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-      scene.add(ambientLight);
-
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-      directionalLight.position.set(10, 10, 5);
-      scene.add(directionalLight);
-
-      // Add OrbitControls with enhanced configuration
-      const controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.minDistance = 1;  // Increased minimum distance to prevent getting too close
-      controls.maxDistance = 10;
-      controls.enablePan = true;
-      controls.panSpeed = 0.5;
-      controls.rotateSpeed = 0.5;
-      controls.enableZoom = true; // Enable zoom for testing on desktop
-      controlsRef.current = controls;
-
-      // Add renderer to container
-      if (containerRef.current) {
-        const canvas = renderer.domElement;
-        canvas.style.position = 'absolute';
-        canvas.style.top = '0';
-        canvas.style.left = '0';
-        canvas.style.zIndex = '2';
-        containerRef.current.appendChild(canvas);
+      // Check WebGL support first
+      if (!checkWebGLSupport()) {
+        setError('WebGL is not supported in your browser. Please try using a different browser or device.');
+        return;
       }
+      
+      try {
+        // Create scene
+        const scene = new THREE.Scene();
+        sceneRef.current = scene;
 
-      // Load initial model
-      loadModel(arItems[0], 0);
+        // Create camera with safer defaults
+        const camera = new THREE.PerspectiveCamera(
+          60, // Reduced FOV
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000
+        );
+        camera.position.z = 5;
+        cameraRef.current = camera;
 
-      // Handle window resize
-      const handleResize = () => {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
+        // Create renderer with error handling
+        const renderer = new THREE.WebGLRenderer({ 
+          alpha: true,
+          antialias: true,
+          powerPreference: 'default', // Add this
+          failIfMajorPerformanceCaveat: false, // Add this
+          preserveDrawingBuffer: true // Add this
+        });
 
-        camera.aspect = width / height;
-        camera.updateProjectionMatrix();
+        // Set renderer properties
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x000000, 0);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Limit pixel ratio
+        rendererRef.current = renderer;
 
-        renderer.setSize(width, height);
-      };
-      window.addEventListener('resize', handleResize);
+        // Add lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 2);
+        scene.add(ambientLight);
 
-      // Animation loop
-      const animate = () => {
-        requestAnimationFrame(animate);
-        
-        if (controlsRef.current) {
-          controlsRef.current.update();
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+        directionalLight.position.set(10, 10, 5);
+        scene.add(directionalLight);
+
+        // Add OrbitControls with enhanced configuration
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 1;  // Increased minimum distance to prevent getting too close
+        controls.maxDistance = 10;
+        controls.enablePan = true;
+        controls.panSpeed = 0.5;
+        controls.rotateSpeed = 0.5;
+        controls.enableZoom = true; // Enable zoom for testing on desktop
+        controlsRef.current = controls;
+
+        // Add renderer to container
+        if (containerRef.current) {
+          const canvas = renderer.domElement;
+          canvas.style.position = 'absolute';
+          canvas.style.top = '0';
+          canvas.style.left = '0';
+          canvas.style.zIndex = '2';
+          containerRef.current.appendChild(canvas);
         }
 
-        renderer.render(scene, camera);
-      };
-      animate();
+        // Load initial model
+        loadModel(arItems[0], 0);
 
-      // Add event listeners to the renderer's canvas
-      const canvas = renderer.domElement;
-      canvas.addEventListener('mousedown', handleMouseDown);
-      canvas.addEventListener('mousemove', handleMouseMove);
-      canvas.addEventListener('mouseup', handleMouseUp);
-      canvas.addEventListener('mouseleave', handleMouseUp);
-      
-      // Add touch events for mobile
-      canvas.addEventListener('touchstart', handleTouchStart);
-      canvas.addEventListener('touchmove', handleTouchMove);
-      canvas.addEventListener('touchend', handleTouchEnd);
-      canvas.addEventListener('touchcancel', handleTouchEnd);
+        // Handle window resize
+        const handleResize = () => {
+          const width = window.innerWidth;
+          const height = window.innerHeight;
 
-      // Add device motion handling
-      if (window.DeviceMotionEvent) {
-        window.addEventListener('devicemotion', handleDeviceMotion);
+          camera.aspect = width / height;
+          camera.updateProjectionMatrix();
+
+          renderer.setSize(width, height);
+        };
+        window.addEventListener('resize', handleResize);
+
+        // Animation loop
+        const animate = () => {
+          requestAnimationFrame(animate);
+          
+          if (controlsRef.current) {
+            controlsRef.current.update();
+          }
+
+          // Update labels
+          modelsRef.current.forEach(container => {
+            if (container && container.userData.label && cameraRef.current) {
+              const label = container.userData.label;
+              if (typeof label.lookAt === 'function') {
+                label.lookAt(cameraRef.current.position);
+              }
+            }
+          });
+
+          if (rendererRef.current && sceneRef.current && cameraRef.current) {
+            rendererRef.current.render(sceneRef.current, cameraRef.current);
+          }
+        };
+        animate();
+
+        // Add event listeners to the renderer's canvas
+        const canvas = renderer.domElement;
+        canvas.addEventListener('mousedown', handleMouseDown);
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('mouseup', handleMouseUp);
+        canvas.addEventListener('mouseleave', handleMouseUp);
+        
+        // Add touch events for mobile
+        canvas.addEventListener('touchstart', handleTouchStart);
+        canvas.addEventListener('touchmove', handleTouchMove);
+        canvas.addEventListener('touchend', handleTouchEnd);
+        canvas.addEventListener('touchcancel', handleTouchEnd);
+
+        // Add device motion handling
+        if (window.DeviceMotionEvent) {
+          window.addEventListener('devicemotion', handleDeviceMotion);
+        }
+
+        // Cleanup
+        return () => {
+          isActive = false;
+          window.removeEventListener('resize', handleResize);
+          window.removeEventListener('devicemotion', handleDeviceMotion);
+          canvas.removeEventListener('mousedown', handleMouseDown);
+          canvas.removeEventListener('mousemove', handleMouseMove);
+          canvas.removeEventListener('mouseup', handleMouseUp);
+          canvas.removeEventListener('mouseleave', handleMouseUp);
+          canvas.removeEventListener('touchstart', handleTouchStart);
+          canvas.removeEventListener('touchmove', handleTouchMove);
+          canvas.removeEventListener('touchend', handleTouchEnd);
+          canvas.removeEventListener('touchcancel', handleTouchEnd);
+          controls.dispose();
+        };
+      } catch (error) {
+        console.error('Error initializing scene:', error);
+        setError('Failed to initialize 3D view. Please try refreshing the page.');
+        return;
       }
-
-      // Cleanup
-      return () => {
-        isActive = false;
-        window.removeEventListener('resize', handleResize);
-        window.removeEventListener('devicemotion', handleDeviceMotion);
-        canvas.removeEventListener('mousedown', handleMouseDown);
-        canvas.removeEventListener('mousemove', handleMouseMove);
-        canvas.removeEventListener('mouseup', handleMouseUp);
-        canvas.removeEventListener('mouseleave', handleMouseUp);
-        canvas.removeEventListener('touchstart', handleTouchStart);
-        canvas.removeEventListener('touchmove', handleTouchMove);
-        canvas.removeEventListener('touchend', handleTouchEnd);
-        canvas.removeEventListener('touchcancel', handleTouchEnd);
-        controls.dispose();
-      };
     };
 
     initScene();
@@ -412,57 +472,252 @@ const ARView = ({ onClose, menuItems = [] }) => {
     loadModel(newItem, arItems.length);
   };
 
-  // Update the createLabel function to include nutritional information
-  const createLabel = (text, model, item) => {
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.width = 512;
-    canvas.height = 256; // Increased height for additional information
+  // Add the IngredientsPanel component
+  const IngredientsPanel = ({ ingredients }) => (
+    <div style={{
+      position: 'fixed',
+      right: '20px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      backgroundColor: 'rgba(0, 0, 0, 0.95)',
+      borderRadius: '15px',
+      padding: '20px',
+      color: 'white',
+      width: '300px',
+      zIndex: 1000,
+      boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+      border: '1px solid rgba(255, 255, 255, 0.1)'
+    }}>
+      <h3 style={{
+        margin: '0 0 15px 0',
+        color: '#4CAF50',
+        fontSize: '24px',
+        borderBottom: '2px solid #4CAF50',
+        paddingBottom: '10px',
+        textAlign: 'center'
+      }}>Ingredients Detected</h3>
+      
+      {ingredients && ingredients.length > 0 ? (
+        <ul style={{
+          listStyle: 'none',
+          padding: 0,
+          margin: 0
+        }}>
+          {ingredients.map((ingredient, index) => (
+            <li key={index} style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '12px',
+              fontSize: '18px',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              padding: '8px 12px',
+              borderRadius: '8px'
+            }}>
+              <span style={{
+                width: '8px',
+                height: '8px',
+                backgroundColor: '#4CAF50',
+                borderRadius: '50%',
+                marginRight: '12px',
+                flexShrink: 0
+              }}></span>
+              {ingredient.name}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p style={{ 
+          color: '#999', 
+          margin: 0,
+          textAlign: 'center',
+          fontSize: '16px'
+        }}>Detecting ingredients...</p>
+      )}
+    </div>
+  );
 
-    // Create background with rounded corners
-    context.fillStyle = 'rgba(0, 0, 0, 0.85)';
-    roundRect(context, 0, 0, canvas.width, canvas.height, 20);
-    context.fill();
-
-    // Style for the text
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-
-    // Item name
-    context.font = 'bold 48px Arial';
-    context.fillStyle = '#ffffff';
-    context.fillText(text, canvas.width/2, 50);
-
-    // Nutritional information
-    context.font = '28px Arial';
-    const nutritionInfo = [
-      `Calories: 266`,
-      `Protein: 12g`,
-      `Carbs: 34g`,
-      `Fat: 12g`
-    ];
-
-    // Draw nutrition info
-    nutritionInfo.forEach((info, index) => {
-      context.fillText(info, canvas.width/2, 100 + (index * 35));
+  // Add these helper functions
+  const blobToBase64 = (blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result.split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
     });
+  };
 
-    // Create texture from canvas
-    const texture = new THREE.CanvasTexture(canvas);
-    const material = new THREE.SpriteMaterial({ 
-      map: texture,
-      transparent: true,
-      opacity: 0.95
-    });
-    const sprite = new THREE.Sprite(material);
-    
-    // Position the label above the model
-    const modelBox = new THREE.Box3().setFromObject(model);
-    const modelHeight = modelBox.max.y - modelBox.min.y;
-    sprite.position.set(0, modelHeight + 1, 0); // Positioned higher for larger label
-    sprite.scale.set(2.5, 1.25, 1); // Adjusted scale for larger content
+  const parseGeminiResponse = (response) => {
+    const ingredients = [];
+    try {
+      const lines = response.split('\n');
+      lines.forEach(line => {
+        if (line.trim().startsWith('*')) {
+          const ingredient = line.trim().substring(1).trim();
+          if (ingredient) {
+            ingredients.push({
+              name: ingredient,
+              confidence: 95
+            });
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Error parsing Gemini response:', error);
+    }
+    return ingredients;
+  };
 
-    return sprite;
+  // Add the ingredient detection function
+  const detectIngredientsInImage = async (imageUrl, itemName) => {
+    try {
+      console.log('Starting Gemini ingredient detection for:', itemName);
+      console.log('Image URL:', imageUrl);
+
+      const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+      const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+      const response = await fetch(imageUrl);
+      const imageBlob = await response.blob();
+
+      const prompt = `detect ingredients used in the food from the image. 
+      Format each ingredient with an asterisk (*) at the start of the line.`;
+      const imagePart = {
+        inlineData: {
+          data: await blobToBase64(imageBlob),
+          mimeType: "image/jpeg"
+        }
+      };
+
+      const result = await model.generateContent([prompt, imagePart]);
+      const response_text = await result.response.text();
+      
+      console.log('Gemini Detection Results:', response_text);
+
+      const ingredients = parseGeminiResponse(response_text);
+      setDetectedIngredients(ingredients);
+      
+      return ingredients;
+
+    } catch (error) {
+      console.error('Ingredient detection error:', error);
+      setDetectedIngredients([]);
+      return [];
+    }
+  };
+
+  // Modify the createLabel function to handle errors better
+  const createLabel = async (text, model, item) => {
+    try {
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      if (!context) {
+        console.error('Could not get 2D context for label');
+        return null;
+      }
+
+      canvas.width = 512;
+      canvas.height = 300;
+
+      // Create background with rounded corners and gradient
+      const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, 'rgba(0, 0, 0, 0.95)');
+      gradient.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
+      context.fillStyle = gradient;
+      roundRect(context, 0, 0, canvas.width, canvas.height, 20);
+      context.fill();
+
+      // Add a subtle border
+      context.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      context.lineWidth = 2;
+      roundRect(context, 0, 0, canvas.width, canvas.height, 20);
+      context.stroke();
+
+      // Style for the text
+      context.textAlign = 'left';
+      context.textBaseline = 'top';
+
+      // Item name with decorative underline
+      context.font = 'bold 32px Arial';
+      context.fillStyle = '#ffffff';
+      const titleY = 20;
+      context.fillText(text, 20, titleY);
+      
+      // Add decorative underline
+      context.beginPath();
+      context.moveTo(20, titleY + 40);
+      context.lineTo(canvas.width - 20, titleY + 40);
+      context.strokeStyle = '#4CAF50';
+      context.lineWidth = 2;
+      context.stroke();
+
+      try {
+        let yOffset = 80;
+
+        // Display nutritional information
+        context.font = 'bold 24px Arial';
+        context.fillStyle = '#4CAF50';
+        context.fillText('Nutritional Information:', 20, yOffset);
+        yOffset += 35;
+
+        // Fetch and display nutritional info using Gemini
+        const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+        const aiModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+        const result = await aiModel.generateContent([
+          `For ${text}, provide only the following nutritional information in this exact format:
+          Calories: [number]
+          Protein: [number]g
+          Carbs: [number]g
+          Fat: [number]g
+          Allergens: [list]`
+        ]);
+
+        const response = await result.response;
+        const nutritionInfo = await response.text();
+
+        context.font = '22px Arial';
+        context.fillStyle = '#ffffff';
+        const nutritionLines = nutritionInfo.split('\n');
+        nutritionLines.forEach(line => {
+          if (line.trim()) {
+            context.fillText(line.trim(), 20, yOffset);
+            yOffset += 30;
+          }
+        });
+
+      } catch (error) {
+        console.error('Error in createLabel:', error);
+        context.font = '24px Arial';
+        context.fillStyle = '#ff6b6b';
+        context.fillText('Error loading information', 20, 100);
+      }
+
+      // Create texture from canvas
+      const texture = new THREE.CanvasTexture(canvas);
+      const material = new THREE.SpriteMaterial({
+        map: texture,
+        transparent: true,
+        opacity: 0.95
+      });
+      const sprite = new THREE.Sprite(material);
+
+      // Position the label above the model
+      const modelBox = new THREE.Box3().setFromObject(model);
+      const modelHeight = modelBox.max.y - modelBox.min.y;
+      sprite.position.set(0, modelHeight + 1, 0);
+      sprite.scale.set(2.5, 2, 1);
+
+      return sprite;
+
+    } catch (error) {
+      console.error('Error creating label:', error);
+      return null;
+    }
   };
 
   // Add this helper function for rounded rectangles
@@ -798,91 +1053,110 @@ const ARView = ({ onClose, menuItems = [] }) => {
         <FaTimes />
       </button>
       
-      <div className="ar-scene-container" ref={containerRef}>
-        <canvas className="ar-canvas"></canvas>
-      </div>
-      
-      {isLoading && (
-        <div className="ar-loading-overlay">
-          <div className="ar-spinner"></div>
-          <p>Initializing AR view...</p>
-        </div>
-      )}
-      
-      {error && (
+      {!webGLSupported ? (
         <div className="ar-error">
-          <p>{error}</p>
+          <h3>3D View Not Supported</h3>
+          <p>Your browser or device doesn't support WebGL, which is required for 3D viewing.</p>
           <div className="ar-error-buttons">
-            <button onClick={handleRetry} className="retry-btn">
-              Try Again
-            </button>
             <button onClick={onClose} className="close-btn">
-              Close AR View
+              Close
             </button>
           </div>
         </div>
-      )}
-      
-      {!isLoading && !error && (
+      ) : (
         <>
-          {/* Add More Items Button */}
-          {hasMultipleItems() && availableItems.length > 0 && (
-            <button 
-              onClick={() => setShowItemSelector(!showItemSelector)}
-              style={{
-                position: 'fixed',
-                bottom: '160px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                backgroundColor: '#2196F3',
-                color: 'white',
-                padding: '12px 24px',
-                borderRadius: '25px',
-                border: 'none',
-                boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '16px',
-                fontWeight: '500',
-                zIndex: 1000,
-                width: 'auto',
-                minWidth: '200px',
-                justifyContent: 'center'
-              }}
-            >
-              <FaPlus /> Add More Items ({availableItems.length} available)
-            </button>
-          )}
-
-          {/* Scale controls */}
-          <div className="ar-controls">
-            <div className="ar-item-controls">
-              <button className="ar-control-btn" onClick={() => scaleItem(1.2)}>
-                <FaPlus />
-              </button>
-              <button className="ar-control-btn" onClick={() => scaleItem(0.8)}>
-                <FaMinus />
-              </button>
-            </div>
+          <div className="ar-scene-container" ref={containerRef}>
+            <canvas className="ar-canvas"></canvas>
           </div>
           
-          {showItemSelector && <FloatingMenu />}
+          {isLoading && (
+            <div className="ar-loading-overlay">
+              <div className="ar-spinner"></div>
+              <p>Initializing AR view...</p>
+            </div>
+          )}
+          
+          {error && (
+            <div className="ar-error">
+              <p>{error}</p>
+              <div className="ar-error-buttons">
+                <button onClick={handleRetry} className="retry-btn">
+                  Try Again
+                </button>
+                <button onClick={onClose} className="close-btn">
+                  Close AR View
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {!isLoading && !error && (
+            <>
+              {/* Add More Items Button */}
+              {hasMultipleItems() && availableItems.length > 0 && (
+                <button 
+                  onClick={() => setShowItemSelector(!showItemSelector)}
+                  style={{
+                    position: 'fixed',
+                    bottom: '160px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: '#2196F3',
+                    color: 'white',
+                    padding: '12px 24px',
+                    borderRadius: '25px',
+                    border: 'none',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    zIndex: 1000,
+                    width: 'auto',
+                    minWidth: '200px',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <FaPlus /> Add More Items ({availableItems.length} available)
+                </button>
+              )}
+
+              {/* Scale controls */}
+              <div className="ar-controls">
+                <div className="ar-item-controls">
+                  <button className="ar-control-btn" onClick={() => scaleItem(1.2)}>
+                    <FaPlus />
+                  </button>
+                  <button className="ar-control-btn" onClick={() => scaleItem(0.8)}>
+                    <FaMinus />
+                  </button>
+                </div>
+              </div>
+              
+              {showItemSelector && <FloatingMenu />}
+
+              {/* Add the ingredients panel */}
+              {detectedIngredients.length > 0 && (
+                <IngredientsPanel ingredients={detectedIngredients} />
+              )}
+            </>
+          )}
+          
+          <div className="ar-instructions">
+            <p>Move device closer or further to zoom</p>
+            <p>Tap and drag to move items</p>
+            <p>Use two fingers to rotate view</p>
+            <p>Use + and - buttons to adjust base size</p>
+            {hasMultipleItems() && availableItems.length > 0 && (
+              <p style={{ color: '#4CAF50', fontWeight: 'bold' }}>
+                Tap the green + button to add more items
+              </p>
+            )}
+          </div>
         </>
       )}
-      
-      <div className="ar-instructions">
-        <p>Move device closer or further to zoom</p>
-        <p>Tap and drag to move items</p>
-        <p>Use two fingers to rotate view</p>
-        <p>Use + and - buttons to adjust base size</p>
-        {hasMultipleItems() && availableItems.length > 0 && (
-          <p style={{ color: '#4CAF50', fontWeight: 'bold' }}>
-            Tap the green + button to add more items
-          </p>
-        )}
-      </div>
     </div>
   );
 };

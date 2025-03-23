@@ -1,5 +1,5 @@
 const express = require("express");
-const { stafflogin, send_otp, staff_verify, staff_reset_password, applyleave, reservations_todays_reservations, reservations_verify, reservations_checkin, reservations_todays_checkouts, reservations_checkout, staff_confirmbook, staff_profile, staff_profile_get, staff_change_password, staff_upload_photo, resdetails, handleCancellation, staff_rooms_available, staff_rooms_types, pickJob, completeJob, jobdetail, asjobdetails, leaveDetails, leaveDetail, deleteLeave, staff_profile_put, profile_put, Addmenuitem, getMenuItems, addtable, gettables, updatetable, deletetable, deleteMenuItem, updatemenuitem, getRestaurantOrders, updateOrderStatus, getReservations, updateReservationStatus, getOneMenuItem, asjobdetailsss } = require("../Controller/staffcontroller");
+const { stafflogin, send_otp, staff_verify, staff_reset_password, applyleave, reservations_todays_reservations, reservations_verify, reservations_checkin, reservations_todays_checkouts, reservations_checkout, staff_confirmbook, staff_profile, staff_profile_get, staff_change_password, staff_upload_photo, resdetails, handleCancellation, staff_rooms_available, staff_rooms_types, pickJob, completeJob, jobdetail, asjobdetails, leaveDetails, leaveDetail, deleteLeave, staff_profile_put, profile_put, Addmenuitem, getMenuItems, addtable, gettables, updatetable, deletetable, deleteMenuItem, updatemenuitem, getRestaurantOrders, updateOrderStatus, getReservations, updateReservationStatus, getOneMenuItem, asjobdetailsss,uploadMenuFiles, upload3DModel } = require("../Controller/staffcontroller");
 const router=express.Router();
 
 
@@ -44,6 +44,7 @@ router.put('/restaurant/orders/status/:orderId',updateOrderStatus)
 router.get('/restaurant/reservations',getReservations)
 router.put('/restaurant/reservations/status/:reservationId',updateReservationStatus)
 router.get('/menu/:itemId',getOneMenuItem)
+router.post('/menu/upload-model/:id', upload3DModel);
 // router.get('/dashboard-stats',getDashboardStats)
 
 

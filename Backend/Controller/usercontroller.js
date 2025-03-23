@@ -1096,7 +1096,7 @@ exports.getMenuItemss =  async (req, res) => {
   try {
       // Fetch all active menu items
       const menuItems = await MenuItem.find({ isAvailable: true })
-          .select('name description price category image preparationTime specialTags spicyLevel foodtype quantity availableQuantity')
+          .select('name description price category image preparationTime specialTags spicyLevel foodtype quantity availableQuantity model3D model3DPath')
           .sort({ category: 1, name: 1 }); // Sort by category and then by name
 
       // Check if any menu items exist

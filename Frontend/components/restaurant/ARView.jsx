@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { FaTimes, FaCamera, FaPlus, FaArrowLeft, FaArrowRight, FaMinus } from 'react-icons/fa';
+import { FaTimes, FaCamera, FaPlus, FaArrowLeft, FaArrowRight, FaMinus, FaCube } from 'react-icons/fa';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
@@ -9,6 +9,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as tf from '@tensorflow/tfjs';
 import * as cocossd from '@tensorflow-models/coco-ssd';
 import '@tensorflow/tfjs-backend-webgl';
+import { Button } from '@mui/material';
 
 const ARView = ({ item, onClose, menuItems = [] }) => {
   const containerRef = useRef(null);
@@ -53,7 +54,10 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
   // Add loadModel function before the useEffect
   const loadModel = (item, index) => {
     const loader = new GLTFLoader();
-    const modelPath = item.model3d || '/models/pizza.glb';
+    
+    // Determine which model to load
+    const modelPath = item.model3D || '/models/pizza.glb';
+    console.log('Loading model from:', modelPath); // Debug log
 
     loader.load(
       modelPath,
@@ -78,7 +82,9 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
         }
         
         const label = await createLabel(item.name, model, item);
-        container.add(label);
+        if (label) {
+          container.add(label);
+        }
         
         if (sceneRef.current) {
           if (modelsRef.current[index]) {
@@ -100,9 +106,18 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
           animate();
         }
       },
-      undefined,
+      // Add loading progress callback
+      (progress) => {
+        console.log('Loading progress:', (progress.loaded / progress.total * 100) + '%');
+      },
+      // Add error handling callback
       (error) => {
         console.error('Error loading model:', error);
+        // If the custom model fails to load, try loading the default pizza model
+        if (modelPath !== '/models/pizza.glb') {
+          console.log('Falling back to default pizza model');
+          loadModel({ ...item, model3D: '/models/pizza.glb' }, index);
+        }
       }
     );
   };
@@ -967,6 +982,10 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
     console.log('Menu items:', menuItems);
   }, [availableItems, menuItems]);
 
+  const handlePreviewAR = (item) => {
+    // Implementation of handlePreviewAR function
+  };
+
   return (
     <div className="ar-view-container">
       <button className="ar-close-btn" onClick={onClose}>
@@ -1063,6 +1082,17 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
           </p>
         )}
       </div>
+
+      <Button
+        onClick={() => handlePreviewAR(item)}
+        startIcon={<FaCube />}
+        variant="contained"
+        color="primary"
+        size="small"
+        title={item.model3D ? 'View custom 3D model' : 'View default pizza model'}
+      >
+        {item.model3D ? 'Preview Custom AR' : 'Preview Default AR'}
+      </Button>
     </div>
   );
 };

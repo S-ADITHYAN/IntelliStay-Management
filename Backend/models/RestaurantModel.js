@@ -62,7 +62,11 @@ const menuItemSchema = new mongoose.Schema({
     },
     model3D: {
         type: String,
-        required: false
+        default: null
+    },
+    model3DPath: {
+        type: String,
+        default: null
     }
 }, { timestamps: true });
 

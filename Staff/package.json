@@ -19,6 +19,7 @@
     "@fullcalendar/list": "^6.1.11",
     "@fullcalendar/react": "^6.1.11",
     "@fullcalendar/timegrid": "^6.1.11",
+    "@google/generative-ai": "^0.24.0",
     "@mui/icons-material": "^5.15.10",
     "@mui/material": "^5.15.10",
     "@mui/x-data-grid": "^6.19.5",
