@@ -37,6 +37,7 @@
     "face-api.js": "^0.22.2",
     "firebase": "^10.13.0",
     "framer-motion": "^10.18.0",
+    "hammerjs": "^2.0.8",
     "html5-qrcode": "^2.3.8",
     "jsonwebtoken": "^9.0.2",
     "jspdf": "^2.5.2",

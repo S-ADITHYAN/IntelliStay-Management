@@ -6,10 +6,12 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import './ARStyles.css';
 import Swal from 'sweetalert2';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import * as tf from '@tensorflow/tfjs';
-import * as cocossd from '@tensorflow-models/coco-ssd';
-import '@tensorflow/tfjs-backend-webgl';
+// import * as tf from '@tensorflow/tfjs';
+// import * as cocossd from '@tensorflow-models/coco-ssd';
+// import '@tensorflow/tfjs-backend-webgl';
 import { Button } from '@mui/material';
+import axios from 'axios';
+import Hammer from 'hammerjs';
 
 const ARView = ({ item, onClose, menuItems = [] }) => {
   const containerRef = useRef(null);
@@ -51,101 +53,145 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
     return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
   });
 
+  // Add at the beginning of ARView component
+  const [realTimeMetrics, setRealTimeMetrics] = useState({
+    fps: 0,
+    memoryUsage: 0,
+    modelLoadTime: 0,
+    interactionLatency: 0
+  });
+
+  // Add at the beginning of MenuDisplay component
+  const [performanceMetrics, setPerformanceMetrics] = useState({
+    loadTime: 0,
+    ingredientDetectionTime: 0,
+    detectionAccuracy: 0,
+    successfulDetections: 0,
+    totalAttempts: 0
+  });
+
+  // Add to ARView.jsx at the beginning of the component
+  const [interactionStats, setInteractionStats] = useState({
+    touchDrag: { success: 0, attempts: 0 },
+    pinchZoom: { success: 0, attempts: 0 },
+    rotation: { success: 0, attempts: 0 },
+    motionControl: { success: 0, attempts: 0 },
+    times: {
+      positioning: [],
+      scaling: [],
+      rotation: []
+    }
+  });
+
   // Add loadModel function before the useEffect
-  const loadModel = (item, index) => {
+  const loadModel = async (item, index) => {
+    const startTime = performance.now();
     const loader = new GLTFLoader();
     
-    // Determine which model to load
-    const modelPath = item.model3D || '/models/pizza.glb';
-    console.log('Loading model from:', modelPath); // Debug log
-
-    loader.load(
-      modelPath,
-      async (gltf) => {
-        const model = gltf.scene;
-        const container = new THREE.Group();
-        
-        // Set initial position
-        model.position.set(0, 0, 0);
-        container.position.set(
-          item.position.x,
-          item.position.y,
-          item.position.z
-        );
-        container.scale.setScalar(item.scale);
-        
-        container.add(model);
-        
-        // Detect ingredients when loading the model
-        if (item.image) {
-          await detectIngredientsInImage(item.image, item.name);
-        }
-        
-        const label = await createLabel(item.name, model, item);
-        if (label) {
-          container.add(label);
-        }
-        
-        if (sceneRef.current) {
-          if (modelsRef.current[index]) {
-            sceneRef.current.remove(modelsRef.current[index]);
-          }
-          sceneRef.current.add(container);
-          modelsRef.current[index] = container;
-          
-          const updateLabel = () => {
-            if (label && cameraRef.current) {
-              label.lookAt(cameraRef.current.position);
-            }
-          };
-          
-          const animate = () => {
-            requestAnimationFrame(animate);
-            updateLabel();
-          };
-          animate();
-        }
-      },
-      // Add loading progress callback
-      (progress) => {
-        console.log('Loading progress:', (progress.loaded / progress.total * 100) + '%');
-      },
-      // Add error handling callback
-      (error) => {
-        console.error('Error loading model:', error);
-        // If the custom model fails to load, try loading the default pizza model
-        if (modelPath !== '/models/pizza.glb') {
-          console.log('Falling back to default pizza model');
-          loadModel({ ...item, model3D: '/models/pizza.glb' }, index);
-        }
+    try {
+      const modelPath = item.model3D || '/models/pizza.glb';
+      console.group('📦 Model Loading Metrics');
+      console.log('Model Load Time:', (performance.now() - startTime).toFixed(2), 'ms');
+      console.log('Model Path:', modelPath);
+      
+      const gltf = await loader.loadAsync(modelPath);
+      const model = gltf.scene;
+      const container = new THREE.Group();
+      
+      // Set initial position
+      model.position.set(0, 0, 0);
+      container.position.set(
+        item.position.x,
+        item.position.y,
+        item.position.z
+      );
+      container.scale.setScalar(item.scale);
+      
+      container.add(model);
+      
+      // Detect ingredients when loading the model
+      if (item.image) {
+        await detectIngredientsInImage(item.image, item.name);
       }
-    );
+      
+      const label = await createLabel(item.name, model, item);
+      if (label) {
+        container.add(label);
+      }
+      
+      if (sceneRef.current) {
+        if (modelsRef.current[index]) {
+          sceneRef.current.remove(modelsRef.current[index]);
+        }
+        sceneRef.current.add(container);
+        modelsRef.current[index] = container;
+        
+        const updateLabel = () => {
+          if (label && cameraRef.current) {
+            label.lookAt(cameraRef.current.position);
+          }
+        };
+        
+        const animate = () => {
+          requestAnimationFrame(animate);
+          updateLabel();
+        };
+        animate();
+      }
+
+      const endTime = performance.now();
+      const loadTime = endTime - startTime;
+
+      console.group('📦 Model Loading Metrics');
+      console.log('Model Load Time:', loadTime.toFixed(2), 'ms');
+      console.log('Model Path:', item.model3D || 'default');
+      console.log('Model Memory:', model.scene.toJSON().size, 'bytes');
+      console.groupEnd();
+
+      setRealTimeMetrics(prev => ({
+        ...prev,
+        modelLoadTime: loadTime
+      }));
+      return container;
+    } catch (error) {
+      console.error('Error loading model:', error);
+      throw error;
+    }
   };
 
   // Define handleDeviceMotion at component level
   const handleDeviceMotion = (event) => {
-    if (!cameraRef.current) return;
-    
-    const acceleration = event.accelerationIncludingGravity;
-    if (!acceleration) return;
-    
-    // Update camera position
-    if (Math.abs(acceleration.z) > 0.5) {
-      cameraRef.current.position.z += acceleration.z * 0.005;
-      cameraRef.current.position.z = THREE.MathUtils.clamp(
-        cameraRef.current.position.z,
-        1,
-        10
-      );
+    const startTime = performance.now();
+    try {
+      if (!cameraRef.current) return;
       
-      // Update all models' scale based on camera distance
-      modelsRef.current.forEach((container, index) => {
-        if (container) {
-          const distance = cameraRef.current.position.distanceTo(container.position);
-          const scale = 1 + (1 / distance);
-          container.scale.setScalar(scale * arItems[index].scale);
+      const acceleration = event.accelerationIncludingGravity;
+      if (!acceleration) return;
+      
+      if (Math.abs(acceleration.z) > 0.5) {
+        cameraRef.current.position.z += acceleration.z * 0.005;
+        cameraRef.current.position.z = THREE.MathUtils.clamp(
+          cameraRef.current.position.z,
+          1,
+          10
+        );
+        
+        setInteractionStats(prev => ({
+          ...prev,
+          motionControl: {
+            success: prev.motionControl.success + 1,
+            attempts: prev.motionControl.attempts + 1
+          }
+        }));
+      }
+    } catch (error) {
+      setInteractionStats(prev => ({
+        ...prev,
+        motionControl: {
+          ...prev.motionControl,
+          attempts: prev.motionControl.attempts + 1
         }
-      });
+      }));
     }
   };
 
@@ -246,10 +292,30 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
       canvas.addEventListener('touchend', handleTouchEnd);
       canvas.addEventListener('touchcancel', handleTouchEnd);
 
+      // Add gesture recognizers
+      const mc = new Hammer.Manager(canvas);
+      mc.add(new Hammer.Pinch());
+      mc.add(new Hammer.Rotate());
+      
+      mc.on('pinch', handlePinchZoom);
+      mc.on('rotate', handleRotation);
+
       // Add device motion handling
       if (window.DeviceMotionEvent) {
         window.addEventListener('devicemotion', handleDeviceMotion);
       }
+
+      // Add FPS monitoring
+      const fpsMonitor = setInterval(() => {
+        if (rendererRef.current) {
+          const fps = rendererRef.current.info.render.fps;
+          console.log('Current FPS:', fps);
+          setRealTimeMetrics(prev => ({
+            ...prev,
+            fps: fps
+          }));
+        }
+      }, 1000);
 
       // Cleanup
       return () => {
@@ -264,6 +330,7 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
         canvas.removeEventListener('touchend', handleTouchEnd);
         canvas.removeEventListener('touchcancel', handleTouchEnd);
         controls.dispose();
+        clearInterval(fpsMonitor);
       };
     };
 
@@ -472,8 +539,41 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
   // Add state for storing detected ingredients
   const [detectedIngredients, setDetectedIngredients] = useState([]);
 
-  // Modify the detectIngredientsInImage function
+  // Modify fetchData function to measure load time
+  const fetchData = async () => {
+    const startTime = performance.now();
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const menuResponse = await axios.get(`${import.meta.env.VITE_API}/user/restaurant/menuitems`);
+      const endTime = performance.now();
+      
+      console.group('📊 Menu Loading Performance');
+      console.log('Load Time:', (endTime - startTime).toFixed(2), 'ms');
+      console.log('Items Loaded:', menuResponse.data.length);
+      console.log('Response Size:', JSON.stringify(menuResponse.data).length, 'bytes');
+      console.groupEnd();
+
+      setPerformanceMetrics(prev => ({
+        ...prev,
+        loadTime: endTime - startTime
+      }));
+
+      setMenuItems(Array.isArray(menuResponse.data) ? menuResponse.data : []);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError('Failed to load menu data. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Add ingredient detection performance monitoring
   const detectIngredientsInImage = async (imageUrl, itemName) => {
+    const startTime = performance.now();
+    setIsLoading(true);
+    
     try {
       console.log('Starting Gemini ingredient detection for:', itemName);
       console.log('Image URL:', imageUrl);
@@ -487,6 +587,7 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
 
       const prompt = `detect ingredients used in the food from the image. 
       Format each ingredient with an asterisk (*) at the start of the line.`;
+      
       const imagePart = {
         inlineData: {
           data: await blobToBase64(imageBlob),
@@ -497,17 +598,39 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
       const result = await model.generateContent([prompt, imagePart]);
       const response_text = await result.response.text();
       
-      console.log('Gemini Detection Results:', response_text);
+      const endTime = performance.now();
+      const processingTime = endTime - startTime;
 
+      // Parse ingredients from response
       const ingredients = parseGeminiResponse(response_text);
-      setDetectedIngredients(ingredients); // Update the state with detected ingredients
       
+      console.group('🧪 Ingredient Detection Metrics');
+      console.log('Processing Time:', processingTime.toFixed(2), 'ms');
+      console.log('Ingredients Detected:', ingredients.length);
+      console.log('Detection Results:', ingredients);
+      console.log('Response Length:', response_text.length, 'characters');
+      console.groupEnd();
+
+      setPerformanceMetrics(prev => ({
+        ...prev,
+        ingredientDetectionTime: processingTime,
+        successfulDetections: prev.successfulDetections + 1,
+        totalAttempts: prev.totalAttempts + 1
+      }));
+
+      setDetectedIngredients(ingredients);
       return ingredients;
 
     } catch (error) {
       console.error('Ingredient detection error:', error);
-      setDetectedIngredients([]); // Clear ingredients on error
+      setPerformanceMetrics(prev => ({
+        ...prev,
+        totalAttempts: prev.totalAttempts + 1
+      }));
+      setDetectedIngredients([]);
       return [];
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -685,6 +808,15 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
 
   // Update the handleMouseDown function to work with the container
   const handleMouseDown = (event) => {
+    const startTime = performance.now();
+    setInteractionStats(prev => ({
+      ...prev,
+      touchDrag: {
+        ...prev.touchDrag,
+        attempts: prev.touchDrag.attempts + 1
+      }
+    }));
+    
     event.preventDefault();
     
     const rect = event.target.getBoundingClientRect();
@@ -723,42 +855,54 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
         container.position
       );
     }
+    
+    if (dragRef.current.selectedModel) {
+      setInteractionStats(prev => ({
+        ...prev,
+        touchDrag: {
+          ...prev.touchDrag,
+          success: prev.touchDrag.success + 1
+        },
+        times: {
+          ...prev.times,
+          positioning: [...prev.times.positioning, performance.now() - startTime]
+        }
+      }));
+    }
   };
 
   const handleMouseMove = (event) => {
     if (!dragRef.current.isDragging || !dragRef.current.selectedModel) return;
     
-    const rect = event.target.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-    const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-    
-    dragRef.current.mouse.set(x, y);
-    dragRef.current.raycaster.setFromCamera(dragRef.current.mouse, cameraRef.current);
-    
-    // Calculate intersection with drag plane
-    if (dragRef.current.raycaster.ray.intersectPlane(
-      dragRef.current.plane,
-      dragRef.current.intersection
-    )) {
-      // Move the model to the new position
-      dragRef.current.selectedModel.position.copy(dragRef.current.intersection);
+    const startTime = performance.now();
+    try {
+      const rect = event.target.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
       
-      // Update arItems state with the new position
-      const modelIndex = modelsRef.current.indexOf(dragRef.current.selectedModel);
-      if (modelIndex !== -1) {
-        setArItems(prev => {
-          const newItems = [...prev];
-          newItems[modelIndex] = {
-            ...newItems[modelIndex],
-            position: {
-              x: dragRef.current.intersection.x,
-              y: dragRef.current.intersection.y,
-              z: dragRef.current.intersection.z
-            }
-          };
-      return newItems;
-    });
+      dragRef.current.mouse.set(x, y);
+      dragRef.current.raycaster.setFromCamera(dragRef.current.mouse, cameraRef.current);
+      
+      if (dragRef.current.raycaster.ray.intersectPlane(
+        dragRef.current.plane,
+        dragRef.current.intersection
+      )) {
+        dragRef.current.selectedModel.position.copy(dragRef.current.intersection);
+        
+        setInteractionStats(prev => ({
+          ...prev,
+          touchDrag: {
+            ...prev.touchDrag,
+            success: prev.touchDrag.success + 1
+          },
+          times: {
+            ...prev.times,
+            positioning: [...prev.times.positioning, performance.now() - startTime]
+          }
+        }));
       }
+    } catch (error) {
+      console.error('Drag error:', error);
     }
   };
   
@@ -986,6 +1130,174 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
     // Implementation of handlePreviewAR function
   };
 
+  // Add a monitoring component for ingredient detection
+  const IngredientDetectionMonitor = () => {
+    useEffect(() => {
+      if (performanceMetrics.totalAttempts > 0) {
+        console.group('🔍 Ingredient Detection Performance');
+        console.log('Average Detection Time:', 
+          (performanceMetrics.ingredientDetectionTime / performanceMetrics.totalAttempts).toFixed(2), 'ms');
+        console.log('Success Rate:', 
+          ((performanceMetrics.successfulDetections / performanceMetrics.totalAttempts) * 100).toFixed(2), '%');
+        console.log('Total Attempts:', performanceMetrics.totalAttempts);
+        console.log('Successful Detections:', performanceMetrics.successfulDetections);
+        console.groupEnd();
+      }
+    }, [performanceMetrics]);
+
+    return null; // Hidden monitoring component
+  };
+
+  const PerformanceMonitor = () => {
+    const [metrics, setMetrics] = useState({});
+
+    useEffect(() => {
+      const monitor = setInterval(() => {
+        const currentMetrics = {
+          timestamp: new Date().toISOString(),
+          memory: performance.memory?.usedJSHeapSize / 1048576 || 0,
+          fps: realTimeMetrics.fps,
+          loadTime: performanceMetrics.loadTime,
+          aiProcessing: performanceMetrics.ingredientDetectionTime,
+          recognition: performanceMetrics.detectionAccuracy
+        };
+
+        console.group(`📊 Performance Metrics - ${currentMetrics.timestamp}`);
+        console.table(currentMetrics);
+        console.groupEnd();
+
+        setMetrics(currentMetrics);
+      }, 5000);
+
+      return () => clearInterval(monitor);
+    }, []);
+
+    return null; // Hidden component for monitoring
+  };
+
+  // Add FPS monitoring
+  useEffect(() => {
+    let frameCount = 0;
+    let lastTime = performance.now();
+    let animationFrameId;
+
+    const measureFPS = () => {
+      const now = performance.now();
+      const delta = now - lastTime;
+      frameCount++;
+
+      if (delta >= 1000) {
+        const fps = Math.round((frameCount * 1000) / delta);
+        console.group('🎮 Performance Metrics');
+        console.log('Current FPS:', fps);
+        
+        // Log interaction statistics
+        const dragSuccess = (interactionStats.touchDrag.success / interactionStats.touchDrag.attempts * 100) || 0;
+        const zoomSuccess = (interactionStats.pinchZoom.success / interactionStats.pinchZoom.attempts * 100) || 0;
+        const rotateSuccess = (interactionStats.rotation.success / interactionStats.rotation.attempts * 100) || 0;
+        const motionSuccess = (interactionStats.motionControl.success / interactionStats.motionControl.attempts * 100) || 0;
+
+        console.group('Interaction Success Rates');
+        console.table({
+          'Touch Drag': { rate: `${dragSuccess.toFixed(1)}%`, attempts: interactionStats.touchDrag.attempts },
+          'Pinch Zoom': { rate: `${zoomSuccess.toFixed(1)}%`, attempts: interactionStats.pinchZoom.attempts },
+          'Rotation': { rate: `${rotateSuccess.toFixed(1)}%`, attempts: interactionStats.rotation.attempts },
+          'Motion Controls': { rate: `${motionSuccess.toFixed(1)}%`, attempts: interactionStats.motionControl.attempts }
+        });
+
+        // Log average interaction times
+        const avgPositioning = interactionStats.times.positioning.reduce((a, b) => a + b, 0) / interactionStats.times.positioning.length || 0;
+        const avgScaling = interactionStats.times.scaling.reduce((a, b) => a + b, 0) / interactionStats.times.scaling.length || 0;
+        const avgRotation = interactionStats.times.rotation.reduce((a, b) => a + b, 0) / interactionStats.times.rotation.length || 0;
+
+        console.group('Average Interaction Times');
+        console.table({
+          'Model Positioning': { time: `${(avgPositioning/1000).toFixed(1)}s`, samples: interactionStats.times.positioning.length },
+          'Scaling': { time: `${(avgScaling/1000).toFixed(1)}s`, samples: interactionStats.times.scaling.length },
+          'Rotation': { time: `${(avgRotation/1000).toFixed(1)}s`, samples: interactionStats.times.rotation.length }
+        });
+
+        console.groupEnd();
+        console.groupEnd();
+
+        frameCount = 0;
+        lastTime = now;
+      }
+
+      animationFrameId = requestAnimationFrame(measureFPS);
+    };
+
+    measureFPS();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+    };
+  }, [interactionStats]);
+
+  // Add pinch zoom handler
+  const handlePinchZoom = (event) => {
+    const startTime = performance.now();
+    try {
+      if (modelsRef.current[selectedItemIndex]) {
+        const scale = event.scale;
+        const currentScale = modelsRef.current[selectedItemIndex].scale.x;
+        const newScale = Math.max(0.5, Math.min(3, currentScale * scale));
+        modelsRef.current[selectedItemIndex].scale.setScalar(newScale);
+
+        setInteractionStats(prev => ({
+          ...prev,
+          pinchZoom: {
+            success: prev.pinchZoom.success + 1,
+            attempts: prev.pinchZoom.attempts + 1
+          },
+          times: {
+            ...prev.times,
+            scaling: [...prev.times.scaling, performance.now() - startTime]
+          }
+        }));
+      }
+    } catch (error) {
+      setInteractionStats(prev => ({
+        ...prev,
+        pinchZoom: {
+          ...prev.pinchZoom,
+          attempts: prev.pinchZoom.attempts + 1
+        }
+      }));
+    }
+  };
+
+  // Add rotation handler
+  const handleRotation = (event) => {
+    const startTime = performance.now();
+    try {
+      if (modelsRef.current[selectedItemIndex]) {
+        const rotation = event.rotation;
+        modelsRef.current[selectedItemIndex].rotation.y += rotation;
+
+        setInteractionStats(prev => ({
+          ...prev,
+          rotation: {
+            success: prev.rotation.success + 1,
+            attempts: prev.rotation.attempts + 1
+          },
+          times: {
+            ...prev.times,
+            rotation: [...prev.times.rotation, performance.now() - startTime]
+          }
+        }));
+      }
+    } catch (error) {
+      setInteractionStats(prev => ({
+        ...prev,
+        rotation: {
+          ...prev.rotation,
+          attempts: prev.rotation.attempts + 1
+        }
+      }));
+    }
+  };
+
   return (
     <div className="ar-view-container">
       <button className="ar-close-btn" onClick={onClose}>
@@ -1093,6 +1405,9 @@ const ARView = ({ item, onClose, menuItems = [] }) => {
       >
         {item.model3D ? 'Preview Custom AR' : 'Preview Default AR'}
       </Button>
+
+      <IngredientDetectionMonitor />
+      <PerformanceMonitor />
     </div>
   );
 };
