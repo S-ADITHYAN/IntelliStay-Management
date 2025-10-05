@@ -37,7 +37,7 @@ const [isFaceApiLoaded, setIsFaceApiLoaded] = useState(false);
 
 const handleForgotPassword = (e) => {
   e.preventDefault();
-  axios.post(`${import.meta.env.VITE_API}/send-otp`, { email: resetPasswordData.emailReset })
+  axios.post(`${import.meta.env.VITE_API}/user/send-otp`, { email: resetPasswordData.emailReset })
     .then(res => {
       if (res.status === 200) {
         setOtpSent(true);
@@ -53,7 +53,7 @@ const handleForgotPassword = (e) => {
 
 const handleVerifyOtp = (e) => {
   e.preventDefault();
-  axios.post(`${import.meta.env.VITE_API}/verify`, { email: resetPasswordData.emailReset, otp: resetPasswordData.otp })
+  axios.post(`${import.meta.env.VITE_API}/user/verify`, { email: resetPasswordData.emailReset, otp: resetPasswordData.otp })
     .then(res => {
       if (res.status === 200) {
         setOtpVerified(true);
@@ -75,7 +75,7 @@ const handleResetPassword = (e) => {
     Swal.fire('Passwords do not match!');
     return;
   }
-  axios.post(`${import.meta.env.VITE_API}/reset-password`, { email: resetPasswordData.emailReset, password: resetPasswordData.newPassword,token:verifytoken })
+  axios.post(`${import.meta.env.VITE_API}/user/reset-password`, { email: resetPasswordData.emailReset, password: resetPasswordData.newPassword,token:verifytoken })
     .then(res => {
       if (res.status === 200) {
         Swal.fire('Password reset successfully.');
@@ -155,7 +155,7 @@ const navigate=useNavigate();
 const handleSubmit = (e) => {
   e.preventDefault();
   // Send registration request
-  axios.post(`${import.meta.env.VITE_API}/register`, formData)
+  axios.post(`${import.meta.env.VITE_API}/user/register`, formData)
     .then(res => {
       console.log(res.data.formdata)
       setdatas({...res.data.formdata})
@@ -179,7 +179,7 @@ const handleOtpSubmit = () => {
   
   setdatas({...datas, otp : otp })
   console.log(datas);
-  axios.post(`${import.meta.env.VITE_API}/verify-otp`, datas)
+  axios.post(`${import.meta.env.VITE_API}/user/verify-otp`, datas)
     .then(res => {
       if (res.status === 200) {
 
